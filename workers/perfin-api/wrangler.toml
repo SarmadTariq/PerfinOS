@@ -1,0 +1,7 @@
+name = "perfin-os-api"
+main = "src/index.ts"
+compatibility_date = "2026-05-19"
+
+[[r2_buckets]]
+binding = "RECEIPTS"
+bucket_name = "PERFIN_OS_RECEIPTS_PLACEHOLDER"

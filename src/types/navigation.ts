@@ -1,0 +1,23 @@
+export type RootStackParamList = {
+  Login: undefined;
+  Signup: undefined;
+  ForgotPassword: undefined;
+  Onboarding: undefined;
+  Dashboard: undefined;
+  Transactions: undefined;
+  TransactionDetail: { transactionId: string };
+  AddTransaction: undefined;
+  EditTransaction: { transactionId: string };
+  Map: undefined;
+  Categories: undefined;
+  Budgets: undefined;
+  SavingsGoals: undefined;
+  Insights: undefined;
+  Analytics: undefined;
+  RecurringExpenses: undefined;
+  Reports: undefined;
+  Settings: undefined;
+  Profile: undefined;
+  HelpAbout: undefined;
+  NotFound: undefined;
+};
