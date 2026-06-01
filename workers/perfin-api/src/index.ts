@@ -1,5 +1,5 @@
 interface Env {
-  RECEIPTS: R2Bucket;
+  RECEIPTS?: R2Bucket;
   GEMINI_API_KEY?: string;
   GOOGLE_PLACES_API_KEY?: string;
   FIREBASE_PROJECT_ID?: string;
@@ -134,8 +134,13 @@ const handlePlaces = async (request: Request, env: Env): Promise<Response> => {
 // ── Gemini AI proxy (report + chat share same handler) ─────────────────────
 
 const handleAiReport = async (request: Request, env: Env): Promise<Response> => {
+  
+  console.log("AI REPORT HIT");  //log test
+  
   requireAuth(request);
+  console.log("passed auth");
   if (!env.GEMINI_API_KEY) return notConfigured('Gemini AI');
+  console.log("has gemini key");
 
   const aggregatePayload = await request.json();
   const prompt = [
@@ -147,7 +152,7 @@ const handleAiReport = async (request: Request, env: Env): Promise<Response> => 
   ].join('\n\n');
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -155,7 +160,16 @@ const handleAiReport = async (request: Request, env: Env): Promise<Response> => 
     }
   );
 
-  if (!response.ok) return json({ error: 'AI provider failed' }, response.status);
+  console.log("gemini status", response.status);
+
+  if (!response.ok) {
+    const text = await response.text();
+
+    console.log("GEMINI STATUS:", response.status);
+    console.log("GEMINI ERROR:", text);
+
+    throw new Error(`Gemini failed: ${response.status}`);
+  }
   const model = (await response.json()) as any;
   const text =
     model.candidates?.[0]?.content?.parts?.[0]?.text || 'No AI response was generated.';
@@ -171,6 +185,7 @@ const handleAiReport = async (request: Request, env: Env): Promise<Response> => 
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+
     if (request.method === 'OPTIONS') return json({});
 
     const url = new URL(request.url);
