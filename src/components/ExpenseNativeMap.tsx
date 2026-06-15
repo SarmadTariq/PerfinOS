@@ -113,7 +113,8 @@ export const ExpenseNativeMap = ({
 const styles = StyleSheet.create({
   map: {
     flex: 1,
-    minHeight: 420,
+    minHeight: 300,
+    maxHeight: 300,
   },
   heatTouchTarget: {
     width: 44,

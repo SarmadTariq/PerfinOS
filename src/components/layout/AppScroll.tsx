@@ -42,6 +42,7 @@ const styles = StyleSheet.create({
   },
   pageFrame: {
     width: '100%',
+    // height: "100%",
     maxWidth: 1180,
     alignSelf: 'center',
   },

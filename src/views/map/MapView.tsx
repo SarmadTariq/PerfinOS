@@ -77,38 +77,22 @@ export const MapScreen = () => (
             </ScrollView>
           </View>
           {/* Canvas — fixed height block */}
-          <MapCanvas
-            transactions={visibleTransactions}
-            categories={data.categories}
-            selectedId={activeTransaction?.id}
-            onSelect={setSelected}
-            mode={mode}
-            zoom={zoom}
-            currency={data.user.currency}
-          />
+          {/* <View style={styles.mapDimensions}> */}
+            <MapCanvas
+              style={styles.mapDimensions}
+              transactions={visibleTransactions}
+              categories={data.categories}
+              selectedId={activeTransaction?.id}
+              onSelect={setSelected}
+              mode={mode}
+              zoom={zoom}
+              currency={data.user.currency}
+            />
+          {/* </View> */}
           {/* Info panel — normal flow below canvas */}
-          <ScrollView contentContainerStyle={{ padding: Spacing.lg }}>
+          <View >
             {activeTransaction ? (
               <>
-                <View style={styles.rowBetween}>
-                  <CategoryBadge
-                    label={activeTransaction.categoryName}
-                    icon={activeCategory?.icon}
-                    color={activeCategory?.color || colors.primary}
-                  />
-                  <Text variant="h3" style={{ color: colors.danger }}>
-                    {formatCurrencyPrecise(activeTransaction.amount, data.user.currency)}
-                  </Text>
-                </View>
-                <Text variant="h4" style={{ marginTop: Spacing.md }}>{activeTransaction.merchant}</Text>
-                <Text variant="body" color="secondary" style={{ marginTop: Spacing.xs }}>
-                  {activeTransaction.location.address} · {activeTransaction.date}
-                </Text>
-                <Text variant="caption" color="secondary" style={{ marginTop: Spacing.xs }}>
-                  {locationBreakdown[0]
-                    ? `${locationBreakdown[0].label}: ${formatCurrency(locationBreakdown[0].amount, data.user.currency)} this month`
-                    : 'Location intelligence appears as expenses are added.'}
-                </Text>
                 <View style={styles.cardActions}>
                   <Button label="View Detail" variant="secondary" onPress={() => navigation.navigate('TransactionDetail', { transactionId: activeTransaction.id })} style={{ flex: 1 }} />
                   <Button label="Edit" disabled={activeTransaction.updateCount >= 2} onPress={() => navigation.navigate('EditTransaction', { transactionId: activeTransaction.id })} style={{ flex: 1 }} />
@@ -117,7 +101,7 @@ export const MapScreen = () => (
             ) : (
               <EmptyState title="No mapped expenses" message="Add an expense with a location to see pins here." />
             )}
-          </ScrollView>
+          </View>
         </SafeAreaView>
       );
     }}
@@ -155,4 +139,8 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     marginTop: Spacing.md,
   },
+  mapDimensions: {
+    width: "100%",
+    height: "20%"
+  }
 });

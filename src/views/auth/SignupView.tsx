@@ -44,7 +44,7 @@ export const SignupScreen = () => {
       <ScreenHeader title="Create Account" subtitle="Create a synced PerFin OS workspace." />
       <Card shadow="sm">
         <Field label="Name" value={name} onChangeText={setName} placeholder="Full name" />
-        <Field label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" />
+        <Field label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address"/>
         <Field label="Password" value={password} onChangeText={setPassword} placeholder="At least 6 characters" secureTextEntry />
         {error ? <Text color="danger">{error}</Text> : null}
         <Button label="Create Account" onPress={confirmSignup} size="lg" />

@@ -214,7 +214,7 @@ export const MapCanvas = ({
 };
 
 const styles = StyleSheet.create({
-  mapCanvas: { height: 320, overflow: 'hidden' },
+  // mapCanvas: { height: 320, overflow: 'hidden' },
   mapLayer: { flex: 1 },
   mapRoad: {
     position: 'absolute',

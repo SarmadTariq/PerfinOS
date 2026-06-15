@@ -14,8 +14,13 @@ import { Field } from '../../components/form/Field';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';
 import { useFinance } from '../../context/FinanceContext';
+import { Spacing } from '../../theme';
 
-export const ProfileScreen = () => (
+export const ProfileScreen = () => {
+  
+  const { logout, isGuest, data } = useFinance();
+  
+  return(
   <RequireData>
     {(data) => {
       const { updateUser } = useFinance();
@@ -38,8 +43,10 @@ export const ProfileScreen = () => (
             <Button label="Save Profile" onPress={() => updateUser({ name, email, phone, monthlyIncome: Number(income), monthlyBudget: Number(budget) }).then(() => setToast('Profile saved'))} />
           </Card>
           <Toast message={toast} />
+        <Button label="Logout" variant="danger" onPress={logout} style={{ marginTop: Spacing.md }} />
         </AppScroll>
       );
     }}
   </RequireData>
-);
+  )
+};

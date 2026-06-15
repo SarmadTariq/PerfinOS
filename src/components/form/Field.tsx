@@ -46,7 +46,7 @@ export const Field = ({
       error={!!error}
     />
     {error ? (
-      <Text accessibilityRole="alert" variant="bodySmall" color="danger" style={{ marginTop: -Spacing.sm }}>
+    <Text accessibilityRole="alert" variant="bodySmall" color="danger" style={{ marginTop: -Spacing.sm }}>
         {error}
       </Text>
     ) : null}
