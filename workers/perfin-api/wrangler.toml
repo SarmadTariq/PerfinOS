@@ -2,6 +2,6 @@ name = "perfin-os"
 main = "src/index.ts"
 compatibility_date = "2026-05-19"
 
-# [[r2_buckets]]
-# binding = "RECEIPTS"
-# bucket_name = "perfin-receipts"
+[[r2_buckets]]
+binding = "RECEIPTS"
+bucket_name = "perfin-bucket"
