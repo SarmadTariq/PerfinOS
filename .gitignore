@@ -51,6 +51,7 @@ workers/**/.dev.vars
 *.pem
 *.mobileprovision
 GoogleService-Info.plist
+google-services.json
 
 # Nested local repo artifact; publish the current folder as the GitHub repo.
 spendsight-react-finance-dashboard/
