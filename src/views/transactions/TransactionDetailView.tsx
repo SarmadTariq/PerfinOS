@@ -36,7 +36,7 @@ export const ExpenseDetailScreen = () => (
       if (!transaction) {
         return (
           <AppScroll>
-            <EmptyState title="Transaction not found" message="This transaction may have been deleted." actionLabel="Back to Activity" onAction={() => navigation.navigate('Transactions')} />
+            <EmptyState title="Transaction not found" message="This transaction may have been deleted." actionLabel="Back to Activity" onAction={() => navigation.navigate('MainTabs', { screen: 'Dashboard' })} />
           </AppScroll>
         );
       }
@@ -92,7 +92,7 @@ export const ExpenseDetailScreen = () => (
             onConfirm={async () => {
               await deleteTransaction(transaction.id);
               setConfirmDelete(false);
-              navigation.navigate('Transactions');
+              navigation.navigate('MainTabs', { screen: 'Dashboard' });
             }}
           />
         </AppScroll>
