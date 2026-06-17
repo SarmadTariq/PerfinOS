@@ -1,6 +1,5 @@
 /**
  * ProfileView — edit user profile settings (name, email, phone, income, budget).
- * Extracted from PerFinOSScreens.tsx (ProfileScreen).
  */
 import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
