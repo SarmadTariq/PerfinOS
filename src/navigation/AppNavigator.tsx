@@ -53,44 +53,56 @@ const AuthStack = () => (
   </Stack.Navigator>
 );
 
-const Tabs = () => (
-  <Tab.Navigator
-    screenOptions={({ route }) => ({
-      headerShown: false,
-      tabBarActiveTintColor: Colors.light.primary,
-      tabBarInactiveTintColor: Colors.light.textTertiary,
-      tabBarStyle: {
-        backgroundColor: Colors.light.card,
-        borderTopColor: Colors.light.border,
-        minHeight: 76,
-        paddingBottom: 12,
-        paddingTop: 10,
-      },
-      tabBarItemStyle: {
-        borderRadius: 8,
-        marginHorizontal: 2,
-      },
-      tabBarLabelStyle: { fontSize: 11, fontWeight: '700', letterSpacing: 0 },
-      tabBarHideOnKeyboard: true,
-      tabBarIcon: ({ focused, color, size }) => {
-        const map: Record<string, React.ComponentProps<typeof Ionicons>['name']> = {
-          Dashboard: focused ? 'grid' : 'grid-outline',
-          Transactions: focused ? 'receipt' : 'receipt-outline',
-          Map: focused ? 'map' : 'map-outline',
-          Insights: focused ? 'bulb' : 'bulb-outline',
-          More: focused ? 'ellipsis-horizontal-circle' : 'ellipsis-horizontal-circle-outline',
-        };
-        return <Ionicons name={map[route.name] || 'ellipse-outline'} size={focused ? size + 1 : size} color={color} />;
-      },
-    })}
-  >
-    <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ tabBarLabel: 'Home' }} />
-    <Tab.Screen name="Transactions" component={TransactionsScreen} options={{ tabBarLabel: 'Activity' }} />
-    <Tab.Screen name="Map" component={MapScreen} options={{ tabBarLabel: 'Map' }} />
-    <Tab.Screen name="Insights" component={InsightsScreen} options={{ tabBarLabel: 'Insights' }} />
-    <Tab.Screen name="More" component={MoreScreen} options={{ tabBarLabel: 'More' }} />
-  </Tab.Navigator>
-);
+  // const scheme = useThemeScheme();
+  // const { data, isAuthenticated } = useFinance();
+
+const Tabs = () => {
+  const scheme: string = useThemeScheme();
+  
+  return (
+    <Tab.Navigator
+      // theme={scheme === 'dark' ? DarkTheme : DefaultTheme}
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: Colors[scheme].primary,
+        tabBarInactiveTintColor: Colors[scheme].textTertiary,
+        tabBarStyle: {
+          backgroundColor: Colors[scheme].card,
+          borderTopColor: Colors[scheme].border,
+          minHeight: 76,
+          paddingBottom: 12,
+          paddingTop: 10,
+        },
+        tabBarItemStyle: {
+          borderRadius: 8,
+          marginHorizontal: 2,
+        },
+        tabBarLabelStyle: { 
+          fontSize: 11, 
+          fontWeight: '700', 
+          letterSpacing: 0,
+        },
+        tabBarHideOnKeyboard: true,
+        tabBarIcon: ({ focused, color, size }) => {
+          const map: Record<string, React.ComponentProps<typeof Ionicons>['name']> = {
+            Dashboard: focused ? 'grid' : 'grid-outline',
+            Transactions: focused ? 'receipt' : 'receipt-outline',
+            Map: focused ? 'map' : 'map-outline',
+            Insights: focused ? 'bulb' : 'bulb-outline',
+            More: focused ? 'ellipsis-horizontal-circle' : 'ellipsis-horizontal-circle-outline',
+          };
+          return <Ionicons name={map[route.name] || 'ellipse-outline'} size={focused ? size + 1 : size} color={color} />;
+        },
+      })}
+    >
+      <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ tabBarLabel: 'Home' }} />
+      <Tab.Screen name="Transactions" component={TransactionsScreen} options={{ tabBarLabel: 'Activity' }} />
+      <Tab.Screen name="Map" component={MapScreen} options={{ tabBarLabel: 'Map' }} />
+      <Tab.Screen name="Insights" component={InsightsScreen} options={{ tabBarLabel: 'Insights' }} />
+      <Tab.Screen name="More" component={MoreScreen} options={{ tabBarLabel: 'More' }} />
+    </Tab.Navigator>
+  )
+};
 
 const MainStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
