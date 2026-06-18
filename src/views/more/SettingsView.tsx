@@ -1,7 +1,5 @@
 /**
- * SettingsView — workspace mode, appearance (theme), and privacy disclosures.
- * Uses useTheme (not just useThemeScheme) to access setMode.
- * Extracted from PerFinOSScreens.tsx (SettingsScreen).
+ * SettingsView - workspace mode, appearance, and session controls.
  */
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -39,11 +37,10 @@ export const SettingsScreen = () => {
     <AppScroll>
       <ScreenHeader
         title="Settings"
-        subtitle="Privacy, feature access, and session controls."
+        subtitle="Appearance, workspace, and session controls."
         action={<IconButton icon="arrow-back" label="Go back" onPress={() => navigation.goBack()} />}
       />
 
-      {/* Workspace */}
       <Card shadow="sm" style={{ marginBottom: Spacing.lg }}>
         <Text variant="h4">Workspace Mode</Text>
         <Text variant="body" color="secondary" style={{ marginTop: Spacing.sm }}>
@@ -52,39 +49,45 @@ export const SettingsScreen = () => {
             : 'Your PerFin OS workspace syncs through Firebase. Receipt and AI features use configured production gateways when keys are provided.'}
         </Text>
         <View style={{ marginTop: Spacing.md }}>
-          <CategoryBadge label={`Plan: ${data?.entitlement.plan || 'guest'}`} color={isGuest ? Colors.light.warning : Colors.light.success} icon={isGuest ? 'person-outline' : 'verified'} library="mi" />
+          <CategoryBadge
+            label={`Plan: ${data?.entitlement.plan || 'guest'}`}
+            color={isGuest ? Colors.light.warning : Colors.light.success}
+            icon={isGuest ? 'person-outline' : 'verified'}
+            library="mi"
+          />
         </View>
-        <Button label="Logout" variant="danger" onPress={logout} style={{ marginTop: Spacing.md }} />
       </Card>
 
-      {/* Appearance */}
       <Card shadow="sm" style={{ marginBottom: Spacing.lg }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md }}>
+        <View style={styles.sectionHeader}>
           <MaterialIcons name="brightness-6" size={20} color={colors.primary} style={{ marginRight: Spacing.sm }} />
           <Text variant="h4">Appearance</Text>
         </View>
         <Text variant="bodySmall" color="secondary" style={{ marginBottom: Spacing.md }}>
-          Currently: {resolved === 'dark' ? '🌙 Dark' : '☀️ Light'} {mode === 'system' ? '(following system)' : '(manual override)'}
+          Currently: {resolved === 'dark' ? 'Dark' : 'Light'} {mode === 'system' ? '(following system)' : '(manual override)'}
         </Text>
-        <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+        <View style={styles.themeOptions}>
           {themeOptions.map((opt) => (
             <TouchableOpacity
               key={opt.value}
               onPress={() => setMode(opt.value)}
               accessibilityRole="button"
               accessibilityLabel={`Set theme to ${opt.label}`}
-              style={{
-                flex: 1,
-                paddingVertical: Spacing.sm,
-                paddingHorizontal: Spacing.md,
-                borderRadius: Radius.md,
-                borderWidth: 1.5,
-                alignItems: 'center',
-                borderColor: mode === opt.value ? colors.primary : colors.border,
-                backgroundColor: mode === opt.value ? colors.primarySoft : colors.bgSecondary,
-              }}
+              style={[
+                styles.themeOption,
+                {
+                  borderColor: mode === opt.value ? colors.primary : colors.border,
+                  backgroundColor: mode === opt.value ? colors.primarySoft : colors.bgSecondary,
+                },
+              ]}
             >
-              <Text variant="bodySmall" style={{ color: mode === opt.value ? colors.primary : colors.textSecondary, fontWeight: '700' }}>
+              <Text
+                variant="bodySmall"
+                style={{
+                  color: mode === opt.value ? colors.primary : colors.textSecondary,
+                  fontWeight: '700',
+                }}
+              >
                 {opt.label}
               </Text>
             </TouchableOpacity>
@@ -92,37 +95,36 @@ export const SettingsScreen = () => {
         </View>
       </Card>
 
-      {/* Privacy */}
       <Card shadow="sm" style={{ marginBottom: Spacing.lg }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md }}>
-          <MaterialIcons name="lock-outline" size={20} color={colors.primary} style={{ marginRight: Spacing.sm }} />
-          <Text variant="h4">Privacy & Data</Text>
+        <View style={styles.sectionHeader}>
+          <MaterialIcons name="logout" size={20} color={colors.primary} style={{ marginRight: Spacing.sm }} />
+          <Text variant="h4">Session Controls</Text>
         </View>
-        <Text variant="bodySmall" color="secondary" style={{ marginBottom: Spacing.sm }}>
-          <Text variant="bodySmall" style={{ fontWeight: '700' }}>What we store: </Text>
-          Transaction records, budget targets, savings goals, categories, and reports — all in Firebase Firestore under your authenticated user ID. Guest data is stored locally on this device only.
+        <Text variant="body" color="secondary" style={{ marginTop: Spacing.sm }}>
+          End the current session and return to the sign-in flow.
         </Text>
-        <Text variant="bodySmall" color="secondary" style={{ marginBottom: Spacing.sm }}>
-          <Text variant="bodySmall" style={{ fontWeight: '700' }}>AI features: </Text>
-          Only aggregate totals (e.g. monthly spend by category) are sent to Gemini AI. No raw notes, merchant names, location history, or receipt images leave your device.
-        </Text>
-        <Text variant="bodySmall" color="secondary" style={{ marginBottom: Spacing.sm }}>
-          <Text variant="bodySmall" style={{ fontWeight: '700' }}>Receipts: </Text>
-          Uploaded to Cloudflare R2 object storage when a Worker backend is configured. Files are private, accessible only via your authenticated token. Guest users cannot upload receipts.
-        </Text>
-        <Text variant="bodySmall" color="secondary" style={{ marginBottom: Spacing.md }}>
-          <Text variant="bodySmall" style={{ fontWeight: '700' }}>No selling of data: </Text>
-          PerFin OS does not sell, share, or monetise your financial data. It is never used for advertising.
-        </Text>
-        <TouchableOpacity
-          accessibilityRole="link"
-          onPress={() => navigation.navigate('HelpAbout')}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}
-        >
-          <MaterialIcons name="open-in-new" size={14} color={colors.primary} />
-          <Text variant="caption" style={{ color: colors.primary }}>Help / About — full app scope and disclosures</Text>
-        </TouchableOpacity>
+        <Button label="Logout" variant="danger" onPress={logout} style={{ marginTop: Spacing.md }} />
       </Card>
     </AppScroll>
   );
 };
+
+const styles = StyleSheet.create({
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  themeOptions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  themeOption: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radius.md,
+    borderWidth: 1.5,
+    alignItems: 'center',
+  },
+});
