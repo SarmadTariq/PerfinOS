@@ -69,6 +69,18 @@ const focusTabs: { key: FocusKey; label: string }[] = [
   { key: 'categories', label: 'Categories' },
 ];
 
+const HERO_TEXT_PROPS = {
+  numberOfLines: 2,
+  adjustsFontSizeToFit: true,
+  minimumFontScale: 0.92,
+} as const;
+
+const VALUE_TEXT_PROPS = {
+  numberOfLines: 1,
+  adjustsFontSizeToFit: true,
+  minimumFontScale: 0.86,
+} as const;
+
 const useColors = () => {
   const scheme = useThemeScheme();
   return scheme === 'dark' ? Colors.dark : Colors.light;
@@ -138,17 +150,17 @@ const DashboardHero = ({
   return (
     <View style={[styles.dashboardHero, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={styles.heroHeaderRow}>
-        <View style={{ flex: 1 }}>
+        <View style={styles.heroTitleBlock}>
           <Text variant="caption" color="secondary" style={styles.eyebrow}>
             {readableMonth(month)} status
           </Text>
-          <Text variant="h2" style={styles.heroMainMetric}>
+          <Text variant="h2" style={styles.heroMainMetric} {...HERO_TEXT_PROPS}>
             {formatCurrency(netCashFlow, currency)} net cash flow
           </Text>
         </View>
 
         <View style={[styles.statusPill, { backgroundColor: `${statusColor}1F` }]}>
-          <Text variant="bodySmall" style={{ color: statusColor, fontWeight: '800' }}>
+          <Text variant="bodySmall" style={[styles.statusPillText, { color: statusColor }]}>
             {status.label}
           </Text>
         </View>
@@ -157,11 +169,11 @@ const DashboardHero = ({
       <View style={[styles.heroDivider, { backgroundColor: colors.border }]} />
 
       <View style={styles.heroBudgetRow}>
-        <View style={{ flex: 1 }}>
-          <Text variant="bodySmall" color="secondary">
+        <View style={styles.budgetTextBlock}>
+          <Text variant="bodySmall" color="secondary" style={styles.budgetLabel}>
             Budget remaining
           </Text>
-          <Text variant="h4" style={{ marginTop: Spacing.xs }}>
+          <Text variant="h4" style={styles.budgetRemainingMetric} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.88}>
             {hasBudget
               ? `${formatCurrency(Math.max(budgetRemaining, 0), currency)} left from ${formatCurrency(totalBudget, currency)}`
               : 'No budget set for this month'}
@@ -169,18 +181,20 @@ const DashboardHero = ({
         </View>
 
         <View style={styles.budgetPercentBlock}>
-          <Text variant="h4">{hasBudget ? `${budgetUsed}%` : '0%'}</Text>
-          <Text variant="caption" color="tertiary">
+          <Text variant="h4" style={styles.budgetPercentText}>
+            {hasBudget ? `${budgetUsed}%` : '0%'}
+          </Text>
+          <Text variant="caption" color="tertiary" style={styles.budgetUsedLabel}>
             used
           </Text>
         </View>
       </View>
 
-      <ProgressBar value={budgetUsed} color={statusColor} height={10} />
+      <ProgressBar value={budgetUsed} color={statusColor} height={8} />
 
       <View style={styles.heroInsightRow}>
         <MaterialIcons name="insights" size={18} color={colors.primary} />
-        <Text variant="bodySmall" color="secondary" style={{ flex: 1 }}>
+        <Text variant="bodySmall" color="secondary" style={styles.heroInsightText}>
           {statusInsight}
         </Text>
       </View>
@@ -210,17 +224,17 @@ const SnapshotPanel = ({ items }: { items: SnapshotItem[] }) => {
               <MaterialIcons name={item.icon} size={19} color={toneColor} />
             </View>
 
-            <View style={{ flex: 1 }}>
+            <View style={styles.snapshotCopy}>
               <Text variant="bodySmall" color="secondary" style={styles.snapshotLabel}>
                 {item.label}
               </Text>
-              <Text variant="caption" color="tertiary" style={{ marginTop: Spacing.xs }}>
+              <Text variant="caption" color="tertiary" style={styles.snapshotDetail} numberOfLines={1}>
                 {item.detail}
               </Text>
             </View>
 
             <View style={styles.snapshotValueBlock}>
-              <Text variant="h4" numberOfLines={1} adjustsFontSizeToFit>
+              <Text variant="h4" style={styles.snapshotValue} {...VALUE_TEXT_PROPS}>
                 {item.value}
               </Text>
             </View>
@@ -253,11 +267,11 @@ const AttentionPanel = ({ items }: { items: AttentionItem[] }) => {
               <MaterialIcons name={item.icon} size={18} color={toneColor} />
             </View>
 
-            <View style={{ flex: 1 }}>
-              <Text variant="body" style={{ fontWeight: '800' }}>
+            <View style={styles.attentionCopy}>
+              <Text variant="body" style={styles.attentionTitle}>
                 {item.title}
               </Text>
-              <Text variant="bodySmall" color="secondary" style={{ marginTop: Spacing.xs }}>
+              <Text variant="bodySmall" color="secondary" style={styles.attentionDetail}>
                 {item.detail}
               </Text>
             </View>
@@ -328,13 +342,13 @@ const DashboardFocusPanel = ({
 
   return (
     <Card shadow="sm" style={styles.focusCard}>
-      <View style={styles.rowBetween}>
-        <View>
-          <Text variant="h4">Month Focus</Text>
-          <Text variant="caption" color="tertiary" style={{ marginTop: Spacing.xs }}>
-            Tap a section or swipe sideways
-          </Text>
-        </View>
+      <View style={styles.focusHeader}>
+        <Text variant="h4" style={styles.focusTitle}>
+          Month Focus
+        </Text>
+        <Text variant="caption" color="tertiary" style={styles.focusSubtitle}>
+          Tap a section or swipe sideways
+        </Text>
       </View>
 
       <View style={[styles.segmentedControl, { backgroundColor: colors.bgSecondary }]}>
@@ -358,10 +372,12 @@ const DashboardFocusPanel = ({
             >
               <Text
                 variant="bodySmall"
-                style={{
-                  color: isActive ? colors.primary : colors.textSecondary,
-                  fontWeight: '800',
-                }}
+                style={[
+                  styles.segmentLabel,
+                  {
+                    color: isActive ? colors.primary : colors.textSecondary,
+                  },
+                ]}
               >
                 {tab.label}
               </Text>
@@ -430,15 +446,17 @@ const TransactionRow = ({
         <View style={[styles.iconTileSmall, { backgroundColor: `${category?.color || '#64748B'}22` }]}>
           <MaterialCommunityIcons name={mcIconName(category?.icon, 'food')} size={18} color={category?.color || '#64748B'} />
         </View>
-        <View style={{ flex: 1 }}>
-          <Text variant="body" style={{ fontWeight: '700' }}>
+
+        <View style={styles.transactionCopy}>
+          <Text variant="body" style={styles.transactionMerchant} numberOfLines={1}>
             {transaction.merchant}
           </Text>
-          <Text variant="caption" color="secondary">
+          <Text variant="caption" color="secondary" style={styles.transactionMeta} numberOfLines={1}>
             {transaction.categoryName} · {transaction.location.neighborhood || transaction.location.address} · {transaction.date}
           </Text>
         </View>
-        <Text style={{ color: amountColor, fontWeight: '800' }}>
+
+        <Text variant="bodySmall" style={[styles.transactionAmount, { color: amountColor }]} numberOfLines={1}>
           {transaction.type === 'income' ? '+' : '-'}{formatCurrencyPrecise(transaction.amount, currency)}
         </Text>
       </View>
@@ -580,9 +598,11 @@ const DashboardContent = ({ data }: { data: AppData }) => {
 
       <Card shadow="sm">
         <View style={styles.rowBetween}>
-          <Text variant="h4">Recent Transactions</Text>
+          <Text variant="h4" style={styles.recentTitle}>
+            Recent Transactions
+          </Text>
           <TouchableOpacity onPress={() => navigation.navigate('Transactions')} accessibilityRole="button">
-            <Text style={[styles.linkInline, { color: colors.primary }]}>View all</Text>
+            <Text variant="bodySmall" style={[styles.linkInline, { color: colors.primary }]}>View all</Text>
           </TouchableOpacity>
         </View>
 
@@ -621,20 +641,37 @@ const styles = StyleSheet.create({
   heroHeaderRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    justifyContent: 'space-between',
     gap: Spacing.md,
+  },
+  heroTitleBlock: {
+    flex: 1,
+    minWidth: 0,
+    paddingRight: Spacing.xs,
   },
   eyebrow: {
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     marginBottom: Spacing.xs,
+    fontWeight: '700',
+    includeFontPadding: false,
   },
   heroMainMetric: {
     marginTop: Spacing.xs,
+    letterSpacing: -0.3,
+    includeFontPadding: false,
   },
   statusPill: {
     borderRadius: Radius.round,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  statusPillText: {
+    fontWeight: '700',
+    includeFontPadding: false,
   },
   heroDivider: {
     height: StyleSheet.hairlineWidth,
@@ -642,12 +679,36 @@ const styles = StyleSheet.create({
   },
   heroBudgetRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
     gap: Spacing.md,
+  },
+  budgetTextBlock: {
+    flex: 1,
+    minWidth: 0,
+  },
+  budgetLabel: {
+    includeFontPadding: false,
+  },
+  budgetRemainingMetric: {
+    marginTop: Spacing.xs,
+    letterSpacing: -0.2,
+    includeFontPadding: false,
   },
   budgetPercentBlock: {
     alignItems: 'flex-end',
-    minWidth: 64,
+    justifyContent: 'flex-end',
+    minWidth: 56,
+    flexShrink: 0,
+  },
+  budgetPercentText: {
+    letterSpacing: -0.2,
+    includeFontPadding: false,
+  },
+  budgetUsedLabel: {
+    marginTop: 2,
+    fontWeight: '600',
+    includeFontPadding: false,
   },
   heroInsightRow: {
     flexDirection: 'row',
@@ -655,14 +716,28 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginTop: Spacing.xs,
   },
+  heroInsightText: {
+    flex: 1,
+    includeFontPadding: false,
+  },
   focusCard: {
     marginBottom: Spacing.lg,
+  },
+  focusHeader: {
+    marginBottom: Spacing.md,
+  },
+  focusTitle: {
+    letterSpacing: -0.1,
+    includeFontPadding: false,
+  },
+  focusSubtitle: {
+    marginTop: Spacing.xs,
+    includeFontPadding: false,
   },
   segmentedControl: {
     flexDirection: 'row',
     borderRadius: Radius.lg,
     padding: Spacing.xs,
-    marginTop: Spacing.md,
     marginBottom: Spacing.md,
     gap: Spacing.xs,
   },
@@ -670,9 +745,15 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: Radius.md,
     borderWidth: 1,
+    minHeight: 38,
     paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  segmentLabel: {
+    fontWeight: '700',
+    includeFontPadding: false,
   },
   focusPanelPageInner: {
     paddingBottom: Spacing.sm,
@@ -681,22 +762,54 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
+    minHeight: 66,
     paddingVertical: Spacing.md,
+  },
+  snapshotCopy: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
   },
   snapshotLabel: {
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
     fontWeight: '700',
+    includeFontPadding: false,
+  },
+  snapshotDetail: {
+    marginTop: Spacing.xs,
+    includeFontPadding: false,
   },
   snapshotValueBlock: {
+    width: 112,
     alignItems: 'flex-end',
-    maxWidth: 150,
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  snapshotValue: {
+    width: '100%',
+    textAlign: 'right',
+    letterSpacing: -0.2,
+    includeFontPadding: false,
   },
   attentionRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.md,
     paddingVertical: Spacing.md,
+    minHeight: 66,
+  },
+  attentionCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  attentionTitle: {
+    fontWeight: '700',
+    includeFontPadding: false,
+  },
+  attentionDetail: {
+    marginTop: Spacing.xs,
+    includeFontPadding: false,
   },
   focusIcon: {
     width: 38,
@@ -704,6 +817,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   focusDots: {
     flexDirection: 'row',
@@ -722,6 +836,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: Spacing.md,
   },
+  recentTitle: {
+    includeFontPadding: false,
+  },
   transactionRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -729,14 +846,35 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     minHeight: 64,
   },
+  transactionCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  transactionMerchant: {
+    fontWeight: '700',
+    includeFontPadding: false,
+  },
+  transactionMeta: {
+    marginTop: 2,
+    includeFontPadding: false,
+  },
+  transactionAmount: {
+    maxWidth: 104,
+    textAlign: 'right',
+    fontWeight: '700',
+    includeFontPadding: false,
+    flexShrink: 0,
+  },
   iconTileSmall: {
     width: 36,
     height: 36,
     borderRadius: Radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   linkInline: {
     fontWeight: '700',
+    includeFontPadding: false,
   },
 });
