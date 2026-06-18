@@ -31,7 +31,7 @@ import { MapCanvas } from '../../components/map/MapCanvas';
 import { useFinance } from '../../context/FinanceContext';
 import { useThemeScheme } from '../../context/ThemeContext';
 import { AppData, Category, ReceiptAttachment, Transaction } from '../../models/finance';
-import { Colors, Radius, Spacing } from '../../theme';
+import { Colors, getThemeColor, Radius, Spacing } from '../../theme';
 import { todayIso } from '../../utils/format';
 import {
   MAX_RECEIPTS_PER_TRANSACTION,
@@ -46,6 +46,7 @@ import {
   receiptUploadConfigured,
   uploadReceiptToWorker,
 } from '../../services/receiptService';
+
 
 type TransactionFormMode = 'add' | 'edit';
 
@@ -623,6 +624,7 @@ const SavePanel = ({
 };
 
 const TransactionFormContent = ({ data, mode }: { data: AppData; mode: TransactionFormMode }) => {
+  const colors = useColors()
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<Record<string, { transactionId?: string }>, string>>();
   const { addTransaction, updateTransaction, canUseFeature, isGuest } = useFinance();
@@ -914,7 +916,7 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
           onChange={setPaymentMethod}
         />
 
-        <View style={styles.recurringBox}>
+        <View style={[{borderColor: useColors().border}, styles.recurringBox, useColors().bgSecondary]}>
           <View style={{ flex: 1 }}>
             <Text variant="body" style={{ fontWeight: '800' }}>
               Recurring transaction
@@ -1044,8 +1046,8 @@ const styles = StyleSheet.create({
   recurringBox: {
     borderWidth: 1,
     borderRadius: Radius.lg,
-    borderColor: Colors.light.border,
-    backgroundColor: Colors.light.bgSecondary,
+    // borderColor: Colors.light.border,
+    // backgroundColor: Colors.light.bgSecondary,
     padding: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',

@@ -220,18 +220,21 @@ const SnapshotPanel = ({ items }: { items: SnapshotItem[] }) => {
                 : null,
             ]}
           >
-            <View style={[styles.focusIcon, { backgroundColor: `${toneColor}1F` }]}>
-              <MaterialIcons name={item.icon} size={19} color={toneColor} />
+            <View style={styles.snapshotIconAndLabel}>
+              <View style={[styles.focusIcon, { backgroundColor: `${toneColor}1F` }]}>
+                <MaterialIcons name={item.icon} size={19} color={toneColor} />
+              </View>
+
+              <View style={styles.snapshotCopy}>
+                <Text variant="bodySmall" color="secondary" style={styles.snapshotLabel}>
+                  {item.label}
+                </Text>
+                <Text variant="caption" color="tertiary" style={styles.snapshotDetail} numberOfLines={1}>
+                  {item.detail}
+                </Text>
+              </View>
             </View>
 
-            <View style={styles.snapshotCopy}>
-              <Text variant="bodySmall" color="secondary" style={styles.snapshotLabel}>
-                {item.label}
-              </Text>
-              <Text variant="caption" color="tertiary" style={styles.snapshotDetail} numberOfLines={1}>
-                {item.detail}
-              </Text>
-            </View>
 
             <View style={styles.snapshotValueBlock}>
               <Text variant="h4" style={styles.snapshotValue} {...VALUE_TEXT_PROPS}>
@@ -761,9 +764,15 @@ const styles = StyleSheet.create({
   snapshotRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
     minHeight: 66,
-    paddingVertical: Spacing.md,
+    width: "100%",
+    // paddingVertical: Spacing.md,
+    justifyContent: "space-between"
+  },
+  snapshotIconAndLabel: {
+    flexDirection: "row",
+    gap: Spacing.md,
+    width: "50%",
   },
   snapshotCopy: {
     flex: 1,
@@ -789,7 +798,7 @@ const styles = StyleSheet.create({
   snapshotValue: {
     width: '100%',
     textAlign: 'right',
-    letterSpacing: -0.2,
+    paddingRight: 10,
     includeFontPadding: false,
   },
   attentionRow: {
