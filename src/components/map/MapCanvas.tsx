@@ -23,10 +23,6 @@ const MAP_BOUNDS = {
 /**
  * Converts a latitude/longitude pair to percentage-based position
  * within the MAP_BOUNDS canvas. Clamps to stay within visible bounds.
- *
- * @param latitude - WGS-84 latitude
- * @param longitude - WGS-84 longitude
- * @returns `{ left, top }` as percentage strings for absolute positioning
  */
 export const getMapPosition = (latitude: number, longitude: number) => ({
   left: `${Math.min(Math.max(((longitude - MAP_BOUNDS.minLng) / (MAP_BOUNDS.maxLng - MAP_BOUNDS.minLng)) * 100, 4), 92)}%` as `${number}%`,
@@ -45,19 +41,7 @@ type MapCanvasProps = {
 };
 
 /**
- * Spending map canvas — renders either a heatmap or pin mode.
- *
- * On native (iOS/Android) delegates to `ExpenseNativeMap` (MapKit/Google Maps).
- * On web renders a CSS canvas with coloured heat blobs or expense pins.
- *
- * @param transactions - Full list of transactions to visualise
- * @param categories - Category list for colour/icon lookup
- * @param selectedId - Currently selected transaction ID (pin mode only)
- * @param onSelect - Called when a pin is tapped
- * @param mode - 'heatmap' groups spend by location; 'pins' shows individual expense pins
- * @param zoom - Canvas scale factor (default 1)
- * @param currency - ISO currency code for value labels
- * @param style - Optional container style from parent layout
+ * Spending map canvas - renders either heatmap or pin mode.
  */
 export const MapCanvas = ({
   transactions,
@@ -141,6 +125,13 @@ export const MapCanvas = ({
               const intensity = group.amount / maxHeat;
               const size = 74 + intensity * 170;
               const position = getMapPosition(group.latitude, group.longitude);
+              const match = expenseTransactions.find(
+                (transaction) =>
+                  (transaction.location.name ||
+                    transaction.location.neighborhood ||
+                    transaction.location.address ||
+                    'Unknown area') === group.label
+              );
 
               const heatColor =
                 intensity > 0.78
@@ -151,33 +142,54 @@ export const MapCanvas = ({
                       ? '34,197,94'
                       : '59,130,246';
 
-              return (
+              const heatStyle = [
+                styles.heatRegion,
+                position,
+                {
+                  width: size,
+                  height: size,
+                  borderRadius: size / 2,
+                  marginLeft: -size / 2,
+                  marginTop: -size / 2,
+                  backgroundColor: `rgba(${heatColor}, ${0.18 + intensity * 0.28})`,
+                  ...(Platform.OS === 'web'
+                    ? ({ filter: `blur(${Math.round(size * 0.22)}px)` } as any)
+                    : {}),
+                },
+              ];
+
+              const heatCore = (
                 <View
-                  key={group.label}
-                  accessibilityLabel={`${group.label} heatmap intensity ${Math.round(intensity * 100)} percent`}
                   style={[
-                    styles.heatRegion,
-                    position,
-                    {
-                      width: size,
-                      height: size,
-                      borderRadius: size / 2,
-                      marginLeft: -size / 2,
-                      marginTop: -size / 2,
-                      backgroundColor: `rgba(${heatColor}, ${0.18 + intensity * 0.28})`,
-                      ...(Platform.OS === 'web'
-                        ? ({ filter: `blur(${Math.round(size * 0.22)}px)` } as any)
-                        : {}),
-                    },
+                    styles.heatCore,
+                    { backgroundColor: `rgba(${heatColor}, ${0.5 + intensity * 0.5})` },
                   ]}
-                >
+                />
+              );
+
+              if (!match) {
+                return (
                   <View
-                    style={[
-                      styles.heatCore,
-                      { backgroundColor: `rgba(${heatColor}, ${0.5 + intensity * 0.5})` },
-                    ]}
-                  />
-                </View>
+                    key={group.label}
+                    accessibilityLabel={`${group.label} heatmap intensity ${Math.round(intensity * 100)} percent`}
+                    style={heatStyle}
+                  >
+                    {heatCore}
+                  </View>
+                );
+              }
+
+              return (
+                <TouchableOpacity
+                  key={group.label}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${group.label} heatmap area`}
+                  onPress={() => onSelect(match)}
+                  activeOpacity={0.82}
+                  style={heatStyle}
+                >
+                  {heatCore}
+                </TouchableOpacity>
               );
             })
           : expenseTransactions.map((transaction) => {
