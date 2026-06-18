@@ -1,6 +1,5 @@
 /**
  * MoreView — grid of navigation tiles for all secondary PerFin OS workflows.
- * Extracted from PerFinOSScreens.tsx (MoreScreen).
  */
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -21,17 +20,14 @@ export const MoreScreen = () => {
   const navigation = useNavigation<any>();
   const colors = useColors();
   const items: { label: string; route: string; icon: React.ComponentProps<typeof MaterialIcons>['name'] }[] = [
-    { label: 'Map', route: 'Map', icon: 'map' },
-    { label: 'Budgets', route: 'Budgets', icon: 'speed' },
-    { label: 'Categories', route: 'Categories', icon: 'category' },
-    { label: 'Savings Goals', route: 'SavingsGoals', icon: 'savings' },
-    { label: 'Analytics', route: 'Analytics', icon: 'bar-chart' },
-    { label: 'Recurring Expenses', route: 'RecurringExpenses', icon: 'subscriptions' },
-    { label: 'Reports', route: 'Reports', icon: 'summarize' },
-    { label: 'Profile', route: 'Profile', icon: 'person' },
-    { label: 'Settings', route: 'Settings', icon: 'settings' },
-    { label: 'Help / About', route: 'HelpAbout', icon: 'help-outline' },
-  ];
+  { label: 'Budgets', route: 'Budgets', icon: 'speed' },
+  { label: 'Categories', route: 'Categories', icon: 'category' },
+  { label: 'Savings Goals', route: 'SavingsGoals', icon: 'savings' },
+  { label: 'Recurring Expenses', route: 'RecurringExpenses', icon: 'subscriptions' },
+  { label: 'Profile', route: 'Profile', icon: 'person' },
+  { label: 'Settings', route: 'Settings', icon: 'settings' },
+  { label: 'Privacy & Help', route: 'HelpAbout', icon: 'privacy-tip' },
+];
   return (
     <AppScroll>
       <ScreenHeader title="More" subtitle="Additional PerFin OS workflows and settings." />
