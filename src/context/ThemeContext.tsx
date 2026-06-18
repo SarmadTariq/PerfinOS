@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -14,31 +14,70 @@ interface ThemeCtx {
 const ThemeContext = createContext<ThemeCtx | null>(null);
 const STORAGE_KEY = '@perfin_theme_mode';
 
+const isThemeMode = (value: string | null): value is ThemeMode => {
+  return value === 'system' || value === 'light' || value === 'dark';
+};
+
+const resolveSystemScheme = (scheme: 'light' | 'dark' | null | undefined): 'light' | 'dark' => {
+  return scheme === 'dark' ? 'dark' : 'light';
+};
+
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const system = useColorScheme() ?? 'light';
+  const system = resolveSystemScheme(useColorScheme());
   const [mode, setModeState] = useState<ThemeMode>('system');
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((stored) => {
-      if (stored === 'light' || stored === 'dark' || stored === 'system') {
-        setModeState(stored as ThemeMode);
-      }
-    });
+    let mounted = true;
+
+    AsyncStorage.getItem(STORAGE_KEY)
+      .then((stored) => {
+        if (!mounted) return;
+
+        if (isThemeMode(stored)) {
+          setModeState(stored);
+          return;
+        }
+
+        setModeState('system');
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setModeState('system');
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const setMode = (m: ThemeMode) => {
-    setModeState(m);
-    AsyncStorage.setItem(STORAGE_KEY, m);
+  const setMode = (nextMode: ThemeMode) => {
+    setModeState(nextMode);
+
+    if (nextMode === 'system') {
+      AsyncStorage.removeItem(STORAGE_KEY);
+      return;
+    }
+
+    AsyncStorage.setItem(STORAGE_KEY, nextMode);
   };
 
   const resolved: 'light' | 'dark' = mode === 'system' ? system : mode;
-  const toggle = () => setMode(resolved === 'dark' ? 'light' : 'dark');
 
-  return (
-    <ThemeContext.Provider value={{ mode, resolved, setMode, toggle }}>
-      {children}
-    </ThemeContext.Provider>
+  const toggle = () => {
+    setMode(resolved === 'dark' ? 'light' : 'dark');
+  };
+
+  const value = useMemo(
+    () => ({
+      mode,
+      resolved,
+      setMode,
+      toggle,
+    }),
+    [mode, resolved],
   );
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 };
 
 export const useTheme = () => {
@@ -50,7 +89,8 @@ export const useTheme = () => {
 /** Drop-in replacement for useColorScheme() that respects manual override */
 export const useThemeScheme = (): 'light' | 'dark' => {
   const ctx = useContext(ThemeContext);
-  const system = useColorScheme() ?? 'light';
+  const system = resolveSystemScheme(useColorScheme());
+
   if (!ctx) return system;
   return ctx.resolved;
 };

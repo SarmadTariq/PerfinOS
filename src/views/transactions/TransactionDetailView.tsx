@@ -1,6 +1,5 @@
 /**
  * TransactionDetailView — full expense breakdown with map preview and delete flow.
- * Extracted from PerFinOSScreens.tsx (ExpenseDetailScreen).
  */
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';

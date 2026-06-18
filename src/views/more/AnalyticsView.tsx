@@ -1,6 +1,5 @@
 /**
  * AnalyticsView — responsive text-supported charts for full financial review.
- * Extracted from PerFinOSScreens.tsx (AnalyticsScreen).
  */
 import React from 'react';
 import { useNavigation } from '@react-navigation/native';

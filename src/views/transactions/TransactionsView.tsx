@@ -1,7 +1,6 @@
 /**
  * TransactionsView — searchable, filterable, sortable transaction list with FlatList layout.
  * Includes TransactionRow inline component.
- * Extracted from PerFinOSScreens.tsx (TransactionsScreen + TransactionRow).
  */
 import React, { useState } from 'react';
 import { FlatList, SafeAreaView, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -9,7 +8,6 @@ import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Card, Text } from '../../components/base';
 import {
-  CategoryBadge,
   ConfirmModal,
   EmptyState,
   IconButton,

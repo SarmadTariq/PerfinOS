@@ -1,5 +1,6 @@
 import React from 'react';
 import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useThemeScheme } from '../../context/ThemeContext';
 import { Colors, Radius, Spacing } from '../../theme';
@@ -47,6 +48,18 @@ export const getMapPosition = (latitude: number, longitude: number) => ({
  * @param zoom - Canvas scale factor (default 1)
  * @param currency - ISO currency code for value labels
  */
+
+type MapCanvasProps = {
+  transactions: Transaction[];
+  categories: Category[];
+  selectedId?: string;
+  onSelect: (transaction: Transaction) => void;
+  mode: 'pins' | 'heatmap';
+  zoom?: number;
+  currency?: string;
+  style?: StyleProp<ViewStyle>;
+};
+
 export const MapCanvas = ({
   transactions,
   categories,
@@ -55,18 +68,12 @@ export const MapCanvas = ({
   mode,
   zoom = 1,
   currency = 'USD',
-}: {
-  transactions: Transaction[];
-  categories: Category[];
-  selectedId?: string;
-  onSelect: (transaction: Transaction) => void;
-  mode: 'pins' | 'heatmap';
-  zoom?: number;
-  currency?: string;
-}) => {
+  style,
+}: MapCanvasProps) => {
+  
   const scheme = useThemeScheme();
   const colors = scheme === 'dark' ? Colors.dark : Colors.light;
-  const expenseTransactions = transactions.filter((t) => t.type === 'expense');
+  const expenseTransactions = transactions.filter((transaction) => transaction.type === 'expense');
 
   // Aggregate transactions into heatmap groups by location name
   const heatGroups = Object.values(
@@ -112,8 +119,8 @@ export const MapCanvas = ({
 
   // Web canvas rendering
   return (
-    <View style={[styles.mapCanvas, { backgroundColor: colors.bgTertiary }]}>
-      <View style={[styles.mapLayer, { transform: [{ scale: zoom }] }]}>
+<View style={[styles.mapCanvas, style, { backgroundColor: colors.bgTertiary }]}>
+        <View style={[styles.mapLayer, { transform: [{ scale: zoom }] }]}>
         {/* Road overlays */}
         <View style={[styles.mapRoad, styles.mapRoadOne]} />
         <View style={[styles.mapRoad, styles.mapRoadTwo]} />
@@ -214,7 +221,11 @@ export const MapCanvas = ({
 };
 
 const styles = StyleSheet.create({
-  // mapCanvas: { height: 320, overflow: 'hidden' },
+
+    mapCanvas: {
+    height: 320,
+    overflow: 'hidden',
+  },
   mapLayer: { flex: 1 },
   mapRoad: {
     position: 'absolute',

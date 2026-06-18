@@ -1,6 +1,5 @@
 /**
  * MoreView — grid of navigation tiles for all secondary PerFin OS workflows.
- * Extracted from PerFinOSScreens.tsx (MoreScreen).
  */
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';

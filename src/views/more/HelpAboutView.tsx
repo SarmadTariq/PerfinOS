@@ -1,6 +1,5 @@
 /**
  * HelpAboutView — app scope, positioning, and safety disclosures.
- * Extracted from PerFinOSScreens.tsx (HelpAboutScreen).
  */
 import React from 'react';
 import { useNavigation } from '@react-navigation/native';

@@ -1,7 +1,6 @@
 /**
  * MapView — expense map with heatmap/pins modes, category filters, and zoom controls.
  * Uses SafeAreaView layout (not AppScroll).
- * Extracted from PerFinOSScreens.tsx (MapScreen).
  */
 import React, { useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -17,9 +16,7 @@ import { RequireData } from '../../components/layout/RequireData';
 import { MapCanvas } from '../../components/map/MapCanvas';
 import { useThemeScheme } from '../../context/ThemeContext';
 import { Transaction } from '../../models/finance';
-import { calculateLocationBreakdown } from '../../repositories/AnalyticsRepository';
 import { Colors, Spacing } from '../../theme';
-import { formatCurrency, formatCurrencyPrecise, getMonthKey } from '../../utils/format';
 
 const useColors = () => {
   const scheme = useThemeScheme();
@@ -43,8 +40,6 @@ export const MapScreen = () => (
       const activeTransaction = selected && visibleTransactions.some((item) => item.id === selected.id)
         ? selected
         : visibleTransactions[0] || null;
-      const locationBreakdown = calculateLocationBreakdown(visibleTransactions, getMonthKey());
-      const activeCategory = data.categories.find((item) => item.id === activeTransaction?.categoryId);
 
       return (
         <SafeAreaView style={[styles.mapShell, { backgroundColor: colors.bg }]}>

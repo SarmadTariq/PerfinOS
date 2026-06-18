@@ -1,6 +1,5 @@
 /**
  * ProfileView — edit user profile settings (name, email, phone, income, budget).
- * Extracted from PerFinOSScreens.tsx (ProfileScreen).
  */
 import React, { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
@@ -18,12 +17,12 @@ import { Spacing } from '../../theme';
 
 export const ProfileScreen = () => {
   
-  const { logout, isGuest, data } = useFinance();
-  
+const { updateUser } = useFinance();
+
   return(
   <RequireData>
     {(data) => {
-      const { updateUser } = useFinance();
+      const { logout, updateUser } = useFinance();      
       const navigation = useNavigation<any>();
       const [name, setName] = useState(data.user.name);
       const [email, setEmail] = useState(data.user.email);

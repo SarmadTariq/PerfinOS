@@ -1,6 +1,5 @@
 /**
  * OnboardingView — initial profile setup (name, income, budget, currency).
- * Extracted from PerFinOSScreens.tsx (OnboardingScreen).
  */
 import React, { useState } from 'react';
 import { Button, Card, Text } from '../../components/base';
@@ -9,7 +8,6 @@ import { Field } from '../../components/form/Field';
 import { SelectField } from '../../components/form/SelectField';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { useFinance } from '../../context/FinanceContext';
-import { Spacing } from '../../theme';
 import { sanitizeMoneyInput } from '../../utils/validation';
 
 const CURRENCY_OPTIONS = ['USD', 'CAD', 'EUR', 'GBP', 'AUD', 'INR', 'JPY'];

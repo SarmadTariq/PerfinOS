@@ -1,7 +1,6 @@
 /**
  * PlannerChatView — conversational AI financial planner using aggregate-only data.
  * Uses SafeAreaView layout with a sticky input row.
- * Extracted from PerFinOSScreens.tsx (PlannerChatScreen).
  */
 import React, { useEffect, useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';

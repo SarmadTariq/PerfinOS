@@ -1,10 +1,9 @@
 /**
  * SettingsView — workspace mode, appearance (theme), and privacy disclosures.
  * Uses useTheme (not just useThemeScheme) to access setMode.
- * Extracted from PerFinOSScreens.tsx (SettingsScreen).
  */
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Card, Text } from '../../components/base';

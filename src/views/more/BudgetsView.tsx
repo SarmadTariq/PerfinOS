@@ -1,6 +1,5 @@
 /**
  * BudgetsView — monthly budget management with category-level breakdown.
- * Extracted from PerFinOSScreens.tsx (BudgetsScreen).
  */
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';

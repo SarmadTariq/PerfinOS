@@ -1,6 +1,5 @@
 /**
  * CategoriesView — create, view, budget, and delete expense categories.
- * Extracted from PerFinOSScreens.tsx (CategoriesScreen).
  */
 import React, { useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';

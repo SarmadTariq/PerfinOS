@@ -1,5 +1,5 @@
 /**
- * Base atomic UI components — building blocks for all screens.
+ * Base atomic UI components - building blocks for all screens.
  * Import from this barrel rather than individual files.
  *
  * @example

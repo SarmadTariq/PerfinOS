@@ -1,7 +1,6 @@
 /**
  * TransactionFormView — shared add/edit form for transactions.
  * Exports AddTransactionScreen and EditTransactionScreen.
- * Extracted from PerFinOSScreens.tsx (TransactionForm + AddTransactionScreen + EditTransactionScreen).
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -56,22 +55,18 @@ const TORONTO_LOCATION = {
   neighborhood: 'Downtown',
 };
 
-const LOCATION_OPTIONS = [
-  TORONTO_LOCATION,
-  { latitude: 43.6629, longitude: -79.3957, address: 'The Annex, Toronto, ON', neighborhood: 'The Annex' },
-  { latitude: 43.6548, longitude: -79.4005, address: 'Kensington Market, Toronto, ON', neighborhood: 'Kensington Market' },
-  { latitude: 43.6456, longitude: -79.3807, address: 'Union Station, Toronto, ON', neighborhood: 'Downtown' },
-  { latitude: 43.6596, longitude: -79.3977, address: 'University of Toronto, Toronto, ON', neighborhood: 'University District' },
-  { latitude: 43.6557, longitude: -79.3802, address: 'CF Toronto Eaton Centre, Toronto, ON', neighborhood: 'Downtown' },
-  { latitude: 43.6478, longitude: -79.3958, address: 'King West, Toronto, ON', neighborhood: 'King West' },
-  { latitude: 43.6677, longitude: -79.3948, address: 'Bloor Street, Toronto, ON', neighborhood: 'Bloor-Yorkville' },
-  { latitude: 43.6486, longitude: -79.3716, address: 'St. Lawrence Market, Toronto, ON', neighborhood: 'St. Lawrence' },
-  { latitude: 43.6532, longitude: -79.3832, address: 'Online subscription', neighborhood: 'Online' },
+const PAYMENT_METHOD_OPTIONS = [
+  'Debit card',
+  'Credit card',
+  'Cash',
+  'Bank transfer',
+  'Direct deposit',
+  'Apple Pay',
+  'Google Pay',
 ];
 
-const PAYMENT_METHOD_OPTIONS = ['Debit card', 'Credit card', 'Cash', 'Bank transfer', 'Direct deposit', 'Apple Pay', 'Google Pay'];
-const CURRENCY_OPTIONS = ['USD', 'CAD', 'EUR', 'GBP', 'AUD', 'INR', 'JPY'];
 type LocationOption = { latitude: number; longitude: number; address: string; neighborhood?: string };
+
 type PlaceOption = LocationOption & { name: string; formattedAddress: string; placeId?: string; placeType?: string };
 
 const MAP_BOUNDS = {

@@ -6,12 +6,11 @@
  */
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Card, Text } from '../../components/base';
 import {
   BarListChart,
-  CategoryBadge,
   ChartCard,
   EmptyState,
   IconButton,
@@ -23,7 +22,7 @@ import {
 import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';
 import { useThemeScheme } from '../../context/ThemeContext';
-import { AppData, Category, Transaction } from '../../models/finance';
+import { Category, Transaction } from '../../models/finance';
 import {
   calculateBudgetHealth,
   calculateCategoryBreakdown,

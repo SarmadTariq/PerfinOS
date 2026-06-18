@@ -53,44 +53,66 @@ const AuthStack = () => (
   </Stack.Navigator>
 );
 
-const Tabs = () => (
-  <Tab.Navigator
-    screenOptions={({ route }) => ({
-      headerShown: false,
-      tabBarActiveTintColor: Colors.light.primary,
-      tabBarInactiveTintColor: Colors.light.textTertiary,
-      tabBarStyle: {
-        backgroundColor: Colors.light.card,
-        borderTopColor: Colors.light.border,
-        minHeight: 76,
-        paddingBottom: 12,
-        paddingTop: 10,
-      },
-      tabBarItemStyle: {
-        borderRadius: 8,
-        marginHorizontal: 2,
-      },
-      tabBarLabelStyle: { fontSize: 11, fontWeight: '700', letterSpacing: 0 },
-      tabBarHideOnKeyboard: true,
-      tabBarIcon: ({ focused, color, size }) => {
-        const map: Record<string, React.ComponentProps<typeof Ionicons>['name']> = {
-          Dashboard: focused ? 'grid' : 'grid-outline',
-          Transactions: focused ? 'receipt' : 'receipt-outline',
-          Map: focused ? 'map' : 'map-outline',
-          Insights: focused ? 'bulb' : 'bulb-outline',
-          More: focused ? 'ellipsis-horizontal-circle' : 'ellipsis-horizontal-circle-outline',
-        };
-        return <Ionicons name={map[route.name] || 'ellipse-outline'} size={focused ? size + 1 : size} color={color} />;
-      },
-    })}
-  >
-    <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ tabBarLabel: 'Home' }} />
-    <Tab.Screen name="Transactions" component={TransactionsScreen} options={{ tabBarLabel: 'Activity' }} />
-    <Tab.Screen name="Map" component={MapScreen} options={{ tabBarLabel: 'Map' }} />
-    <Tab.Screen name="Insights" component={InsightsScreen} options={{ tabBarLabel: 'Insights' }} />
-    <Tab.Screen name="More" component={MoreScreen} options={{ tabBarLabel: 'More' }} />
-  </Tab.Navigator>
-);
+const Tabs = () => {
+  const scheme = useThemeScheme();
+  const colors = Colors[scheme];
+
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textTertiary,
+        tabBarStyle: {
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
+          borderTopWidth: 1,
+          minHeight: 76,
+          paddingBottom: 12,
+          paddingTop: 10,
+          shadowColor: 'transparent',
+          elevation: 0,
+        },
+        tabBarBackground: () => (
+          <View style={{ flex: 1, backgroundColor: colors.card }} />
+        ),
+        tabBarItemStyle: {
+          borderRadius: 8,
+          marginHorizontal: 2,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '700',
+          letterSpacing: 0,
+        },
+        tabBarHideOnKeyboard: true,
+        tabBarIcon: ({ focused, color, size }) => {
+          const map: Record<string, React.ComponentProps<typeof Ionicons>['name']> = {
+            Dashboard: focused ? 'grid' : 'grid-outline',
+            Transactions: focused ? 'receipt' : 'receipt-outline',
+            Map: focused ? 'map' : 'map-outline',
+            Insights: focused ? 'bulb' : 'bulb-outline',
+            More: focused ? 'ellipsis-horizontal-circle' : 'ellipsis-horizontal-circle-outline',
+          };
+
+          return (
+            <Ionicons
+              name={map[route.name] || 'ellipse-outline'}
+              size={focused ? size + 1 : size}
+              color={color}
+            />
+          );
+        },
+      })}
+    >
+      <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ tabBarLabel: 'Home' }} />
+      <Tab.Screen name="Transactions" component={TransactionsScreen} options={{ tabBarLabel: 'Activity' }} />
+      <Tab.Screen name="Map" component={MapScreen} options={{ tabBarLabel: 'Map' }} />
+      <Tab.Screen name="Insights" component={InsightsScreen} options={{ tabBarLabel: 'Insights' }} />
+      <Tab.Screen name="More" component={MoreScreen} options={{ tabBarLabel: 'More' }} />
+    </Tab.Navigator>
+  );
+};
 
 const MainStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -113,6 +135,9 @@ const MainStack = () => (
 );
 
 const SplashGate = ({ children }: { children: React.ReactNode }) => {
+  const scheme = useThemeScheme();
+  const colors = Colors[scheme];
+
   const opacity = React.useRef(new Animated.Value(0)).current;
   const scale = React.useRef(new Animated.Value(0.92)).current;
   const [complete, setComplete] = React.useState(false);
@@ -146,7 +171,14 @@ const SplashGate = ({ children }: { children: React.ReactNode }) => {
   if (complete) return <>{children}</>;
 
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.light.bg }}>
+    <View
+      style={{
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: colors.bg,
+      }}
+    >
       <Animated.View style={{ alignItems: 'center', opacity, transform: [{ scale }] }}>
         <View
           style={{
@@ -155,7 +187,7 @@ const SplashGate = ({ children }: { children: React.ReactNode }) => {
             borderRadius: 20,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: Colors.light.primary,
+            backgroundColor: colors.primary,
             marginBottom: 18,
           }}
         >

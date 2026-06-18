@@ -1,6 +1,5 @@
 /**
  * SavingsGoalsView — create, track, and manage savings targets.
- * Extracted from PerFinOSScreens.tsx (SavingsGoalsScreen).
  */
 import React, { useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
