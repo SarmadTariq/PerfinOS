@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, TouchableOpacity, View, type StyleProp, type ViewStyle } from 'react-native';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useThemeScheme } from '../../context/ThemeContext';
 import { Colors, Radius, Spacing } from '../../theme';
@@ -33,6 +33,17 @@ export const getMapPosition = (latitude: number, longitude: number) => ({
   top: `${Math.min(Math.max((1 - (latitude - MAP_BOUNDS.minLat) / (MAP_BOUNDS.maxLat - MAP_BOUNDS.minLat)) * 100, 8), 86)}%` as `${number}%`,
 });
 
+type MapCanvasProps = {
+  transactions: Transaction[];
+  categories: Category[];
+  selectedId?: string;
+  onSelect: (transaction: Transaction) => void;
+  mode: 'pins' | 'heatmap';
+  zoom?: number;
+  currency?: string;
+  style?: StyleProp<ViewStyle>;
+};
+
 /**
  * Spending map canvas — renders either a heatmap or pin mode.
  *
@@ -46,6 +57,7 @@ export const getMapPosition = (latitude: number, longitude: number) => ({
  * @param mode - 'heatmap' groups spend by location; 'pins' shows individual expense pins
  * @param zoom - Canvas scale factor (default 1)
  * @param currency - ISO currency code for value labels
+ * @param style - Optional container style from parent layout
  */
 export const MapCanvas = ({
   transactions,
@@ -55,20 +67,12 @@ export const MapCanvas = ({
   mode,
   zoom = 1,
   currency = 'USD',
-}: {
-  transactions: Transaction[];
-  categories: Category[];
-  selectedId?: string;
-  onSelect: (transaction: Transaction) => void;
-  mode: 'pins' | 'heatmap';
-  zoom?: number;
-  currency?: string;
-}) => {
+  style,
+}: MapCanvasProps) => {
   const scheme = useThemeScheme();
   const colors = scheme === 'dark' ? Colors.dark : Colors.light;
   const expenseTransactions = transactions.filter((t) => t.type === 'expense');
 
-  // Aggregate transactions into heatmap groups by location name
   const heatGroups = Object.values(
     expenseTransactions.reduce<
       Record<string, { label: string; amount: number; count: number; latitude: number; longitude: number }>
@@ -78,12 +82,21 @@ export const MapCanvas = ({
         transaction.location.neighborhood ||
         transaction.location.address ||
         'Unknown area';
-      const current = groups[label] || { label, amount: 0, count: 0, latitude: 0, longitude: 0 };
+
+      const current = groups[label] || {
+        label,
+        amount: 0,
+        count: 0,
+        latitude: 0,
+        longitude: 0,
+      };
+
       current.amount += transaction.amount;
       current.count += 1;
       current.latitude += transaction.location.latitude;
       current.longitude += transaction.location.longitude;
       groups[label] = current;
+
       return groups;
     }, {})
   ).map((group) => ({
@@ -92,10 +105,9 @@ export const MapCanvas = ({
     longitude: group.longitude / group.count,
   }));
 
-  const maxHeat = Math.max(...heatGroups.map((g) => g.amount), 1);
+  const maxHeat = Math.max(...heatGroups.map((group) => group.amount), 1);
   const topHeat = [...heatGroups].sort((a, b) => b.amount - a.amount)[0];
 
-  // Delegate to native maps on iOS/Android
   if (Platform.OS !== 'web') {
     return (
       <ExpenseNativeMap
@@ -106,21 +118,20 @@ export const MapCanvas = ({
         mode={mode}
         zoom={zoom}
         onSelect={onSelect}
+        style={style}
       />
     );
   }
 
-  // Web canvas rendering
   return (
-    <View style={[styles.mapCanvas, { backgroundColor: colors.bgTertiary }]}>
+    <View style={[styles.mapCanvas, { backgroundColor: colors.bgTertiary }, style]}>
       <View style={[styles.mapLayer, { transform: [{ scale: zoom }] }]}>
-        {/* Road overlays */}
         <View style={[styles.mapRoad, styles.mapRoadOne]} />
         <View style={[styles.mapRoad, styles.mapRoadTwo]} />
         <View style={[styles.mapRoad, styles.mapRoadThree]} />
-        {/* Water body at bottom */}
+
         <View style={styles.mapWater} />
-        {/* Current location indicator */}
+
         <View style={styles.currentLocationDot}>
           <MaterialIcons name="my-location" size={18} color="#FFFFFF" />
         </View>
@@ -130,7 +141,7 @@ export const MapCanvas = ({
               const intensity = group.amount / maxHeat;
               const size = 74 + intensity * 170;
               const position = getMapPosition(group.latitude, group.longitude);
-              // Colour scale: red (hot) → amber → green → blue (cool)
+
               const heatColor =
                 intensity > 0.78
                   ? '220,38,38'
@@ -139,6 +150,7 @@ export const MapCanvas = ({
                     : intensity > 0.3
                       ? '34,197,94'
                       : '59,130,246';
+
               return (
                 <View
                   key={group.label}
@@ -153,7 +165,9 @@ export const MapCanvas = ({
                       marginLeft: -size / 2,
                       marginTop: -size / 2,
                       backgroundColor: `rgba(${heatColor}, ${0.18 + intensity * 0.28})`,
-                      ...(Platform.OS === 'web' ? ({ filter: `blur(${Math.round(size * 0.22)}px)` } as any) : {}),
+                      ...(Platform.OS === 'web'
+                        ? ({ filter: `blur(${Math.round(size * 0.22)}px)` } as any)
+                        : {}),
                     },
                   ]}
                 >
@@ -170,6 +184,7 @@ export const MapCanvas = ({
               const category = categories.find((item) => item.id === transaction.categoryId);
               const position = getMapPosition(transaction.location.latitude, transaction.location.longitude);
               const isSelected = transaction.id === selectedId;
+
               return (
                 <TouchableOpacity
                   key={transaction.id}
@@ -186,10 +201,12 @@ export const MapCanvas = ({
                   ]}
                 >
                   <MaterialCommunityIcons name={mcIconName(category?.icon, 'food')} size={17} color="#FFFFFF" />
+
                   <View style={[styles.mapPinLabel, { backgroundColor: colors.card, borderColor: colors.border }]}>
                     <Text variant="caption" numberOfLines={1}>
                       {transaction.location.name || transaction.merchant}
                     </Text>
+
                     <Text variant="caption" color="secondary" numberOfLines={1}>
                       {formatCurrencyPrecise(transaction.amount, currency)}
                     </Text>
@@ -203,6 +220,7 @@ export const MapCanvas = ({
             <Text variant="caption" color="secondary">
               Highest spend region
             </Text>
+
             <Text variant="bodySmall" style={{ fontWeight: '700' }}>
               {topHeat.label}
             </Text>
@@ -214,8 +232,12 @@ export const MapCanvas = ({
 };
 
 const styles = StyleSheet.create({
-  // mapCanvas: { height: 320, overflow: 'hidden' },
-  mapLayer: { flex: 1 },
+  mapCanvas: {
+    overflow: 'hidden',
+  },
+  mapLayer: {
+    flex: 1,
+  },
   mapRoad: {
     position: 'absolute',
     height: 22,
@@ -224,9 +246,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(180,180,180,0.55)',
     borderRadius: Radius.round,
   },
-  mapRoadOne: { top: '32%', transform: [{ rotate: '-20deg' }] },
-  mapRoadTwo: { top: '54%', transform: [{ rotate: '15deg' }] },
-  mapRoadThree: { top: '70%', transform: [{ rotate: '-5deg' }] },
+  mapRoadOne: {
+    top: '32%',
+    transform: [{ rotate: '-20deg' }],
+  },
+  mapRoadTwo: {
+    top: '54%',
+    transform: [{ rotate: '15deg' }],
+  },
+  mapRoadThree: {
+    top: '70%',
+    transform: [{ rotate: '-5deg' }],
+  },
   mapWater: {
     position: 'absolute',
     left: '-15%',
@@ -274,8 +305,16 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     alignItems: 'center',
   },
-  heatRegion: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
-  heatCore: { width: '34%', height: '34%', borderRadius: Radius.round },
+  heatRegion: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heatCore: {
+    width: '34%',
+    height: '34%',
+    borderRadius: Radius.round,
+  },
   heatLegend: {
     position: 'absolute',
     left: Spacing.lg,
