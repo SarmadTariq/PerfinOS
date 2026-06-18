@@ -1,5 +1,6 @@
 /**
- * InsightsView — automated spending signals derived from transaction data.
+ * InsightsView — financial review hub with analysis tools first,
+ * followed by automated monthly signals.
  */
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -15,6 +16,7 @@ import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';
 import { useInsights } from '../../context/FinanceContext';
 import { useThemeScheme } from '../../context/ThemeContext';
+import { InsightSeverity } from '../../models/finance';
 import { Colors, Radius, Spacing } from '../../theme';
 
 const useColors = () => {
@@ -30,17 +32,48 @@ const insightEntries: {
 }[] = [
   {
     title: 'Analytics',
-    subtitle: 'Category trends, spending patterns, and monthly breakdowns.',
+    subtitle: 'Trends, categories, and spending patterns.',
     route: 'Analytics',
     icon: 'bar-chart',
   },
   {
     title: 'Reports',
-    subtitle: 'Export-ready summaries and financial review snapshots.',
+    subtitle: 'Monthly summaries and export-ready snapshots.',
     route: 'Reports',
     icon: 'summarize',
   },
 ];
+
+const getSeverityMeta = (
+  severity: InsightSeverity,
+  colors: ReturnType<typeof useColors>
+): {
+  label: string;
+  color: string;
+  icon: React.ComponentProps<typeof MaterialIcons>['name'];
+} => {
+  if (severity === 'high') {
+    return {
+      label: 'Risk',
+      color: colors.danger,
+      icon: 'priority-high',
+    };
+  }
+
+  if (severity === 'medium') {
+    return {
+      label: 'Watch',
+      color: colors.warning,
+      icon: 'tips-and-updates',
+    };
+  }
+
+  return {
+    label: 'Note',
+    color: colors.success,
+    icon: 'check-circle',
+  };
+};
 
 const InsightsContent = () => {
   const navigation = useNavigation<any>();
@@ -49,42 +82,7 @@ const InsightsContent = () => {
 
   return (
     <AppScroll>
-      <ScreenHeader title="Insights" subtitle="Overview, analytics, and reports for financial review." />
-
-      <Text variant="h4" style={{ marginBottom: Spacing.md }}>
-        Overview
-      </Text>
-
-      {insights.length === 0 ? (
-        <EmptyState title="No insights yet" message="Add more transactions to generate behavior signals." />
-      ) : (
-        insights.map((insight) => (
-          <Card key={insight.id} shadow="sm" style={{ marginBottom: Spacing.md }}>
-            <CategoryBadge
-              label={insight.severity}
-              color={
-                insight.severity === 'high'
-                  ? Colors.light.danger
-                  : insight.severity === 'medium'
-                    ? Colors.light.warning
-                    : Colors.light.success
-              }
-              icon="tips-and-updates"
-              library="mi"
-            />
-            <Text variant="h4" style={{ marginTop: Spacing.md }}>
-              {insight.title}
-            </Text>
-            <Text variant="body" color="secondary" style={{ marginTop: Spacing.sm }}>
-              {insight.description}
-            </Text>
-          </Card>
-        ))
-      )}
-
-      <Text variant="h4" style={{ marginTop: Spacing.lg, marginBottom: Spacing.md }}>
-        Analysis tools
-      </Text>
+      <ScreenHeader title="Insights" subtitle="Explore analytics, reports, and monthly financial signals." />
 
       <View style={styles.entryList}>
         {insightEntries.map((entry) => (
@@ -96,12 +94,12 @@ const InsightsContent = () => {
             style={[styles.entryRow, { backgroundColor: colors.card, borderColor: colors.border }]}
           >
             <View style={[styles.entryIcon, { backgroundColor: colors.primarySoft }]}>
-              <MaterialIcons name={entry.icon} size={23} color={colors.primary} />
+              <MaterialIcons name={entry.icon} size={22} color={colors.primary} />
             </View>
 
             <View style={styles.entryText}>
               <Text variant="h4">{entry.title}</Text>
-              <Text variant="bodySmall" color="secondary" style={{ marginTop: Spacing.xs }}>
+              <Text variant="bodySmall" color="secondary" style={styles.entrySubtitle}>
                 {entry.subtitle}
               </Text>
             </View>
@@ -110,6 +108,43 @@ const InsightsContent = () => {
           </TouchableOpacity>
         ))}
       </View>
+
+      <View style={styles.signalsHeader}>
+        <Text variant="h4">This month’s signals</Text>
+        <Text variant="bodySmall" color="secondary" style={styles.sectionSubtitle}>
+          Auto-generated from your current transactions, budget, locations, and recurring expenses.
+        </Text>
+      </View>
+
+      {insights.length === 0 ? (
+        <EmptyState title="No signals yet" message="Add more transactions to generate behavior signals." />
+      ) : (
+        <View style={styles.signalList}>
+          {insights.map((insight) => {
+            const severity = getSeverityMeta(insight.severity, colors);
+
+            return (
+              <Card key={insight.id} shadow="sm" style={styles.signalCard}>
+                <View style={styles.signalTopRow}>
+                  <View style={styles.signalCopy}>
+                    <Text variant="h4">{insight.title}</Text>
+                    <Text variant="body" color="secondary" style={styles.signalDescription}>
+                      {insight.description}
+                    </Text>
+                  </View>
+
+                  <CategoryBadge
+                    label={severity.label}
+                    color={severity.color}
+                    icon={severity.icon}
+                    library="mi"
+                  />
+                </View>
+              </Card>
+            );
+          })}
+        </View>
+      )}
     </AppScroll>
   );
 };
@@ -121,11 +156,18 @@ export const InsightsScreen = () => (
 );
 
 const styles = StyleSheet.create({
+  sectionHeader: {
+    marginBottom: Spacing.md,
+  },
+  sectionSubtitle: {
+    marginTop: Spacing.xs,
+  },
   entryList: {
     gap: Spacing.md,
+    marginBottom: Spacing.xl,
   },
   entryRow: {
-    minHeight: 96,
+    minHeight: 88,
     borderRadius: Radius.lg,
     borderWidth: 1,
     padding: Spacing.md,
@@ -139,8 +181,31 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   entryText: {
     flex: 1,
+    minWidth: 0,
+  },
+  entrySubtitle: {
+    marginTop: Spacing.xs,
+  },
+  signalsHeader: {
+    marginBottom: Spacing.md,
+  },
+  signalList: {
+    gap: Spacing.md,
+  },
+  signalCard: {
+    paddingVertical: Spacing.md,
+  },
+  signalTopRow: {
+    gap: Spacing.md,
+  },
+  signalCopy: {
+    gap: Spacing.sm,
+  },
+  signalDescription: {
+    lineHeight: 22,
   },
 });
