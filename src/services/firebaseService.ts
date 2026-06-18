@@ -28,27 +28,7 @@ const dataRef = (userId: string) => {
   return doc(db, 'users', userId, 'private', 'appData');
 };
 
-const normalizeRemoteData = (userId: string, data: AppData): AppData => ({
-  ...data,
-  user: { ...data.user, id: userId },
-  entitlement: data.entitlement || createEmptyAppData({ userId, isGuest: false }).entitlement,
-  transactions: data.transactions.map((transaction) => ({
-    ...transaction,
-    userId,
-    receipts: transaction.receipts || [],
-    location: {
-      ...transaction.location,
-      name: transaction.location.name || transaction.merchant,
-      formattedAddress: transaction.location.formattedAddress || transaction.location.address,
-      source: transaction.location.source || 'imported',
-    },
-  })),
-  budgets: data.budgets.map((budget) => ({ ...budget, userId })),
-  savingsGoals: data.savingsGoals.map((goal) => ({ ...goal, userId })),
-  recurringExpenses: data.recurringExpenses.map((expense) => ({ ...expense, userId })),
-  reports: data.reports.map((report) => ({ ...report, userId })),
-  onboarded: !!data.onboarded,
-});
+const normalizeRemoteData = ( _userId: string, data: AppData): AppData => data;
 
 const firestoreSafeData = (data: AppData): AppData => JSON.parse(JSON.stringify(data)) as AppData;
 
@@ -81,7 +61,7 @@ export const logoutRemote = async () => {
 export const ensureRemoteAppData = async (userId: string, fallback?: AppData) => {
   const ref = dataRef(userId);
   const snapshot = await getDoc(ref);
-  if (snapshot.exists()) return normalizeRemoteData(userId, snapshot.data() as AppData);
+  if (snapshot.exists()) { return snapshot.data() as AppData;}
   const empty = normalizeRemoteData(userId, fallback || createEmptyAppData({ userId, isGuest: false }));
   await setDoc(ref, firestoreSafeData(empty));
   return empty;
