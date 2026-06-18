@@ -1,15 +1,14 @@
 /**
- * WelcomeView — landing screen with login, signup, and guest access entry points.
- * Extracted from PerFinOSScreens.tsx (WelcomeScreen).
+ * WelcomeView — professional auth landing with login, signup, and low-emphasis guest access.
  */
 import React from 'react';
-import { View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { Button, Card, Text } from '../../components/base';
+import { Button, Text } from '../../components/base';
 import { useFinance } from '../../context/FinanceContext';
 import { useThemeScheme } from '../../context/ThemeContext';
-import { Colors, Spacing, Radius } from '../../theme';
+import { Colors, Radius, Spacing } from '../../theme';
 import { AppScroll } from '../../components/layout/AppScroll';
 
 const useColors = () => {
@@ -21,28 +20,104 @@ export const WelcomeScreen = () => {
   const navigation = useNavigation<any>();
   const colors = useColors();
   const { continueAsGuest } = useFinance();
+
   return (
     <AppScroll>
-      <View style={{ alignItems: 'center', paddingVertical: Spacing.xxxl }}>
-        <View style={{ width: 74, height: 74, borderRadius: Radius.lg, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.lg, backgroundColor: colors.primarySoft }}>
-          <MaterialIcons name="query-stats" size={42} color={colors.primary} />
+      <View style={styles.screen}>
+        <View style={styles.brandBlock}>
+          <View style={[styles.logoTile, { backgroundColor: colors.primarySoft }]}>
+            <MaterialIcons name="query-stats" size={40} color={colors.primary} />
+          </View>
+
+          <Text variant="h1" style={styles.title}>
+            PerFin OS
+          </Text>
+
+          <View style={styles.subtitleBlock}>
+            <Text variant="bodyLarge" color="secondary" style={styles.subtitleLine}>
+              Track spending by category and location.
+            </Text>
+            <Text variant="bodyLarge" color="secondary" style={styles.subtitleLine}>
+              Review budgets, reports, and next-month plans with confidence.
+            </Text>
+          </View>
         </View>
-        <Text variant="h1" style={{ textAlign: 'center' }}>
-          PerFin OS
-        </Text>
-        <Text variant="bodyLarge" color="secondary" style={{ textAlign: 'center', marginTop: Spacing.md, maxWidth: 360 }}>
-          Track expenses, see where they happen, and plan your next month with cleaner financial visibility.
-        </Text>
+
+        <View style={styles.actions}>
+          <Button
+            label="Login"
+            onPress={() => navigation.navigate('Login')}
+            size="lg"
+            accessibilityLabel="Log in to PerFin OS"
+          />
+
+          <Button
+            label="Create Account"
+            onPress={() => navigation.navigate('Signup')}
+            variant="secondary"
+            size="lg"
+            accessibilityLabel="Create a PerFin OS account"
+          />
+
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Continue as guest"
+            onPress={continueAsGuest}
+            style={styles.guestAction}
+            activeOpacity={0.7}
+          >
+            <Text variant="bodySmall" color="tertiary" style={styles.guestText}>
+              Continue as guest
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
-      <Card shadow="sm">
-        <Text variant="h4">Secure finance workspace</Text>
-        <Text variant="body" color="secondary" style={{ marginTop: Spacing.sm }}>
-          Sign in to sync your data, attach receipts, and unlock AI planning features.
-        </Text>
-        <Button label="Login" onPress={() => navigation.navigate('Login')} size="lg" style={{ marginTop: Spacing.lg }} />
-        <Button label="Create Account" onPress={() => navigation.navigate('Signup')} variant="secondary" style={{ marginTop: Spacing.sm }} />
-        <Button label="Continue as Guest" onPress={continueAsGuest} variant="secondary" style={{ marginTop: Spacing.sm }} />
-      </Card>
     </AppScroll>
   );
 };
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    minHeight: 640,
+    justifyContent: 'center',
+    paddingTop: Spacing.xxxl,
+  },
+  brandBlock: {
+    alignItems: 'center',
+    marginBottom: Spacing.xxxl,
+  },
+  logoTile: {
+    width: 84,
+    height: 84,
+    borderRadius: Radius.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.xl,
+  },
+  title: {
+    textAlign: 'center',
+    marginBottom: Spacing.md,
+  },
+  subtitleBlock: {
+    maxWidth: 360,
+  },
+  subtitleLine: {
+    textAlign: 'center',
+  },
+  actions: {
+    width: '100%',
+    maxWidth: 420,
+    alignSelf: 'center',
+    gap: Spacing.md,
+  },
+  guestAction: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  guestText: {
+    fontWeight: '600',
+  },
+});
