@@ -1,22 +1,7 @@
 import { initializeApp, getApps } from 'firebase/app';
-import {
-  Auth,
-  User as FirebaseUser,
-  createUserWithEmailAndPassword,
-  getAuth,
-  onAuthStateChanged,
-  sendPasswordResetEmail,
-  signInWithEmailAndPassword,
-  signOut,
-} from 'firebase/auth';
-import {
-  Firestore,
-  doc,
-  getDoc,
-  getFirestore,
-  onSnapshot,
-  setDoc,
-} from 'firebase/firestore';
+import {Auth, User as FirebaseUser, createUserWithEmailAndPassword, getAuth, onAuthStateChanged,
+  sendPasswordResetEmail, signInWithEmailAndPassword, signOut} from 'firebase/auth';
+import {Firestore, doc, getDoc, getFirestore, onSnapshot, setDoc} from 'firebase/firestore';
 import { AppData } from '../models/finance';
 import { createEmptyAppData } from './initialData';
 
@@ -33,9 +18,7 @@ export const firebaseConfig = {
 
 export const firebaseConfigured = Object.values(firebaseConfig).every(Boolean);
 
-const app = firebaseConfigured
-  ? getApps()[0] || initializeApp(firebaseConfig)
-  : null;
+const app = firebaseConfigured ? getApps()[0] || initializeApp(firebaseConfig) : null;
 
 export const auth: Auth | null = app ? getAuth(app) : null;
 export const db: Firestore | null = app ? getFirestore(app) : null;
