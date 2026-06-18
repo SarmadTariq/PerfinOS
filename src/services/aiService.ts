@@ -7,6 +7,7 @@ import {
 } from './financeAnalytics';
 import { appConfig } from './configService';
 import { getMonthKey } from '../utils/format';
+import { auth } from '../repositories/FirebaseRepository';
 
 export interface AiPlannerResult {
   title: string;
@@ -63,12 +64,25 @@ export const generatePlannerResult = async (data: AppData): Promise<AiPlannerRes
   };
 
   try {
-    const response = await fetch(`${appConfig.apiBaseUrl}/ai/report`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    if (!response.ok) throw new Error('AI service unavailable');
+    const token = await auth?.currentUser?.getIdToken();
+
+    const response = await fetch(
+      `${appConfig.apiBaseUrl}/ai/report`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+    if (!response.ok)
+      {
+        const text = await response.text();
+        console.error(response.status, text);
+        throw new Error('AI service unavailable');
+      } 
     return { ...(await response.json()), source: 'ai' } as AiPlannerResult;
   } catch {
     return ruleBasedPlanner(data);

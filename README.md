@@ -25,7 +25,7 @@ The product does not connect to bank accounts, process payments, or provide lega
 
 | Layer | Tools |
 | --- | --- |
-| App | Expo 54, React 19, React Native 0.81, TypeScript |
+| App | React Native, TypeScript |
 | Navigation | React Navigation stack + bottom tabs |
 | State | React Context with centralized guards and persistence routing |
 | Local storage | AsyncStorage for guest workspace only |
@@ -146,26 +146,9 @@ docs/screenshots/ai-reports.png
 docs/demo/perfin-os-demo.mp4
 ```
 
-## Known Limitations
-
-- Worker receipt signed URL endpoints are placeholders until Cloudflare R2 credentials are configured.
-- Gemini and Google Places calls require keys configured outside committed source.
-- Guest users cannot use cloud sync, receipt uploads, account recovery, or AI features.
-- Automated unit/e2e tests are still planned.
-- PerFin OS v1.0.0 includes freemium metadata only; no payment or pricing UI is included.
-
-## Roadmap
-
-- Complete R2 signed upload/download/delete implementation.
-- Add Firebase ID token verification in the Worker.
-- Add AI planner chat UI beyond report generation.
-- Add unit tests for validation, analytics, and persistence.
-- Add smoke tests for guest, auth, receipts, maps, and AI fallback.
-- Add PerFin OS v2.0 freemium upgrade screens and payment integration.
-
 ## Author
 
-Built by Yash Kanadhia.
+Built by Yash Kanadhia, Alexis Gorospe, Sarmad Tariq
 
 ## License
 

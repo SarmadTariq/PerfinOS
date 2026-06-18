@@ -2,7 +2,7 @@
  * CategoriesView — create, view, budget, and delete expense categories.
  * Extracted from PerFinOSScreens.tsx (CategoriesScreen).
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Card, Text } from '../../components/base';
@@ -26,15 +26,22 @@ export const CategoriesScreen = () => (
       const navigation = useNavigation<any>();
       const [name, setName] = useState('');
       const [budget, setBudget] = useState('100');
-      const [toast, setToast] = useState<string | null>(null);
+      const [notice, setNotice] = useState<string | null>(null);
+      useEffect(() => {
+        if (!notice) return;
+        const t = setTimeout(() => setNotice(null), 2500);
+        return () => clearTimeout(t);
+      }, [notice]);
+
       const create = async () => {
         await addCategory({ name, type: 'expense', color: '#2F8F83', icon: 'category', monthlyBudget: Number(budget) });
         setName('');
-        setToast('Category added');
+        setNotice('Category added');
       };
       return (
         <AppScroll>
           <ScreenHeader title="Categories" subtitle="Default and custom categories with safe delete rules." action={<IconButton icon="arrow-back" label="Go back" onPress={() => navigation.goBack()} />} />
+          {notice ? <Text variant="bodySmall" color="secondary" style={{ marginBottom: Spacing.md, textAlign: 'center' }}>{notice}</Text> : null}
           <Card shadow="sm" style={{ marginBottom: Spacing.lg }}>
             <Field label="Custom Category" value={name} onChangeText={setName} placeholder="Pet care" />
             <Field label="Monthly Budget" value={budget} onChangeText={setBudget} placeholder="100" keyboardType="numeric" />
@@ -58,7 +65,6 @@ export const CategoriesScreen = () => (
               ) : null}
             </Card>
           ))}
-          <Toast message={toast} />
         </AppScroll>
       );
     }}

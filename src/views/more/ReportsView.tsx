@@ -2,7 +2,7 @@
  * ReportsView — generate AI-powered monthly reports and view saved report history.
  * Extracted from PerFinOSScreens.tsx (ReportsScreen).
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Card, Text } from '../../components/base';
@@ -33,24 +33,31 @@ export const ReportsScreen = () => (
       const navigation = useNavigation<any>();
       const { generateReport, canUseFeature, isGuest } = useFinance();
       const colors = useColors();
-      const [toast, setToast] = useState<string | null>(null);
+      const [notice, setNotice] = useState<string | null>(null);
       const [planner, setPlanner] = useState<AiPlannerResult | null>(null);
       const [aiLoading, setAiLoading] = useState(false);
       const aiEnabled = canUseFeature('aiReports') && !isGuest;
+      useEffect(() => {
+        if (!notice) return;
+        const t = setTimeout(() => setNotice(null), 2500);
+        return () => clearTimeout(t);
+      }, [notice]);
+
       const runPlanner = async () => {
         if (!aiEnabled) {
-          setToast('AI Reports require a signed-in account.');
+          setNotice('AI Reports require a signed-in account.');
           return;
         }
         setAiLoading(true);
         const result = await generatePlannerResult(data);
         setPlanner(result);
-        setToast(result.source === 'ai' ? 'AI report generated' : 'Planner fallback generated');
+        setNotice(result.source === 'ai' ? 'AI report generated' : 'Planner fallback generated');
         setAiLoading(false);
       };
       return (
         <AppScroll>
-          <ScreenHeader title="Reports" subtitle="Generate a monthly summary from current data." action={<View style={{ flexDirection: 'row', gap: Spacing.sm }}><IconButton icon="arrow-back" label="Go back" onPress={() => navigation.goBack()} /><IconButton icon="summarize" label="Generate report" onPress={() => generateReport().then(() => setToast('Report generated'))} /></View>} />
+          <ScreenHeader title="Reports" subtitle="Generate a monthly summary from current data." action={<View style={{ flexDirection: 'row', gap: Spacing.sm }}><IconButton icon="arrow-back" label="Go back" onPress={() => navigation.goBack()} /><IconButton icon="summarize" label="Generate report" onPress={() => generateReport().then(() => setNotice('Report generated'))} /></View>} />
+          {notice ? <Text variant="bodySmall" color="secondary" style={{ marginBottom: Spacing.md, textAlign: 'center' }}>{notice}</Text> : null}
           <Card shadow="sm" style={{ marginBottom: Spacing.lg }}>
             <View style={styles.rowBetween}>
               <View style={{ flex: 1 }}>
@@ -78,7 +85,7 @@ export const ReportsScreen = () => (
               </View>
             ) : null}
           </Card>
-          {data.reports.length === 0 ? <EmptyState title="No reports" message="Generate the current month report to create a saved summary." actionLabel="Generate Report" onAction={() => generateReport().then(() => setToast('Report generated'))} /> : data.reports.map((report) => (
+          {data.reports.length === 0 ? <EmptyState title="No reports" message="Generate the current month report to create a saved summary." actionLabel="Generate Report" onAction={() => generateReport().then(() => setNotice('Report generated'))} /> : data.reports.map((report) => (
             <Card key={report.id} shadow="sm" style={{ marginBottom: Spacing.md }}>
               <Text variant="h4">{readableMonth(report.month)}</Text>
               <Text variant="body" color="secondary" style={{ marginTop: Spacing.sm }}>
@@ -89,7 +96,6 @@ export const ReportsScreen = () => (
               <Text variant="bodySmall" color="secondary">Savings progress: {report.savingsProgress}%</Text>
             </Card>
           ))}
-          <Toast message={toast} />
         </AppScroll>
       );
     }}

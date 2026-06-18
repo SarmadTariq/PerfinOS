@@ -281,7 +281,7 @@ const TransactionForm = ({ mode }: { mode: 'add' | 'edit' }) => (
               if (mode === 'edit' && existing) updateTransaction(existing.id, { receipts: patched });
             });
           }
-          navigation.navigate('Transactions');
+          navigation.navigate('MainTabs', { screen: 'Dashboard' });
         } catch (err: any) {
           setError(err.message || 'Could not save transaction');
         }
