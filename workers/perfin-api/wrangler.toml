@@ -5,3 +5,21 @@ compatibility_date = "2026-05-19"
 [[r2_buckets]]
 binding = "RECEIPTS"
 bucket_name = "perfin-bucket"
+
+[vars]
+FIREBASE_PROJECT_ID = "perfin-os-a9f2d"
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = true
+persist = true
+head_sampling_rate = 1
