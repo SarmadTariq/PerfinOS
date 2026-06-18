@@ -1,8 +1,9 @@
 /**
- * SettingsView - workspace mode, appearance, and session controls.
+ * SettingsView: workspace mode, appearance theme, and session controls.
+ * Privacy and app scope disclosures live in Privacy & Help.
  */
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Card, Text } from '../../components/base';
@@ -43,11 +44,13 @@ export const SettingsScreen = () => {
 
       <Card shadow="sm" style={{ marginBottom: Spacing.lg }}>
         <Text variant="h4">Workspace Mode</Text>
+
         <Text variant="body" color="secondary" style={{ marginTop: Spacing.sm }}>
           {isGuest
             ? 'Guest data stays on this device. Sign in to unlock cloud sync, receipt uploads, account recovery, and AI planning.'
             : 'Your PerFin OS workspace syncs through Firebase. Receipt and AI features use configured production gateways when keys are provided.'}
         </Text>
+
         <View style={{ marginTop: Spacing.md }}>
           <CategoryBadge
             label={`Plan: ${data?.entitlement.plan || 'guest'}`}
@@ -56,30 +59,42 @@ export const SettingsScreen = () => {
             library="mi"
           />
         </View>
+
+        <Button label="Logout" variant="danger" onPress={logout} style={{ marginTop: Spacing.md }} />
       </Card>
 
       <Card shadow="sm" style={{ marginBottom: Spacing.lg }}>
-        <View style={styles.sectionHeader}>
-          <MaterialIcons name="brightness-6" size={20} color={colors.primary} style={{ marginRight: Spacing.sm }} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md }}>
+          <MaterialIcons
+            name="brightness-6"
+            size={20}
+            color={colors.primary}
+            style={{ marginRight: Spacing.sm }}
+          />
           <Text variant="h4">Appearance</Text>
         </View>
+
         <Text variant="bodySmall" color="secondary" style={{ marginBottom: Spacing.md }}>
-          Currently: {resolved === 'dark' ? 'Dark' : 'Light'} {mode === 'system' ? '(following system)' : '(manual override)'}
+          Currently: {resolved === 'dark' ? '🌙 Dark' : '☀️ Light'} {mode === 'system' ? '(following system)' : '(manual override)'}
         </Text>
-        <View style={styles.themeOptions}>
+
+        <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
           {themeOptions.map((opt) => (
             <TouchableOpacity
               key={opt.value}
               onPress={() => setMode(opt.value)}
               accessibilityRole="button"
               accessibilityLabel={`Set theme to ${opt.label}`}
-              style={[
-                styles.themeOption,
-                {
-                  borderColor: mode === opt.value ? colors.primary : colors.border,
-                  backgroundColor: mode === opt.value ? colors.primarySoft : colors.bgSecondary,
-                },
-              ]}
+              style={{
+                flex: 1,
+                paddingVertical: Spacing.sm,
+                paddingHorizontal: Spacing.md,
+                borderRadius: Radius.md,
+                borderWidth: 1.5,
+                alignItems: 'center',
+                borderColor: mode === opt.value ? colors.primary : colors.border,
+                backgroundColor: mode === opt.value ? colors.primarySoft : colors.bgSecondary,
+              }}
             >
               <Text
                 variant="bodySmall"
@@ -94,37 +109,6 @@ export const SettingsScreen = () => {
           ))}
         </View>
       </Card>
-
-      <Card shadow="sm" style={{ marginBottom: Spacing.lg }}>
-        <View style={styles.sectionHeader}>
-          <MaterialIcons name="logout" size={20} color={colors.primary} style={{ marginRight: Spacing.sm }} />
-          <Text variant="h4">Session Controls</Text>
-        </View>
-        <Text variant="body" color="secondary" style={{ marginTop: Spacing.sm }}>
-          End the current session and return to the sign-in flow.
-        </Text>
-        <Button label="Logout" variant="danger" onPress={logout} style={{ marginTop: Spacing.md }} />
-      </Card>
     </AppScroll>
   );
 };
-
-const styles = StyleSheet.create({
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  themeOptions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  themeOption: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radius.md,
-    borderWidth: 1.5,
-    alignItems: 'center',
-  },
-});
