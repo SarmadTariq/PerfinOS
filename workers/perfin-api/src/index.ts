@@ -17,35 +17,55 @@ const json = (body: unknown, status = 200) =>
       'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Object-Key',
       'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
     },
-  });
-
-const requireAuth = (request: Request): string => {
-  const auth = request.headers.get('Authorization') || '';
-  if (!auth.startsWith('Bearer ')) {
-    throw new Response('Authentication required', { status: 401 });
   }
-  return auth.slice('Bearer '.length);
-  // TODO (roadmap): verify Firebase ID token via JWKS from
-  // https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com
-  // Check iss === https://securetoken.google.com/${FIREBASE_PROJECT_ID}, aud, exp
+);
+
+import { createRemoteJWKSet, jwtVerify } from 'jose';
+const JWKS = createRemoteJWKSet(new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'));
+
+export async function requireAuth(request: Request, env: Env): Promise<string> {
+
+  const auth = request.headers.get('Authorization');
+
+  if (!auth?.startsWith('Bearer ')) {
+
+    throw new Response(JSON.stringify({error: 'Authentication required'}), { status: 401 });
+  }
+
+  const token = auth.slice(7);
+
+  try {
+    const { payload } = await jwtVerify(token, JWKS,
+      {
+        issuer: `https://securetoken.google.com/${env.FIREBASE_PROJECT_ID}`,
+        audience: env.FIREBASE_PROJECT_ID,
+      });
+
+    return payload.sub!;
+  }
+  catch {
+    throw new Response(JSON.stringify({error: 'Invalid token'}), { status: 401 });
+  }
+}
+
+const notConfigured = (feature: string) =>{
+  return json({ error: `${feature} is not configured`, placeholder: true }, 503);
 };
 
-const notConfigured = (feature: string) =>
-  json({ error: `${feature} is not configured`, placeholder: true }, 503);
-
-// ── Receipt upload: client POSTs binary → Worker writes to R2 ──────────────
-
 const handleReceiptUpload = async (request: Request, env: Env): Promise<Response> => {
-  requireAuth(request);
+
+  const userId = await requireAuth(request, env);
   if (!env.RECEIPTS) return notConfigured('R2 Receipts');
 
-  const objectKey = request.headers.get('X-Object-Key');
+  const filename = request.headers.get('X-Object-Key');
   const mimeType = (request.headers.get('Content-Type') || 'image/jpeg').split(';')[0].trim();
 
-  if (!objectKey) return json({ error: 'X-Object-Key header required' }, 400);
+  if (!filename) return json({ error: 'X-Object-Key header required' }, 400);
   if (!ALLOWED_RECEIPT_TYPES.includes(mimeType)) {
     return json({ error: 'Unsupported MIME type. Use JPG, PNG, HEIC, or HEIF.' }, 415);
   }
+
+  const objectKey = `${userId}/${filename}`;
 
   const body = await request.arrayBuffer();
   if (body.byteLength === 0) return json({ error: 'Empty file body' }, 400);
@@ -63,7 +83,7 @@ const handleReceiptUpload = async (request: Request, env: Env): Promise<Response
 // ── Receipt download: Worker fetches from R2, streams back ─────────────────
 
 const handleReceiptDownload = async (request: Request, env: Env): Promise<Response> => {
-  requireAuth(request);
+  requireAuth(request, env);
   if (!env.RECEIPTS) return notConfigured('R2 Receipts');
 
   const body = (await request.json()) as { objectKey?: string };
@@ -85,12 +105,13 @@ const handleReceiptDownload = async (request: Request, env: Env): Promise<Respon
 // ── Receipt delete ─────────────────────────────────────────────────────────
 
 const handleReceiptDelete = async (request: Request, env: Env): Promise<Response> => {
-  requireAuth(request);
+  const userId = await requireAuth(request, env);
   if (!env.RECEIPTS) return notConfigured('R2 Receipts');
 
   // objectKey is everything after /receipts/ in the path
   const rawKey = new URL(request.url).pathname.replace(/^\/receipts\//, '');
-  const objectKey = decodeURIComponent(rawKey);
+  const fileName = decodeURIComponent(rawKey);
+  const objectKey = `${userId}/${fileName}`;
   if (!objectKey) return json({ error: 'objectKey required in path' }, 400);
 
   await env.RECEIPTS.delete(objectKey);
@@ -137,7 +158,7 @@ const handleAiReport = async (request: Request, env: Env): Promise<Response> => 
   
   console.log("AI REPORT HIT");  //log test
   
-  requireAuth(request);
+  requireAuth(request, env);
   console.log("passed auth");
   if (!env.GEMINI_API_KEY) return notConfigured('Gemini AI');
   console.log("has gemini key");
