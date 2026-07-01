@@ -37,6 +37,9 @@ import {
   readableMonth,
 } from '../../utils/format';
 import { mcIconName } from '../../utils/icons';
+import { ScrollView, Switch } from 'react-native-gesture-handler';
+import DateTimePicker, { DateType, useDefaultStyles } from 'react-native-ui-datepicker';
+import { Value } from 'react-native/types_generated/Libraries/Animated/AnimatedExports';
 
 type TransactionTypeFilter = 'all' | 'income' | 'expense';
 type ReceiptFilter = 'any' | 'attached' | 'missing';
@@ -44,6 +47,8 @@ type ReceiptFilter = 'any' | 'attached' | 'missing';
 type FeedItem =
   | { type: 'date'; date: string }
   | { type: 'transaction'; transaction: Transaction };
+
+const today = Date.now();
 
 const useColors = () => {
   const scheme = useThemeScheme();
@@ -184,6 +189,12 @@ const FilterPanel = ({
   onReceiptFilterChange,
   onClear,
   onClose,
+  dateStart,
+  dateEnd,
+  onSetDateStart,
+  onSetDateEnd,
+  enableDateRange,
+  onSetEnableDateRange
 }: {
   visible: boolean;
   categories: Category[];
@@ -195,13 +206,20 @@ const FilterPanel = ({
   onReceiptFilterChange: (value: ReceiptFilter) => void;
   onClear: () => void;
   onClose: () => void;
+  dateStart: DateType;
+  dateEnd: DateType;
+  onSetDateStart: (value: DateType) => void;
+  onSetDateEnd: (value: DateType) => void;
+  enableDateRange: boolean;
+  onSetEnableDateRange: (value: boolean) => void;
 }) => {
   const colors = useColors();
+  const defaultStyles = useDefaultStyles();
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
-        <View style={[styles.filterPanel, { backgroundColor: colors.card }]}>
+        <ScrollView style={[styles.filterPanel, { backgroundColor: colors.card }]}>
           <View style={styles.rowBetween}>
             <View>
               <Text variant="h3">Filters</Text>
@@ -296,11 +314,54 @@ const FilterPanel = ({
             />
           </View>
 
+          <View style={styles.filterSection}>
+            <Text variant="bodySmall" style={styles.filterSectionTitle}>
+              Date range
+            </Text>
+
+            <View style={{flexDirection: 'row'}}>
+              <Text>Enable Date Range</Text>
+              <Switch value={enableDateRange} onValueChange={(value) => {onSetEnableDateRange(value as boolean)}}/>
+            </View>
+
+            {
+              (() => {
+                if (enableDateRange){
+                  return (
+                    <DateTimePicker
+                      mode="range"
+                      startDate={dateStart}
+                      endDate={dateEnd}
+                      onChange={({ startDate, endDate }) =>  {
+                        onSetDateStart(startDate as DateType)
+                        onSetDateEnd(endDate as DateType)
+                      }}
+                      styles={defaultStyles}
+                      allowRangeReset={true}
+                    />
+                  )
+                }
+                return null;
+              })()
+            }
+            {/* <DateTimePicker
+              mode="range"
+              startDate={dateStart}
+              endDate={dateEnd}
+              onChange={({ startDate, endDate }) =>  {
+                onSetDateStart(startDate as DateType)
+                onSetDateEnd(endDate as DateType)
+              }}
+              styles={defaultStyles}
+              allowRangeReset={true}
+            /> */}
+          </View>
+
           <View style={styles.modalActions}>
             <Button label="Clear all" variant="secondary" onPress={onClear} style={{ flex: 1 }} />
             <Button label="Apply" onPress={onClose} style={{ flex: 1 }} />
           </View>
-        </View>
+        </ScrollView>
       </View>
     </Modal>
   );
@@ -396,6 +457,10 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
   const [categoryId, setCategoryId] = useState('all');
   const [receiptFilter, setReceiptFilter] = useState<ReceiptFilter>('any');
   const [showFilters, setShowFilters] = useState(false);
+  const [enableDateRange, setEnableDateRange] = useState<boolean>(false);
+  const [dateStart, setDateStart] = useState<DateType>(today);
+  const [dateEnd, setDateEnd] = useState<DateType>(today);
+
 
   const categoriesForFilter = useMemo(() => {
     if (type === 'all') {
@@ -542,6 +607,12 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
         onReceiptFilterChange={setReceiptFilter}
         onClear={clearFilters}
         onClose={() => setShowFilters(false)}
+        dateStart={dateStart}
+        dateEnd={dateEnd}
+        onSetDateStart={setDateStart}
+        onSetDateEnd={setDateEnd}
+        enableDateRange={enableDateRange}
+        onSetEnableDateRange={setEnableDateRange}
       />
     </SafeAreaView>
   );
