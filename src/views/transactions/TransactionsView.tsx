@@ -328,22 +328,31 @@ const FilterPanel = ({
               (() => {
                 if (enableDateRange){
                   return (
-                    <DateTimePicker
-                      mode="range"
-                      startDate={dateStart}
-                      endDate={dateEnd}
-                      onChange={({ startDate, endDate }) =>  {
-                        onSetDateStart(startDate as DateType)
-                        onSetDateEnd(endDate as DateType)
-                      }}
-                      styles={defaultStyles}
-                      allowRangeReset={true}
-                    />
+
+                    <View>
+                      <DateTimePicker
+                        mode="range"
+                        startDate={dateStart}
+                        endDate={dateEnd}
+                        onChange={({ startDate, endDate }) =>  {
+                          onSetDateStart(startDate as DateType)
+                          onSetDateEnd(endDate as DateType)
+                        }}
+                        styles={defaultStyles}
+                        allowRangeReset={true}
+                      />
+
+                      <View>
+                        <Text>{dateStart?.toDateString()} - {dateEnd?.toDateString()}</Text>
+                      </View>
+                    </View>
                   )
                 }
                 return null;
               })()
             }
+
+
             {/* <DateTimePicker
               mode="range"
               startDate={dateStart}
