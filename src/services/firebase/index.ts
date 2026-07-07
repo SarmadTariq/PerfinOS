@@ -68,3 +68,21 @@ export type {
   JsonPrimitive,
   JsonValue,
 } from './serializers';
+
+export {
+  createUserEntity,
+  deleteUserEntity,
+  getUserEntity,
+  listUserEntities,
+  replaceUserEntityCollection,
+  updateUserEntity,
+} from './entityRepository';
+
+export {
+  loadRemoteAppDataEntities,
+  saveRemoteAppDataEntities,
+} from './entityAppDataSync';
+
+export type {
+  RemoteEntityCollections,
+} from './entityAppDataSync';
