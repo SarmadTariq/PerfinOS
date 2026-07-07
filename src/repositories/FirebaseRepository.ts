@@ -1,22 +1,27 @@
 /**
- * Firebase Repository — thin re-export layer over the Firebase service.
+ * Firebase Repository compatibility boundary.
  *
- * ViewModels import CRUD operations from here rather than from the service directly.
- * This isolates the rest of the app from Firebase SDK details and makes future
- * backend swaps (e.g., Supabase, direct REST) a single-file change.
+ * Repository consumers import Firebase capabilities from here while the SDK
+ * implementation lives under src/services/firebase.
  *
- * The underlying implementation lives in `src/services/firebaseService.ts`.
+ * This file should stay thin. Entity-level repositories should be introduced
+ * in later branches without expanding this compatibility layer.
  */
+
 export {
-  signInRemote,
-  signUpRemote,
+  app,
+  auth,
+  db,
+  firebaseConfig,
+  firebaseConfigured,
   logoutRemote,
   sendRemotePasswordReset,
+  signInRemote,
+  signUpRemote,
+  subscribeToAuth,
+  getLegacyAppDataRef,
+  legacyAppDataPath,
   ensureRemoteAppData,
   saveRemoteAppData,
   subscribeRemoteAppData,
-  subscribeToAuth,
-  auth,
-  db,
-  firebaseConfigured,
-} from '../services/firebaseService';
+} from '../services/firebase';

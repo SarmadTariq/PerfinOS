@@ -916,7 +916,7 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
           onChange={setPaymentMethod}
         />
 
-        <View style={[{borderColor: useColors().border}, styles.recurringBox, useColors().bgSecondary]}>
+        <View style={[{ borderColor: colors.border, backgroundColor: colors.bgSecondary }, styles.recurringBox]}>
           <View style={{ flex: 1 }}>
             <Text variant="body" style={{ fontWeight: '800' }}>
               Recurring transaction

@@ -7,7 +7,7 @@ import {
 } from './financeAnalytics';
 import { appConfig } from './configService';
 import { getMonthKey } from '../utils/format';
-import { auth } from '../repositories/FirebaseRepository';
+import { auth } from './firebase';
 
 export interface AiPlannerResult {
   title: string;
@@ -23,6 +23,7 @@ const ruleBasedPlanner = (data: AppData): AiPlannerResult => {
   const budgetHealth = calculateBudgetHealth(data.transactions, budget, data.categories, month);
   const savings = calculateSavingsProgress(data.savingsGoals);
   const topCategory = calculateCategoryBreakdown(data.transactions, data.categories, month)[0];
+
   const recommendations = [
     budgetHealth.usedPercent >= 85
       ? 'Review the largest flexible categories before adding new discretionary spending this month.'
@@ -31,7 +32,7 @@ const ruleBasedPlanner = (data: AppData): AiPlannerResult => {
       ? `Check whether ${topCategory.categoryName} has any repeat purchases that can be planned ahead next week.`
       : 'Add a few transactions to unlock more specific category recommendations.',
     savings.target > 0
-      ? `Compare upcoming spending with your savings goal progress before increasing non-essential purchases.`
+      ? 'Compare upcoming spending with your savings goal progress before increasing non-essential purchases.'
       : 'Create a savings goal to make future planner recommendations more goal-aware.',
   ];
 
@@ -58,7 +59,12 @@ export const generatePlannerResult = async (data: AppData): Promise<AiPlannerRes
       percentage: item.percentage,
       monthlyBudget: item.monthlyBudget,
     })),
-    budgetHealth: calculateBudgetHealth(data.transactions, data.budgets.find((item) => item.month === month), data.categories, month),
+    budgetHealth: calculateBudgetHealth(
+      data.transactions,
+      data.budgets.find((item) => item.month === month),
+      data.categories,
+      month
+    ),
     savings: calculateSavingsProgress(data.savingsGoals),
     recurringTotal: data.recurringExpenses.reduce((sum, item) => sum + item.amount, 0),
   };
@@ -66,23 +72,21 @@ export const generatePlannerResult = async (data: AppData): Promise<AiPlannerRes
   try {
     const token = await auth?.currentUser?.getIdToken();
 
-    const response = await fetch(
-      `${appConfig.apiBaseUrl}/ai/report`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      }
-    );
-    if (!response.ok)
-      {
-        const text = await response.text();
-        console.error(response.status, text);
-        throw new Error('AI service unavailable');
-      } 
+    const response = await fetch(`${appConfig.apiBaseUrl}/ai/report`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error(response.status, text);
+      throw new Error('AI service unavailable');
+    }
+
     return { ...(await response.json()), source: 'ai' } as AiPlannerResult;
   } catch {
     return ruleBasedPlanner(data);

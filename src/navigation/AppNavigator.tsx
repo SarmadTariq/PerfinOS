@@ -3,7 +3,7 @@ import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Animated, Easing, View } from 'react-native';
-import { useThemeScheme } from '../context/ThemeContext';
+import { useColors, useThemeScheme } from '../context/ThemeContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFinance } from '../context/FinanceContext';
 // Auth
@@ -57,18 +57,18 @@ const AuthStack = () => (
   // const { data, isAuthenticated } = useFinance();
 
 const Tabs = () => {
-  const scheme: string = useThemeScheme();
+  const colors = useColors();
   
   return (
     <Tab.Navigator
       // theme={scheme === 'dark' ? DarkTheme : DefaultTheme}
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: Colors[scheme].primary,
-        tabBarInactiveTintColor: Colors[scheme].textTertiary,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textTertiary,
         tabBarStyle: {
-          backgroundColor: Colors[scheme].card,
-          borderTopColor: Colors[scheme].border,
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
           minHeight: 76,
           paddingBottom: 12,
           paddingTop: 10,
