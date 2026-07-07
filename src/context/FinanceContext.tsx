@@ -1,17 +1,14 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { AppData, Budget, Category, RecurringExpense, Report, SavingsGoal, Transaction, User } from '../models/finance';
 import { detectRecurringExpenses, generateMonthlyReport, generateSpendingInsights } from '../services/financeAnalytics';
-import { ensureRemoteAppData, firebaseConfigured, logoutRemote, saveRemoteAppData, sendRemotePasswordReset, signInRemote, signUpRemote, subscribeRemoteAppData, subscribeToAuth } from '../services/firebaseService';
+import { ensureRemoteAppData, firebaseConfigured, saveRemoteAppData, subscribeRemoteAppData } from '../services/firebaseService';
+import { AuthOptions, useSession } from './SessionContext';
 import { createEmptyAppData } from '../services/initialData';
 import { loadGuestAppData, saveGuestAppData } from '../services/localFinanceStore';
 import { getMonthKey } from '../utils/format';
 import { validateDate, validateLocation, validatePositiveAmount, validateReceipts, validateTransactionInput } from '../utils/validation';
 
 type DataStatus = 'idle' | 'loading' | 'ready' | 'error';
-
-interface AuthOptions {
-  importGuestData?: boolean;
-}
 
 interface FinanceContextValue {
   data: AppData | null;
@@ -44,12 +41,6 @@ interface FinanceContextValue {
 const FinanceContext = createContext<FinanceContextValue | undefined>(undefined);
 
 const uid = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-
-const remoteReady = () => {
-  if (!firebaseConfigured) {
-    throw new Error('Firebase is not configured. Add Firebase placeholders in .env to enable account features.');
-  }
-};
 
 const normalizeForUser = (data: AppData, userId: string, name?: string, email?: string): AppData => {
   const now = new Date().toISOString();
@@ -86,8 +77,15 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
   const [data, setData] = useState<AppData | null>(null);
   const [status, setStatus] = useState<DataStatus>('ready');
   const [error, setError] = useState<string | null>(null);
-  const [isAuthenticated, setAuthenticated] = useState(false);
-  const [remoteUserId, setRemoteUserId] = useState<string | null>(null);
+  const {
+    isAuthenticated,
+    remoteUserId,
+    startGuestSession,
+    loginRemote,
+    signupRemote,
+    forgotPassword: resetRemotePassword,
+    logoutSession,
+  } = useSession();
 
   const isGuest = !!data?.entitlement?.isGuest;
 
@@ -117,14 +115,6 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
       reports: current.reports,
     };
   };
-
-  useEffect(() => {
-    if (!firebaseConfigured) return undefined;
-    return subscribeToAuth((user) => {
-      setRemoteUserId(user?.uid || null);
-      if (user) setAuthenticated(true);
-    });
-  }, []);
 
   useEffect(() => {
     if (!remoteUserId || !firebaseConfigured || isGuest) return undefined;
@@ -180,8 +170,7 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
         try {
           const guest = await loadGuestAppData();
           setData(guest);
-          setAuthenticated(true);
-          setRemoteUserId(null);
+          startGuestSession();
           setStatus('ready');
         } catch (err: any) {
           setError(err.message || 'Could not start guest workspace');
@@ -189,13 +178,8 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
         }
       },
       loginWithEmail: async (email, password, options = {}) => {
-        remoteReady();
-        if (!email.trim()) throw new Error('Email is required');
-        if (!password) throw new Error('Password is required');
         const guestSnapshot = data?.entitlement?.isGuest ? data : null;
-        const user = await signInRemote(email.trim(), password);
-        setRemoteUserId(user.uid);
-        setAuthenticated(true);
+        const user = await loginRemote(email, password);
         if (options.importGuestData && guestSnapshot) {
           const imported = normalizeForUser(guestSnapshot, user.uid, guestSnapshot.user.name, email);
           await saveRemoteAppData(user.uid, imported);
@@ -203,29 +187,19 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
         }
       },
       signupWithEmail: async (name, email, password, options = {}) => {
-        remoteReady();
-        if (!name.trim()) throw new Error('Name is required');
-        if (!email.trim()) throw new Error('Email is required');
-        if (password.length < 6) throw new Error('Password must be at least 6 characters');
         const guestSnapshot = data?.entitlement?.isGuest ? data : null;
-        const user = await signUpRemote(email.trim(), password);
+        const user = await signupRemote(name, email, password);
         const base = options.importGuestData && guestSnapshot
           ? normalizeForUser(guestSnapshot, user.uid, name, email)
           : createEmptyAppData({ userId: user.uid, name, email, isGuest: false });
-        setRemoteUserId(user.uid);
-        setAuthenticated(true);
         setData(base);
         await saveRemoteAppData(user.uid, base);
       },
       forgotPassword: async (email) => {
-        remoteReady();
-        if (!email.trim()) throw new Error('Email is required');
-        await sendRemotePasswordReset(email.trim());
+        await resetRemotePassword(email);
       },
       logout: () => {
-        if (!isGuest && firebaseConfigured) logoutRemote().catch((err) => setError(err.message || 'Logout failed'));
-        setRemoteUserId(null);
-        setAuthenticated(false);
+        logoutSession((message) => setError(message));
         setData(null);
         setStatus('ready');
       },
@@ -417,7 +391,19 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
       },
       canUseFeature: (feature) => !!data?.entitlement?.features?.[feature],
     }),
-    [data, error, isAuthenticated, isGuest, remoteUserId, status]
+    [
+      data,
+      error,
+      isAuthenticated,
+      isGuest,
+      loginRemote,
+      logoutSession,
+      remoteUserId,
+      resetRemotePassword,
+      signupRemote,
+      startGuestSession,
+      status,
+    ]
   );
 
   return <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>;
