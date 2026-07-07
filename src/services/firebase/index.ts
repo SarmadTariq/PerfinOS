@@ -72,3 +72,21 @@ export type {
   JsonPrimitive,
   JsonValue,
 } from './serialization';
+
+export {
+  createEntityRepository,
+  createUserEntity,
+  deleteUserEntity,
+  getUserEntity,
+  listUserEntities,
+  setUserEntity,
+  updateUserEntity,
+} from './entityRepository';
+
+export type {
+  EntityCreateInput,
+  EntityId,
+  EntityRecord,
+  EntityRepository,
+  EntityUpdateInput,
+} from './entityRepository';
