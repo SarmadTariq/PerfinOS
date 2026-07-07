@@ -1,12 +1,6 @@
 import { useMemo } from 'react';
 import { useFinance } from '../context/FinanceContext';
-import {
-  calculateBudgetHealth,
-  calculateCategoryBreakdown,
-  calculateMonthlySummary,
-  calculateSavingsProgress,
-  sortTransactions,
-} from '../repositories/AnalyticsRepository';
+import { calculateBudgetHealth, calculateCategoryBreakdown, calculateMonthlySummary, calculateSavingsProgress, sortTransactions } from '../repositories/AnalyticsRepository';
 import { getMonthKey } from '../utils/format';
 
 /**

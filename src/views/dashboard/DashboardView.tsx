@@ -3,37 +3,17 @@
  * focus panels, and recent activity.
  */
 import React, { useRef, useState } from 'react';
-import {
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { NativeScrollEvent, NativeSyntheticEvent, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Card, Text } from '../../components/base';
-import {
-  BarListChart,
-  EmptyState,
-  IconButton,
-  ProgressBar,
-  ScreenHeader,
-} from '../../components/finance';
+import { BarListChart, EmptyState, IconButton, ProgressBar, ScreenHeader } from '../../components/finance';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';
-import { useThemeScheme } from '../../context/ThemeContext';
+import { useColors } from '../../context/ThemeContext';
 import { AppData, Category, Transaction } from '../../models/finance';
-import {
-  calculateBudgetHealth,
-  calculateCategoryBreakdown,
-  calculateSavingsProgress,
-  calculateMonthlySummary,
-  sortTransactions,
-} from '../../repositories/AnalyticsRepository';
-import { Colors, Radius, Spacing } from '../../theme';
+import { calculateBudgetHealth, calculateCategoryBreakdown, calculateSavingsProgress, calculateMonthlySummary, sortTransactions } from '../../repositories/AnalyticsRepository';
+import { Radius, Spacing } from '../../theme';
 import { formatCurrency, formatCurrencyPrecise, getMonthKey, readableMonth } from '../../utils/format';
 import { mcIconName } from '../../utils/icons';
 
@@ -80,11 +60,6 @@ const VALUE_TEXT_PROPS = {
   adjustsFontSizeToFit: true,
   minimumFontScale: 0.86,
 } as const;
-
-const useColors = () => {
-  const scheme = useThemeScheme();
-  return scheme === 'dark' ? Colors.dark : Colors.light;
-};
 
 const getBudgetStatus = (usedPercent: number): { label: string; tone: Tone } => {
   if (usedPercent >= 100) {
@@ -234,7 +209,6 @@ const SnapshotPanel = ({ items }: { items: SnapshotItem[] }) => {
                 </Text>
               </View>
             </View>
-
 
             <View style={styles.snapshotValueBlock}>
               <Text variant="h4" style={styles.snapshotValue} {...VALUE_TEXT_PROPS}>

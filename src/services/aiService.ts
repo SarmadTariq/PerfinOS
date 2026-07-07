@@ -1,10 +1,5 @@
 import { AppData } from '../models/finance';
-import {
-  calculateBudgetHealth,
-  calculateCategoryBreakdown,
-  calculateMonthlySummary,
-  calculateSavingsProgress,
-} from './financeAnalytics';
+import { calculateBudgetHealth, calculateCategoryBreakdown, calculateMonthlySummary, calculateSavingsProgress } from './financeAnalytics';
 import { appConfig } from './configService';
 import { getMonthKey } from '../utils/format';
 import { auth } from './firebase';

@@ -58,7 +58,7 @@ const AuthStack = () => (
 
 const Tabs = () => {
   const colors = useColors();
-  
+
   return (
     <Tab.Navigator
       // theme={scheme === 'dark' ? DarkTheme : DefaultTheme}
@@ -77,9 +77,9 @@ const Tabs = () => {
           borderRadius: 8,
           marginHorizontal: 2,
         },
-        tabBarLabelStyle: { 
-          fontSize: 11, 
-          fontWeight: '700', 
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '700',
           letterSpacing: 0,
         },
         tabBarHideOnKeyboard: true,

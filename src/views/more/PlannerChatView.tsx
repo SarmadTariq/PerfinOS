@@ -7,23 +7,13 @@ import React, { useEffect, useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Card, Input, Text } from '../../components/base';
-import {
-  EmptyState,
-  IconButton,
-  LoadingState,
-  ScreenHeader,
-} from '../../components/finance';
+import { EmptyState, IconButton, LoadingState, ScreenHeader } from '../../components/finance';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';
 import { useFinance } from '../../context/FinanceContext';
-import { useThemeScheme } from '../../context/ThemeContext';
+import { useColors } from '../../context/ThemeContext';
 import { generatePlannerResult } from '../../services/aiService';
-import { Colors, Spacing } from '../../theme';
-
-const useColors = () => {
-  const scheme = useThemeScheme();
-  return scheme === 'dark' ? Colors.dark : Colors.light;
-};
+import { Spacing } from '../../theme';
 
 export const PlannerChatScreen = () => (
   <RequireData>

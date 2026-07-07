@@ -1,8 +1,37 @@
 /**
- * Color palette for PerFin OS — light and dark variants.
- * All UI components reference these tokens; never use raw hex values in views.
+ * Color palette for PerFin OS.
+ *
+ * Rule:
+ * - React components use useColors().
+ * - Non-component helpers use getThemeColor().
+ * - Views must not index Colors with a loose string.
+ * - Views must not put raw color strings directly inside React Native style arrays.
  */
-export const Colors = {
+
+export type ThemeScheme = 'light' | 'dark';
+
+export type ThemeColors = {
+  bg: string;
+  bgSecondary: string;
+  bgTertiary: string;
+  text: string;
+  textSecondary: string;
+  textTertiary: string;
+  border: string;
+  borderLight: string;
+  primary: string;
+  primarySoft: string;
+  success: string;
+  danger: string;
+  warning: string;
+  card: string;
+  surfaceWarm: string;
+  surfaceBlue: string;
+};
+
+export type ThemeColorToken = keyof ThemeColors;
+
+export const Colors: Record<ThemeScheme, ThemeColors> = {
   light: {
     bg: '#F7F7F7',
     bgSecondary: '#FFFFFF',
@@ -41,10 +70,5 @@ export const Colors = {
   },
 };
 
-/**
- * Returns the color palette for the given color scheme.
- * @param scheme - 'light' | 'dark' | null | undefined
- * @returns Light or dark color tokens
- */
-export const getThemeColor = (scheme: 'light' | 'dark' | null | undefined) =>
+export const getThemeColor = (scheme: ThemeScheme | null | undefined): ThemeColors =>
   scheme === 'dark' ? Colors.dark : Colors.light;

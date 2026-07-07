@@ -7,17 +7,7 @@
  * Previously located at `src/services/financeAnalytics.ts`.
  * The old file is kept as a re-export shim for backward compatibility.
  */
-import {
-  Budget,
-  Category,
-  Insight,
-  RecurringExpense,
-  Report,
-  SavingsGoal,
-  Transaction,
-  TransactionFilters,
-  TransactionSortKey,
-} from '../models/finance';
+import { Budget, Category, Insight, RecurringExpense, Report, SavingsGoal, Transaction, TransactionFilters, TransactionSortKey } from '../models/finance';
 import { getMonthKey } from '../utils/format';
 
 /** @internal Generates a unique short ID for insights and computed records. */

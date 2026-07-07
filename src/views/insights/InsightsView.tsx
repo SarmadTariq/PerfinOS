@@ -7,22 +7,13 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Card, Text } from '../../components/base';
-import {
-  CategoryBadge,
-  EmptyState,
-  ScreenHeader,
-} from '../../components/finance';
+import { CategoryBadge, EmptyState, ScreenHeader } from '../../components/finance';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';
 import { useInsights } from '../../context/FinanceContext';
-import { useThemeScheme } from '../../context/ThemeContext';
+import { useColors } from '../../context/ThemeContext';
 import { InsightSeverity } from '../../models/finance';
-import { Colors, Radius, Spacing } from '../../theme';
-
-const useColors = () => {
-  const scheme = useThemeScheme();
-  return scheme === 'dark' ? Colors.dark : Colors.light;
-};
+import { Radius, Spacing } from '../../theme';
 
 const insightEntries: {
   title: string;

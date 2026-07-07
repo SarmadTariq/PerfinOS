@@ -7,14 +7,9 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Text } from '../../components/base';
 import { useFinance } from '../../context/FinanceContext';
-import { useThemeScheme } from '../../context/ThemeContext';
-import { Colors, Radius, Spacing } from '../../theme';
+import { useColors } from '../../context/ThemeContext';
+import { Radius, Spacing } from '../../theme';
 import { AppScroll } from '../../components/layout/AppScroll';
-
-const useColors = () => {
-  const scheme = useThemeScheme();
-  return scheme === 'dark' ? Colors.dark : Colors.light;
-};
 
 export const WelcomeScreen = () => {
   const navigation = useNavigation<any>();

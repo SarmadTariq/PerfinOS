@@ -4,18 +4,10 @@
  */
 import React from 'react';
 import { useNavigation } from '@react-navigation/native';
-import {
-  BarListChart,
-  ChartCard,
-  IconButton,
-  ScreenHeader,
-} from '../../components/finance';
+import { BarListChart, ChartCard, IconButton, ScreenHeader } from '../../components/finance';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';
-import {
-  groupTransactionsByMonth,
-  groupTransactionsByWeek,
-} from '../../repositories/AnalyticsRepository';
+import { groupTransactionsByMonth, groupTransactionsByWeek } from '../../repositories/AnalyticsRepository';
 import { Colors } from '../../theme';
 
 export const AnalyticsScreen = () => (

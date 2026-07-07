@@ -6,26 +6,15 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Card, Text } from '../../components/base';
-import {
-  CategoryBadge,
-  EmptyState,
-  IconButton,
-  ScreenHeader,
-  Toast,
-} from '../../components/finance';
+import { CategoryBadge, EmptyState, IconButton, ScreenHeader, Toast } from '../../components/finance';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';
 import { useFinance } from '../../context/FinanceContext';
-import { useThemeScheme } from '../../context/ThemeContext';
+import { useColors } from '../../context/ThemeContext';
 import { AiPlannerResult } from '../../services/aiService';
 import { generatePlannerResult } from '../../services/aiService';
-import { Colors, Spacing } from '../../theme';
+import { Spacing } from '../../theme';
 import { formatCurrency, readableMonth } from '../../utils/format';
-
-const useColors = () => {
-  const scheme = useThemeScheme();
-  return scheme === 'dark' ? Colors.dark : Colors.light;
-};
 
 export const ReportsScreen = () => (
   <RequireData>

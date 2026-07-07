@@ -8,16 +8,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Text } from '../../components/base';
-import {
-  CategoryBadge,
-  EmptyState,
-  IconButton,
-} from '../../components/finance';
+import { CategoryBadge, EmptyState, IconButton } from '../../components/finance';
 import { RequireData } from '../../components/layout/RequireData';
 import { MapCanvas } from '../../components/map/MapCanvas';
-import { useThemeScheme } from '../../context/ThemeContext';
+import { useColors } from '../../context/ThemeContext';
 import { AppData, Transaction } from '../../models/finance';
-import { Colors, Radius, Spacing } from '../../theme';
+import { Radius, Spacing } from '../../theme';
 import { formatCurrencyPrecise } from '../../utils/format';
 
 type MapMode = 'pins' | 'heatmap';
@@ -30,11 +26,6 @@ const modeOptions: { value: MapMode; label: string }[] = [
   { value: 'heatmap', label: 'Heatmap' },
   { value: 'pins', label: 'Pins' },
 ];
-
-const useColors = () => {
-  const scheme = useThemeScheme();
-  return scheme === 'dark' ? Colors.dark : Colors.light;
-};
 
 const getLocationLabel = (transaction: Transaction) =>
   transaction.location.name ||
