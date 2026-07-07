@@ -9,13 +9,8 @@ import { useNavigation } from '@react-navigation/native';
 import { Text } from '../../components/base';
 import { ScreenHeader } from '../../components/finance';
 import { AppScroll } from '../../components/layout/AppScroll';
-import { useThemeScheme } from '../../context/ThemeContext';
-import { Colors, Radius, Spacing } from '../../theme';
-
-const useColors = () => {
-  const scheme = useThemeScheme();
-  return scheme === 'dark' ? Colors.dark : Colors.light;
-};
+import { useColors } from '../../context/ThemeContext';
+import { Radius, Spacing } from '../../theme';
 
 type MoreItem = {
   label: string;

@@ -1,40 +1,11 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import {
-  AppData,
-  Budget,
-  Category,
-  RecurringExpense,
-  Report,
-  SavingsGoal,
-  Transaction,
-  User,
-} from '../models/finance';
-import {
-  detectRecurringExpenses,
-  generateMonthlyReport,
-  generateSpendingInsights,
-} from '../services/financeAnalytics';
-import {
-  ensureRemoteAppData,
-  firebaseConfigured,
-  logoutRemote,
-  saveRemoteAppData,
-  sendRemotePasswordReset,
-  signInRemote,
-  signUpRemote,
-  subscribeRemoteAppData,
-  subscribeToAuth,
-} from '../services/firebaseService';
+import { AppData, Budget, Category, RecurringExpense, Report, SavingsGoal, Transaction, User } from '../models/finance';
+import { detectRecurringExpenses, generateMonthlyReport, generateSpendingInsights } from '../services/financeAnalytics';
+import { ensureRemoteAppData, firebaseConfigured, logoutRemote, saveRemoteAppData, sendRemotePasswordReset, signInRemote, signUpRemote, subscribeRemoteAppData, subscribeToAuth } from '../services/firebaseService';
 import { createEmptyAppData } from '../services/initialData';
 import { loadGuestAppData, saveGuestAppData } from '../services/localFinanceStore';
 import { getMonthKey } from '../utils/format';
-import {
-  validateDate,
-  validateLocation,
-  validatePositiveAmount,
-  validateReceipts,
-  validateTransactionInput,
-} from '../utils/validation';
+import { validateDate, validateLocation, validatePositiveAmount, validateReceipts, validateTransactionInput } from '../utils/validation';
 
 type DataStatus = 'idle' | 'loading' | 'ready' | 'error';
 

@@ -1,13 +1,4 @@
-import {
-  AppData,
-  Budget,
-  Category,
-  ExpenseLocation,
-  FeatureKey,
-  SavingsGoal,
-  Transaction,
-  UserPlan,
-} from '../models/finance';
+import { AppData, Budget, Category, ExpenseLocation, FeatureKey, SavingsGoal, Transaction, UserPlan } from '../models/finance';
 import { getMonthKey } from '../utils/format';
 
 export const defaultCategories: Category[] = [

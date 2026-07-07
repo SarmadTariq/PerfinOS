@@ -1,11 +1,4 @@
-import {
-  User as FirebaseUser,
-  createUserWithEmailAndPassword,
-  onAuthStateChanged,
-  sendPasswordResetEmail,
-  signInWithEmailAndPassword,
-  signOut,
-} from 'firebase/auth';
+import { User as FirebaseUser, createUserWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth } from './client';
 
 export const subscribeToAuth = (callback: (user: FirebaseUser | null) => void) => {

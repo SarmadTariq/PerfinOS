@@ -6,12 +6,7 @@ import React, { useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Card, Text } from '../../components/base';
-import {
-  EmptyState,
-  IconButton,
-  ProgressBar,
-  ScreenHeader,
-} from '../../components/finance';
+import { EmptyState, IconButton, ProgressBar, ScreenHeader } from '../../components/finance';
 import { Field } from '../../components/form/Field';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';

@@ -3,39 +3,20 @@
  * advanced filter panel, and clean transaction rows.
  */
 import React, { useMemo, useState } from 'react';
-import {
-  FlatList,
-  Modal,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { FlatList, Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Card, Text } from '../../components/base';
-import {
-  EmptyState,
-  IconButton,
-  ScreenHeader,
-} from '../../components/finance';
+import { EmptyState, IconButton, ScreenHeader } from '../../components/finance';
 import { Field } from '../../components/form/Field';
 import { Segmented } from '../../components/form/Segmented';
 import { RequireData } from '../../components/layout/RequireData';
-import { useThemeScheme } from '../../context/ThemeContext';
+import { useColors } from '../../context/ThemeContext';
 import { AppData, Category, Transaction, TransactionSortKey } from '../../models/finance';
-import {
-  calculateMonthlySummary,
-  filterTransactions,
-  sortTransactions,
-} from '../../repositories/AnalyticsRepository';
-import { Colors, Radius, Spacing } from '../../theme';
-import {
-  formatCurrency,
-  formatCurrencyPrecise,
-  getMonthKey,
-  readableMonth,
-} from '../../utils/format';
+import { calculateMonthlySummary, filterTransactions, sortTransactions } from '../../repositories/AnalyticsRepository';
+import { Radius, Spacing } from '../../theme';
+import { formatCurrency, formatCurrencyPrecise, getMonthKey, readableMonth } from '../../utils/format';
 import { mcIconName } from '../../utils/icons';
 
 type TransactionTypeFilter = 'all' | 'income' | 'expense';
@@ -44,11 +25,6 @@ type ReceiptFilter = 'any' | 'attached' | 'missing';
 type FeedItem =
   | { type: 'date'; date: string }
   | { type: 'transaction'; transaction: Transaction };
-
-const useColors = () => {
-  const scheme = useThemeScheme();
-  return scheme === 'dark' ? Colors.dark : Colors.light;
-};
 
 const formatDateLabel = (dateValue: string) => {
   const date = new Date(`${dateValue}T00:00:00`);

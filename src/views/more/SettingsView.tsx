@@ -7,20 +7,11 @@ import { TouchableOpacity, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Card, Text } from '../../components/base';
-import {
-  CategoryBadge,
-  IconButton,
-  ScreenHeader,
-} from '../../components/finance';
+import { CategoryBadge, IconButton, ScreenHeader } from '../../components/finance';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { useFinance } from '../../context/FinanceContext';
-import { useTheme, useThemeScheme } from '../../context/ThemeContext';
+import { useTheme, useColors } from '../../context/ThemeContext';
 import { Colors, Radius, Spacing } from '../../theme';
-
-const useColors = () => {
-  const scheme = useThemeScheme();
-  return scheme === 'dark' ? Colors.dark : Colors.light;
-};
 
 export const SettingsScreen = () => {
   const { logout, isGuest, data } = useFinance();

@@ -7,26 +7,15 @@ import { StyleSheet, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { Button, Card, Text } from '../../components/base';
-import {
-  CategoryBadge,
-  ConfirmModal,
-  EmptyState,
-  IconButton,
-  ScreenHeader,
-} from '../../components/finance';
+import { CategoryBadge, ConfirmModal, EmptyState, IconButton, ScreenHeader } from '../../components/finance';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';
 import { MapCanvas } from '../../components/map/MapCanvas';
 import { useFinance } from '../../context/FinanceContext';
-import { useThemeScheme } from '../../context/ThemeContext';
+import { useColors } from '../../context/ThemeContext';
 import { AppData, ReceiptAttachment, Transaction } from '../../models/finance';
-import { Colors, Radius, Spacing } from '../../theme';
+import { Radius, Spacing } from '../../theme';
 import { formatCurrencyPrecise } from '../../utils/format';
-
-const useColors = () => {
-  const scheme = useThemeScheme();
-  return scheme === 'dark' ? Colors.dark : Colors.light;
-};
 
 const formatBytes = (bytes: number) => {
   if (!Number.isFinite(bytes) || bytes <= 0) {

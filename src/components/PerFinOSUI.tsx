@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  ViewStyle,
-} from 'react-native';
+import { ActivityIndicator, Modal, Pressable, StyleSheet, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { useThemeScheme } from '../context/ThemeContext';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { Colors, Radius, Spacing } from '../theme';

@@ -57,17 +57,17 @@ export const getLocationSuggestions = async (query: string): Promise<Array<{ lat
       return [];
     }
   }
-  
+
   try {
     const results = await Location.geocodeAsync(query);
     const suggestions: Array<{ latitude: number; longitude: number; address: string; name: string; formattedAddress: string }> = [];
-    
+
     for (const result of results.slice(0, 5)) {
       const { latitude, longitude } = result;
       const address = await reverseGeocode(latitude, longitude);
       suggestions.push({ latitude, longitude, address, name: address.split(',')[0] || address, formattedAddress: address });
     }
-    
+
     return suggestions;
   } catch (error) {
     return [];

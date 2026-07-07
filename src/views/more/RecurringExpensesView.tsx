@@ -6,11 +6,7 @@ import React from 'react';
 import { StyleSheet, Switch, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Card, Text } from '../../components/base';
-import {
-  EmptyState,
-  IconButton,
-  ScreenHeader,
-} from '../../components/finance';
+import { EmptyState, IconButton, ScreenHeader } from '../../components/finance';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';
 import { useFinance } from '../../context/FinanceContext';

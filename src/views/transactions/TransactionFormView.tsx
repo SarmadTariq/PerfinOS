@@ -2,26 +2,13 @@
  * TransactionFormView - shared add/edit form for transactions.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Image,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Image, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialIcons } from '@expo/vector-icons';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { Button, Card, Text } from '../../components/base';
-import {
-  CategoryBadge,
-  ErrorState,
-  IconButton,
-  ScreenHeader,
-} from '../../components/finance';
+import { CategoryBadge, ErrorState, IconButton, ScreenHeader } from '../../components/finance';
 import { Field } from '../../components/form/Field';
 import { SelectField } from '../../components/form/SelectField';
 import { Segmented } from '../../components/form/Segmented';
@@ -29,24 +16,13 @@ import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';
 import { MapCanvas } from '../../components/map/MapCanvas';
 import { useFinance } from '../../context/FinanceContext';
-import { useThemeScheme } from '../../context/ThemeContext';
+import { useColors } from '../../context/ThemeContext';
 import { AppData, Category, ReceiptAttachment, Transaction } from '../../models/finance';
-import { Colors, getThemeColor, Radius, Spacing } from '../../theme';
+import { Colors, Radius, Spacing } from '../../theme';
 import { todayIso } from '../../utils/format';
-import {
-  MAX_RECEIPTS_PER_TRANSACTION,
-  MAX_RECEIPT_BYTES,
-  parseMoney,
-  sanitizeMoneyInput,
-  SUPPORTED_RECEIPT_MIME_TYPES,
-} from '../../utils/validation';
+import { MAX_RECEIPTS_PER_TRANSACTION, MAX_RECEIPT_BYTES, parseMoney, sanitizeMoneyInput, SUPPORTED_RECEIPT_MIME_TYPES } from '../../utils/validation';
 import { getCurrentLocation, getLocationSuggestions } from '../../services/locationService';
-import {
-  createLocalReceiptAttachment,
-  receiptUploadConfigured,
-  uploadReceiptToWorker,
-} from '../../services/receiptService';
-
+import { createLocalReceiptAttachment, receiptUploadConfigured, uploadReceiptToWorker } from '../../services/receiptService';
 
 type TransactionFormMode = 'add' | 'edit';
 
@@ -98,11 +74,6 @@ const STANDARD_INCOME_CATEGORY_NAMES = [
   'Benefits',
   'Other Income',
 ];
-
-const useColors = () => {
-  const scheme = useThemeScheme();
-  return scheme === 'dark' ? Colors.dark : Colors.light;
-};
 
 const normalizeName = (value: string) => value.trim().toLowerCase();
 

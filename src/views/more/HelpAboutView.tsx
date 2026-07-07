@@ -6,18 +6,10 @@ import { View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Card, Text } from '../../components/base';
-import {
-  IconButton,
-  ScreenHeader,
-} from '../../components/finance';
+import { IconButton, ScreenHeader } from '../../components/finance';
 import { AppScroll } from '../../components/layout/AppScroll';
-import { useThemeScheme } from '../../context/ThemeContext';
-import { Colors, Spacing } from '../../theme';
-
-const useColors = () => {
-  const scheme = useThemeScheme();
-  return scheme === 'dark' ? Colors.dark : Colors.light;
-};
+import { useColors } from '../../context/ThemeContext';
+import { Spacing } from '../../theme';
 
 export const HelpAboutScreen = () => {
   const navigation = useNavigation<any>();
