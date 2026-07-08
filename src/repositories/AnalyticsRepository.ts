@@ -391,3 +391,317 @@ export const groupTransactionsByWeek = (transactions: Transaction[]) =>
     groups[key].push(t);
     return groups;
   }, {});
+
+
+export type AnalyticsEvidenceTone = 'primary' | 'success' | 'warning' | 'danger';
+
+export interface AnalyticsEvidenceMetric {
+  id: string;
+  label: string;
+  value: number;
+  helperText: string;
+  tone: AnalyticsEvidenceTone;
+}
+
+export interface AnalyticsCategoryEvidence {
+  categoryId: string;
+  categoryName: string;
+  amount: number;
+  percentage: number;
+  transactionCount: number;
+  monthlyBudget: number;
+  budgetUsedPercent: number;
+  color: string;
+}
+
+export interface AnalyticsRecurringEvidence {
+  totalRecurringSpend: number;
+  recurringTransactionCount: number;
+  activeRecurringCount: number;
+  byMerchant: {
+    merchant: string;
+    amount: number;
+    transactionCount: number;
+  }[];
+}
+
+export interface AnalyticsReportEvidence {
+  latestReport?: Report;
+  reportCount: number;
+  latestGeneratedAt?: string;
+}
+
+export interface AnalyticsSignal {
+  id: string;
+  title: string;
+  description: string;
+  source: 'activity' | 'reports' | 'insights' | 'planner';
+  tone: AnalyticsEvidenceTone;
+  evidence: AnalyticsEvidenceMetric[];
+}
+
+export interface AnalyticsPeriodSummary {
+  label: string;
+  startDate: string;
+  endDate: string;
+  totalIncome: number;
+  totalExpense: number;
+  netCashFlow: number;
+  transactionCount: number;
+  recurringExpenseTotal: number;
+}
+
+export interface AnalyticsEvidenceInput {
+  transactions: Transaction[];
+  categories: Category[];
+  recurringExpenses: RecurringExpense[];
+  reports: Report[];
+  savingsGoals: SavingsGoal[];
+}
+
+export interface AnalyticsEvidenceOptions {
+  startDate: string;
+  endDate: string;
+  label: string;
+}
+
+const inDateRange = (transaction: Transaction, startDate: string, endDate: string) =>
+  transaction.date >= startDate && transaction.date <= endDate;
+
+const getTransactionsForPeriod = (
+  transactions: Transaction[],
+  options: AnalyticsEvidenceOptions
+) => transactions.filter((transaction) => inDateRange(transaction, options.startDate, options.endDate));
+
+export const getAnalyticsPeriodSummary = (
+  transactions: Transaction[],
+  options: AnalyticsEvidenceOptions
+): AnalyticsPeriodSummary => {
+  const periodTransactions = getTransactionsForPeriod(transactions, options);
+  const totalIncome = periodTransactions
+    .filter((transaction) => transaction.type === 'income')
+    .reduce((sum, transaction) => sum + transaction.amount, 0);
+  const totalExpense = periodTransactions
+    .filter((transaction) => transaction.type === 'expense')
+    .reduce((sum, transaction) => sum + transaction.amount, 0);
+  const recurringExpenseTotal = periodTransactions
+    .filter((transaction) => transaction.type === 'expense' && transaction.isRecurring)
+    .reduce((sum, transaction) => sum + transaction.amount, 0);
+
+  return {
+    label: options.label,
+    startDate: options.startDate,
+    endDate: options.endDate,
+    totalIncome,
+    totalExpense,
+    netCashFlow: totalIncome - totalExpense,
+    transactionCount: periodTransactions.length,
+    recurringExpenseTotal,
+  };
+};
+
+export const getAnalyticsCategoryEvidence = (
+  transactions: Transaction[],
+  categories: Category[],
+  options: AnalyticsEvidenceOptions
+): AnalyticsCategoryEvidence[] => {
+  const periodExpenses = getTransactionsForPeriod(transactions, options)
+    .filter((transaction) => transaction.type === 'expense');
+  const totalExpense = periodExpenses.reduce((sum, transaction) => sum + transaction.amount, 0);
+
+  return categories
+    .filter((category) => category.type === 'expense')
+    .map((category) => {
+      const categoryTransactions = periodExpenses.filter((transaction) => transaction.categoryId === category.id);
+      const amount = categoryTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+      const budgetUsedPercent = category.monthlyBudget === 0 ? 0 : Math.round((amount / category.monthlyBudget) * 100);
+
+      return {
+        categoryId: category.id,
+        categoryName: category.name,
+        amount,
+        percentage: totalExpense === 0 ? 0 : Math.round((amount / totalExpense) * 100),
+        transactionCount: categoryTransactions.length,
+        monthlyBudget: category.monthlyBudget,
+        budgetUsedPercent,
+        color: category.color,
+      };
+    })
+    .filter((item) => item.amount > 0 || item.monthlyBudget > 0)
+    .sort((a, b) => b.amount - a.amount);
+};
+
+export const getAnalyticsRecurringEvidence = (
+  transactions: Transaction[],
+  recurringExpenses: RecurringExpense[],
+  options: AnalyticsEvidenceOptions
+): AnalyticsRecurringEvidence => {
+  const recurringTransactions = getTransactionsForPeriod(transactions, options)
+    .filter((transaction) => transaction.type === 'expense' && transaction.isRecurring);
+  const totalRecurringSpend = recurringTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+
+  const byMerchant = Object.entries(
+    recurringTransactions.reduce<Record<string, { merchant: string; amount: number; transactionCount: number }>>(
+      (groups, transaction) => {
+        const key = transaction.merchant.trim().toLowerCase();
+        groups[key] = groups[key] || { merchant: transaction.merchant, amount: 0, transactionCount: 0 };
+        groups[key].amount += transaction.amount;
+        groups[key].transactionCount += 1;
+        return groups;
+      },
+      {}
+    )
+  )
+    .map(([, value]) => value)
+    .sort((a, b) => b.amount - a.amount);
+
+  return {
+    totalRecurringSpend,
+    recurringTransactionCount: recurringTransactions.length,
+    activeRecurringCount: recurringExpenses.filter((item) => item.status === 'active').length,
+    byMerchant,
+  };
+};
+
+export const getAnalyticsReportEvidence = (
+  reports: Report[],
+  options: AnalyticsEvidenceOptions
+): AnalyticsReportEvidence => {
+  const periodMonth = options.startDate.slice(0, 7);
+  const periodReports = reports.filter((report) => report.month === periodMonth);
+  const sorted = [...periodReports].sort((a, b) => b.generatedAt.localeCompare(a.generatedAt));
+  const latestReport = sorted[0];
+
+  return {
+    latestReport,
+    reportCount: periodReports.length,
+    latestGeneratedAt: latestReport?.generatedAt,
+  };
+};
+
+export const buildAnalyticsEvidenceLayer = (
+  input: AnalyticsEvidenceInput,
+  options: AnalyticsEvidenceOptions
+) => {
+  const summary = getAnalyticsPeriodSummary(input.transactions, options);
+  const categoryEvidence = getAnalyticsCategoryEvidence(input.transactions, input.categories, options);
+  const recurringEvidence = getAnalyticsRecurringEvidence(input.transactions, input.recurringExpenses, options);
+  const reportEvidence = getAnalyticsReportEvidence(input.reports, options);
+  const savings = calculateSavingsProgress(input.savingsGoals);
+
+  const topCategory = categoryEvidence[0];
+  const recurringShare = summary.totalExpense === 0
+    ? 0
+    : Math.round((summary.recurringExpenseTotal / summary.totalExpense) * 100);
+
+  const signals: AnalyticsSignal[] = [
+    {
+      id: 'cash-flow-signal',
+      title: summary.netCashFlow >= 0 ? 'Cash flow is positive' : 'Cash flow needs attention',
+      description: summary.netCashFlow >= 0
+        ? 'Income is covering expenses for the selected period.'
+        : 'Expenses are higher than income for the selected period.',
+      source: 'activity',
+      tone: summary.netCashFlow >= 0 ? 'success' : 'danger',
+      evidence: [
+        {
+          id: 'income',
+          label: 'Income',
+          value: summary.totalIncome,
+          helperText: `${summary.transactionCount} tracked entries in this period`,
+          tone: 'success',
+        },
+        {
+          id: 'expenses',
+          label: 'Expenses',
+          value: summary.totalExpense,
+          helperText: 'Total tracked spending for the selected period',
+          tone: summary.netCashFlow >= 0 ? 'primary' : 'danger',
+        },
+      ],
+    },
+    topCategory
+      ? {
+          id: 'category-concentration-signal',
+          title: `${topCategory.categoryName} leads spending`,
+          description: `${topCategory.categoryName} represents ${topCategory.percentage}% of selected period expenses.`,
+          source: 'insights',
+          tone: topCategory.percentage >= 40 ? 'warning' : 'primary',
+          evidence: [
+            {
+              id: 'top-category-spend',
+              label: topCategory.categoryName,
+              value: topCategory.amount,
+              helperText: `${topCategory.transactionCount} transactions · ${topCategory.percentage}% of expenses`,
+              tone: topCategory.percentage >= 40 ? 'warning' : 'primary',
+            },
+          ],
+        }
+      : null,
+    {
+      id: 'recurring-load-signal',
+      title: recurringShare > 0 ? 'Recurring commitments are visible' : 'No recurring load detected',
+      description: recurringShare > 0
+        ? `Recurring charges represent ${recurringShare}% of selected period expenses.`
+        : 'No recurring expenses were detected in the selected period.',
+      source: 'reports',
+      tone: recurringShare >= 30 ? 'warning' : 'primary',
+      evidence: [
+        {
+          id: 'recurring-total',
+          label: 'Recurring spend',
+          value: recurringEvidence.totalRecurringSpend,
+          helperText: `${recurringEvidence.recurringTransactionCount} recurring transactions · ${recurringEvidence.activeRecurringCount} active recurring records`,
+          tone: recurringShare >= 30 ? 'warning' : 'primary',
+        },
+      ],
+    },
+    {
+      id: 'savings-progress-signal',
+      title: savings.percentage > 0 ? 'Savings progress is tracked' : 'Savings needs a baseline',
+      description: savings.percentage > 0
+        ? `Savings goals are ${savings.percentage}% funded.`
+        : 'Add a savings goal to connect analytics to planning progress.',
+      source: 'planner',
+      tone: savings.percentage >= 50 ? 'success' : 'primary',
+      evidence: [
+        {
+          id: 'savings-saved',
+          label: 'Saved',
+          value: savings.saved,
+          helperText: `${savings.percentage}% of ${savings.target} target saved`,
+          tone: savings.percentage >= 50 ? 'success' : 'primary',
+        },
+      ],
+    },
+    {
+      id: 'report-support-signal',
+      title: reportEvidence.latestReport ? 'Report evidence available' : 'No report generated yet',
+      description: reportEvidence.latestReport
+        ? 'Analytics can support the latest report for this period.'
+        : 'Generate a report to connect Analytics evidence with Reports history.',
+      source: 'reports',
+      tone: reportEvidence.latestReport ? 'success' : 'warning',
+      evidence: [
+        {
+          id: 'period-reports',
+          label: 'Reports',
+          value: reportEvidence.reportCount,
+          helperText: reportEvidence.latestGeneratedAt
+            ? `Latest report generated ${reportEvidence.latestGeneratedAt.slice(0, 10)}`
+            : 'No report history for this period',
+          tone: reportEvidence.latestReport ? 'success' : 'warning',
+        },
+      ],
+    },
+  ].filter(Boolean) as AnalyticsSignal[];
+
+  return {
+    summary,
+    categoryEvidence,
+    recurringEvidence,
+    reportEvidence,
+    savings,
+    signals,
+  };
+};
