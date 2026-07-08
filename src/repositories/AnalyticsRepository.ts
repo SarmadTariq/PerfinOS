@@ -333,6 +333,10 @@ export const filterTransactions = (
     if (filters.type && filters.type !== 'all' && t.type !== filters.type) return false;
     if (filters.categoryId && t.categoryId !== filters.categoryId) return false;
     if (filters.month && !t.date.startsWith(filters.month)) return false;
+    if (filters.startDate && t.date < filters.startDate) return false;
+    if (filters.endDate && t.date > filters.endDate) return false;
+    if (filters.frequency === 'recurring' && !t.isRecurring) return false;
+    if (filters.frequency === 'one-time' && t.isRecurring) return false;
     if (filters.recurringOnly && !t.isRecurring) return false;
     if (!query) return true;
     return [t.merchant, t.categoryName, t.notes, t.paymentMethod].join(' ').toLowerCase().includes(query);
