@@ -1,0 +1,56 @@
+import type {
+  Budget,
+  Category,
+  RecurringExpense,
+  Report,
+  SavingsGoal,
+  Transaction,
+} from '../../models/finance';
+
+export const FIRESTORE_ROOT_COLLECTIONS = {
+  users: 'users',
+} as const;
+
+export const USER_PRIVATE_COLLECTION = 'private' as const;
+export const LEGACY_APP_DATA_DOCUMENT = 'appData' as const;
+
+export const USER_ENTITY_COLLECTIONS = {
+  transactions: 'transactions',
+  categories: 'categories',
+  budgets: 'budgets',
+  savingsGoals: 'savingsGoals',
+  recurringExpenses: 'recurringExpenses',
+  reports: 'reports',
+} as const;
+
+export type FirestoreRootCollectionKey = keyof typeof FIRESTORE_ROOT_COLLECTIONS;
+export type FirestoreRootCollectionName =
+  (typeof FIRESTORE_ROOT_COLLECTIONS)[FirestoreRootCollectionKey];
+
+export type UserEntityCollectionKey = keyof typeof USER_ENTITY_COLLECTIONS;
+export type UserEntityCollectionName =
+  (typeof USER_ENTITY_COLLECTIONS)[UserEntityCollectionKey];
+
+export interface UserEntityMap {
+  transactions: Transaction;
+  categories: Category;
+  budgets: Budget;
+  savingsGoals: SavingsGoal;
+  recurringExpenses: RecurringExpense;
+  reports: Report;
+}
+
+export type UserEntityForCollection<TCollection extends UserEntityCollectionKey> =
+  UserEntityMap[TCollection];
+
+export interface FirestoreEntityDocument<TPayload> {
+  id: string;
+  data: TPayload;
+}
+
+export interface FirestoreEntityPathParts<TCollection extends UserEntityCollectionKey> {
+  userId: string;
+  collectionKey: TCollection;
+  collectionName: UserEntityCollectionName;
+  entityId?: string;
+}
