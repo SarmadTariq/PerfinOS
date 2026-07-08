@@ -42,6 +42,14 @@ export {
   serializeUserEntities,
   serializeUserEntity,
   toJsonSafeValue,
+  createUserEntity,
+  deleteUserEntity,
+  getUserEntity,
+  listUserEntities,
+  replaceUserEntityCollection,
+  updateUserEntity,
+  loadRemoteAppDataEntities,
+  saveRemoteAppDataEntities,
 } from './firebase';
 
 export type {
@@ -56,4 +64,5 @@ export type {
   UserEntityCollectionName,
   UserEntityForCollection,
   UserEntityMap,
+  RemoteEntityCollections,
 } from './firebase';
