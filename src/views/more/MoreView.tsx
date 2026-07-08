@@ -68,6 +68,12 @@ const sections: MoreSection[] = [
         route: 'RecurringExpenses',
         icon: 'subscriptions',
       },
+      {
+        label: 'Guided Planning',
+        description: 'Turn Activity signals into budget, savings, recurring, and report actions.',
+        route: 'PlannerChat',
+        icon: 'route',
+      },
     ],
   },
   {
