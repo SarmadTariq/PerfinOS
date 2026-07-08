@@ -31,7 +31,7 @@ import { SavingsGoalsScreen } from '../views/more/SavingsGoalsView';
 import { AnalyticsScreen } from '../views/more/AnalyticsView';
 import { RecurringExpensesScreen } from '../views/more/RecurringExpensesView';
 import { ReportsScreen } from '../views/more/ReportsView';
-import { PlannerChatScreen } from '../views/more/PlannerChatView';
+import { GuidedPlanningScreen } from '../views/more/GuidedPlanningView';
 import { SettingsScreen } from '../views/more/SettingsView';
 import { ProfileScreen } from '../views/more/ProfileView';
 import { HelpAboutScreen } from '../views/more/HelpAboutView';
@@ -119,7 +119,7 @@ const MainStack = () => (
     <Stack.Screen name="Settings" component={SettingsScreen} />
     <Stack.Screen name="Profile" component={ProfileScreen} />
     <Stack.Screen name="HelpAbout" component={HelpAboutScreen} />
-    <Stack.Screen name="PlannerChat" component={PlannerChatScreen} />
+    <Stack.Screen name="PlannerChat" component={GuidedPlanningScreen} />
     <Stack.Screen name="NotFound" component={NotFoundScreen} />
   </Stack.Navigator>
 );
