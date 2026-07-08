@@ -3,6 +3,7 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { FinanceProvider } from './src/context/FinanceContext';
 import { SessionProvider } from './src/context/SessionContext';
 import { FinanceWorkspaceProvider } from './src/context/FinanceWorkspaceContext';
+import { ActivityFilterProvider } from './src/context/ActivityFilterContext';
 import { ThemeProvider } from './src/context/ThemeContext';
 
 export default function App() {
@@ -11,9 +12,11 @@ export default function App() {
       <ThemeProvider>
         <SessionProvider>
           <FinanceWorkspaceProvider>
-            <FinanceProvider>
-              <AppNavigator />
-            </FinanceProvider>
+            <ActivityFilterProvider>
+              <FinanceProvider>
+                <AppNavigator />
+              </FinanceProvider>
+            </ActivityFilterProvider>
           </FinanceWorkspaceProvider>
         </SessionProvider>
       </ThemeProvider>

@@ -12,6 +12,7 @@ import { EmptyState, IconButton, ScreenHeader } from '../../components/finance';
 import { Field } from '../../components/form/Field';
 import { Segmented } from '../../components/form/Segmented';
 import { RequireData } from '../../components/layout/RequireData';
+import { useActivityFilters, calculateActivitySummary, DATE_PRESET_OPTIONS, FREQUENCY_FILTER_OPTIONS } from '../../context/ActivityFilterContext';
 import { useColors } from '../../context/ThemeContext';
 import { AppData, Category, Transaction, TransactionDatePreset, TransactionFrequencyFilter, TransactionSortKey } from '../../models/finance';
 import { filterTransactions, sortTransactions } from '../../repositories/AnalyticsRepository';
@@ -22,92 +23,6 @@ import { mcIconName } from '../../utils/icons';
 type TransactionTypeFilter = 'all' | 'income' | 'expense';
 type ReceiptFilter = 'any' | 'attached' | 'missing';
 
-const DATE_PRESET_OPTIONS: TransactionDatePreset[] = ['this-month', 'last-month', 'last-30-days', 'this-year', 'all', 'custom'];
-const FREQUENCY_FILTER_OPTIONS: TransactionFrequencyFilter[] = ['all', 'recurring', 'one-time'];
-
-const toLocalIsoDate = (date: Date) => {
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 10);
-};
-
-const startOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
-const endOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0);
-
-const getPresetDateRange = (
-  preset: TransactionDatePreset,
-  customStartDate: string,
-  customEndDate: string
-) => {
-  const today = new Date();
-
-  if (preset === 'all') {
-    return { startDate: undefined, endDate: undefined, label: 'All dates' };
-  }
-
-  if (preset === 'custom') {
-    return {
-      startDate: customStartDate.trim() || undefined,
-      endDate: customEndDate.trim() || undefined,
-      label: customStartDate || customEndDate
-        ? `${customStartDate || 'Start'} to ${customEndDate || 'Today'}`
-        : 'Custom range',
-    };
-  }
-
-  if (preset === 'last-month') {
-    const previousMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-
-    return {
-      startDate: toLocalIsoDate(startOfMonth(previousMonth)),
-      endDate: toLocalIsoDate(endOfMonth(previousMonth)),
-      label: 'Last month',
-    };
-  }
-
-  if (preset === 'last-30-days') {
-    const start = new Date(today);
-    start.setDate(today.getDate() - 30);
-
-    return {
-      startDate: toLocalIsoDate(start),
-      endDate: toLocalIsoDate(today),
-      label: 'Last 30 days',
-    };
-  }
-
-  if (preset === 'this-year') {
-    return {
-      startDate: `${today.getFullYear()}-01-01`,
-      endDate: toLocalIsoDate(today),
-      label: 'This year',
-    };
-  }
-
-  return {
-    startDate: toLocalIsoDate(startOfMonth(today)),
-    endDate: toLocalIsoDate(endOfMonth(today)),
-    label: 'This month',
-  };
-};
-
-const calculateActivitySummary = (transactions: Transaction[]) => {
-  const income = transactions
-    .filter((transaction) => transaction.type === 'income')
-    .reduce((sum, transaction) => sum + transaction.amount, 0);
-  const expenses = transactions
-    .filter((transaction) => transaction.type === 'expense')
-    .reduce((sum, transaction) => sum + transaction.amount, 0);
-  const recurringCount = transactions.filter((transaction) => transaction.isRecurring).length;
-
-  return {
-    income,
-    expenses,
-    netCashFlow: income - expenses,
-    transactionCount: transactions.length,
-    recurringCount,
-    oneTimeCount: transactions.length - recurringCount,
-  };
-};
 
 
 type FeedItem =
@@ -522,10 +437,18 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
   const [sortKey, setSortKey] = useState<TransactionSortKey>('date-desc');
   const [categoryId, setCategoryId] = useState('all');
   const [receiptFilter, setReceiptFilter] = useState<ReceiptFilter>('any');
-  const [datePreset, setDatePreset] = useState<TransactionDatePreset>('this-month');
-  const [customStartDate, setCustomStartDate] = useState('');
-  const [customEndDate, setCustomEndDate] = useState('');
-  const [frequencyFilter, setFrequencyFilter] = useState<TransactionFrequencyFilter>('all');
+  const {
+    datePreset,
+    customStartDate,
+    customEndDate,
+    frequencyFilter,
+    dateRange,
+    setDatePreset,
+    setCustomStartDate,
+    setCustomEndDate,
+    setFrequencyFilter,
+    resetPeriodFilters,
+  } = useActivityFilters();
   const [showFilters, setShowFilters] = useState(false);
 
   const categoriesForFilter = useMemo(() => {
@@ -536,10 +459,6 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
     return data.categories.filter((category) => category.type === type);
   }, [data.categories, type]);
 
-  const dateRange = useMemo(
-    () => getPresetDateRange(datePreset, customStartDate, customEndDate),
-    [customEndDate, customStartDate, datePreset]
-  );
 
   const visibleTransactions = useMemo(() => {
     const filtered = filterTransactions(data.transactions, {
@@ -584,10 +503,7 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
     setSortKey('date-desc');
     setCategoryId('all');
     setReceiptFilter('any');
-    setDatePreset('this-month');
-    setCustomStartDate('');
-    setCustomEndDate('');
-    setFrequencyFilter('all');
+    resetPeriodFilters();
   };
 
   return (
@@ -693,13 +609,7 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
         onSortChange={setSortKey}
         onCategoryChange={setCategoryId}
         onReceiptFilterChange={setReceiptFilter}
-        onDatePresetChange={(value) => {
-          setDatePreset(value);
-          if (value !== 'custom') {
-            setCustomStartDate('');
-            setCustomEndDate('');
-          }
-        }}
+        onDatePresetChange={setDatePreset}
         onCustomStartDateChange={setCustomStartDate}
         onCustomEndDateChange={setCustomEndDate}
         onFrequencyFilterChange={setFrequencyFilter}
