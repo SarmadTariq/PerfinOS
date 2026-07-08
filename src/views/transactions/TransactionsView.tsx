@@ -13,14 +13,102 @@ import { Field } from '../../components/form/Field';
 import { Segmented } from '../../components/form/Segmented';
 import { RequireData } from '../../components/layout/RequireData';
 import { useColors } from '../../context/ThemeContext';
-import { AppData, Category, Transaction, TransactionSortKey } from '../../models/finance';
-import { calculateMonthlySummary, filterTransactions, sortTransactions } from '../../repositories/AnalyticsRepository';
+import { AppData, Category, Transaction, TransactionDatePreset, TransactionFrequencyFilter, TransactionSortKey } from '../../models/finance';
+import { filterTransactions, sortTransactions } from '../../repositories/AnalyticsRepository';
 import { Radius, Spacing } from '../../theme';
 import { formatCurrency, formatCurrencyPrecise, getMonthKey, readableMonth } from '../../utils/format';
 import { mcIconName } from '../../utils/icons';
 
 type TransactionTypeFilter = 'all' | 'income' | 'expense';
 type ReceiptFilter = 'any' | 'attached' | 'missing';
+
+const DATE_PRESET_OPTIONS: TransactionDatePreset[] = ['this-month', 'last-month', 'last-30-days', 'this-year', 'all', 'custom'];
+const FREQUENCY_FILTER_OPTIONS: TransactionFrequencyFilter[] = ['all', 'recurring', 'one-time'];
+
+const toLocalIsoDate = (date: Date) => {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+};
+
+const startOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
+const endOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0);
+
+const getPresetDateRange = (
+  preset: TransactionDatePreset,
+  customStartDate: string,
+  customEndDate: string
+) => {
+  const today = new Date();
+
+  if (preset === 'all') {
+    return { startDate: undefined, endDate: undefined, label: 'All dates' };
+  }
+
+  if (preset === 'custom') {
+    return {
+      startDate: customStartDate.trim() || undefined,
+      endDate: customEndDate.trim() || undefined,
+      label: customStartDate || customEndDate
+        ? `${customStartDate || 'Start'} to ${customEndDate || 'Today'}`
+        : 'Custom range',
+    };
+  }
+
+  if (preset === 'last-month') {
+    const previousMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+
+    return {
+      startDate: toLocalIsoDate(startOfMonth(previousMonth)),
+      endDate: toLocalIsoDate(endOfMonth(previousMonth)),
+      label: 'Last month',
+    };
+  }
+
+  if (preset === 'last-30-days') {
+    const start = new Date(today);
+    start.setDate(today.getDate() - 30);
+
+    return {
+      startDate: toLocalIsoDate(start),
+      endDate: toLocalIsoDate(today),
+      label: 'Last 30 days',
+    };
+  }
+
+  if (preset === 'this-year') {
+    return {
+      startDate: `${today.getFullYear()}-01-01`,
+      endDate: toLocalIsoDate(today),
+      label: 'This year',
+    };
+  }
+
+  return {
+    startDate: toLocalIsoDate(startOfMonth(today)),
+    endDate: toLocalIsoDate(endOfMonth(today)),
+    label: 'This month',
+  };
+};
+
+const calculateActivitySummary = (transactions: Transaction[]) => {
+  const income = transactions
+    .filter((transaction) => transaction.type === 'income')
+    .reduce((sum, transaction) => sum + transaction.amount, 0);
+  const expenses = transactions
+    .filter((transaction) => transaction.type === 'expense')
+    .reduce((sum, transaction) => sum + transaction.amount, 0);
+  const recurringCount = transactions.filter((transaction) => transaction.isRecurring).length;
+
+  return {
+    income,
+    expenses,
+    netCashFlow: income - expenses,
+    transactionCount: transactions.length,
+    recurringCount,
+    oneTimeCount: transactions.length - recurringCount,
+  };
+};
+
 
 type FeedItem =
   | { type: 'date'; date: string }
@@ -155,9 +243,17 @@ const FilterPanel = ({
   sortKey,
   categoryId,
   receiptFilter,
+  datePreset,
+  customStartDate,
+  customEndDate,
+  frequencyFilter,
   onSortChange,
   onCategoryChange,
   onReceiptFilterChange,
+  onDatePresetChange,
+  onCustomStartDateChange,
+  onCustomEndDateChange,
+  onFrequencyFilterChange,
   onClear,
   onClose,
 }: {
@@ -166,9 +262,17 @@ const FilterPanel = ({
   sortKey: TransactionSortKey;
   categoryId: string;
   receiptFilter: ReceiptFilter;
+  datePreset: TransactionDatePreset;
+  customStartDate: string;
+  customEndDate: string;
+  frequencyFilter: TransactionFrequencyFilter;
   onSortChange: (value: TransactionSortKey) => void;
   onCategoryChange: (value: string) => void;
   onReceiptFilterChange: (value: ReceiptFilter) => void;
+  onDatePresetChange: (value: TransactionDatePreset) => void;
+  onCustomStartDateChange: (value: string) => void;
+  onCustomEndDateChange: (value: string) => void;
+  onFrequencyFilterChange: (value: TransactionFrequencyFilter) => void;
   onClear: () => void;
   onClose: () => void;
 }) => {
@@ -197,6 +301,45 @@ const FilterPanel = ({
               options={['date-desc', 'date-asc', 'amount-desc', 'amount-asc', 'merchant-asc']}
               value={sortKey}
               onChange={(value) => onSortChange(value as TransactionSortKey)}
+            />
+          </View>
+
+          <View style={styles.filterSection}>
+            <Text variant="bodySmall" style={styles.filterSectionTitle}>
+              Date range
+            </Text>
+            <Segmented
+              options={DATE_PRESET_OPTIONS}
+              value={datePreset}
+              onChange={(value) => onDatePresetChange(value as TransactionDatePreset)}
+            />
+
+            {datePreset === 'custom' ? (
+              <View style={styles.customDateGrid}>
+                <Field
+                  label="Start date"
+                  value={customStartDate}
+                  onChangeText={onCustomStartDateChange}
+                  placeholder="YYYY-MM-DD"
+                />
+                <Field
+                  label="End date"
+                  value={customEndDate}
+                  onChangeText={onCustomEndDateChange}
+                  placeholder="YYYY-MM-DD"
+                />
+              </View>
+            ) : null}
+          </View>
+
+          <View style={styles.filterSection}>
+            <Text variant="bodySmall" style={styles.filterSectionTitle}>
+              Frequency
+            </Text>
+            <Segmented
+              options={FREQUENCY_FILTER_OPTIONS}
+              value={frequencyFilter}
+              onChange={(value) => onFrequencyFilterChange(value as TransactionFrequencyFilter)}
             />
           </View>
 
@@ -333,6 +476,15 @@ const TransactionCard = ({
                 {transaction.merchant}
               </Text>
 
+              {transaction.isRecurring ? (
+                <View style={[styles.receiptPill, { backgroundColor: colors.primarySoft }]}>
+                  <MaterialIcons name="autorenew" size={13} color={colors.primary} />
+                  <Text variant="caption" style={{ color: colors.primary, fontWeight: '800' }}>
+                    Recurring
+                  </Text>
+                </View>
+              ) : null}
+
               {receiptCount > 0 ? (
                 <View style={[styles.receiptPill, { backgroundColor: colors.primarySoft }]}>
                   <MaterialIcons name="receipt-long" size={13} color={colors.primary} />
@@ -364,13 +516,16 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
   const navigation = useNavigation<any>();
   const colors = useColors();
   const month = getMonthKey();
-  const summary = calculateMonthlySummary(data.transactions, month);
 
   const [query, setQuery] = useState('');
   const [type, setType] = useState<TransactionTypeFilter>('all');
   const [sortKey, setSortKey] = useState<TransactionSortKey>('date-desc');
   const [categoryId, setCategoryId] = useState('all');
   const [receiptFilter, setReceiptFilter] = useState<ReceiptFilter>('any');
+  const [datePreset, setDatePreset] = useState<TransactionDatePreset>('this-month');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [frequencyFilter, setFrequencyFilter] = useState<TransactionFrequencyFilter>('all');
   const [showFilters, setShowFilters] = useState(false);
 
   const categoriesForFilter = useMemo(() => {
@@ -381,12 +536,19 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
     return data.categories.filter((category) => category.type === type);
   }, [data.categories, type]);
 
+  const dateRange = useMemo(
+    () => getPresetDateRange(datePreset, customStartDate, customEndDate),
+    [customEndDate, customStartDate, datePreset]
+  );
+
   const visibleTransactions = useMemo(() => {
     const filtered = filterTransactions(data.transactions, {
       query,
       type,
       categoryId: categoryId === 'all' ? undefined : categoryId,
-      month,
+      startDate: dateRange.startDate,
+      endDate: dateRange.endDate,
+      frequency: frequencyFilter,
     }).filter((transaction) => {
       const hasReceipt = (transaction.receipts?.length || 0) > 0;
 
@@ -402,19 +564,30 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
     });
 
     return sortTransactions(filtered, sortKey);
-  }, [categoryId, data.transactions, month, query, receiptFilter, sortKey, type]);
+  }, [categoryId, data.transactions, dateRange.endDate, dateRange.startDate, frequencyFilter, query, receiptFilter, sortKey, type]);
 
   const feedItems = useMemo(() => buildFeedItems(visibleTransactions), [visibleTransactions]);
+
+  const summary = useMemo(() => calculateActivitySummary(visibleTransactions), [visibleTransactions]);
+
+  const resultSummary = `${dateRange.label} · ${summary.transactionCount} transaction${summary.transactionCount === 1 ? '' : 's'} · ${summary.recurringCount} recurring · ${summary.oneTimeCount} one-time`;
+
 
   const advancedFilterCount =
     (sortKey !== 'date-desc' ? 1 : 0) +
     (categoryId !== 'all' ? 1 : 0) +
-    (receiptFilter !== 'any' ? 1 : 0);
+    (receiptFilter !== 'any' ? 1 : 0) +
+    (datePreset !== 'this-month' ? 1 : 0) +
+    (frequencyFilter !== 'all' ? 1 : 0);
 
   const clearFilters = () => {
     setSortKey('date-desc');
     setCategoryId('all');
     setReceiptFilter('any');
+    setDatePreset('this-month');
+    setCustomStartDate('');
+    setCustomEndDate('');
+    setFrequencyFilter('all');
   };
 
   return (
@@ -460,7 +633,7 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
 
               <View style={styles.resultLine}>
                 <Text variant="caption" color="tertiary">
-                  {visibleTransactions.length} result{visibleTransactions.length === 1 ? '' : 's'}
+                  {resultSummary}
                 </Text>
 
                 {query || type !== 'all' || advancedFilterCount > 0 ? (
@@ -513,9 +686,23 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
         sortKey={sortKey}
         categoryId={categoryId}
         receiptFilter={receiptFilter}
+        datePreset={datePreset}
+        customStartDate={customStartDate}
+        customEndDate={customEndDate}
+        frequencyFilter={frequencyFilter}
         onSortChange={setSortKey}
         onCategoryChange={setCategoryId}
         onReceiptFilterChange={setReceiptFilter}
+        onDatePresetChange={(value) => {
+          setDatePreset(value);
+          if (value !== 'custom') {
+            setCustomStartDate('');
+            setCustomEndDate('');
+          }
+        }}
+        onCustomStartDateChange={setCustomStartDate}
+        onCustomEndDateChange={setCustomEndDate}
+        onFrequencyFilterChange={setFrequencyFilter}
         onClear={clearFilters}
         onClose={() => setShowFilters(false)}
       />
@@ -657,6 +844,10 @@ const styles = StyleSheet.create({
   filterSectionTitle: {
     fontWeight: '800',
     marginBottom: Spacing.sm,
+  },
+  customDateGrid: {
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
   },
   chipWrap: {
     flexDirection: 'row',
