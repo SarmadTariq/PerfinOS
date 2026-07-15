@@ -15,6 +15,10 @@ import { filterTransactions, sortTransactions } from '../../repositories/Analyti
 import { Radius, Spacing } from '../../theme';
 import { formatCurrency, getMonthKey, readableMonth } from '../../utils/format';
 
+type GuidedPlanningScreenProps = {
+  showBackButton?: boolean;
+};
+
 type PlanningStep = {
   title: string;
   description: string;
@@ -46,7 +50,7 @@ const rangeLabel = (startDate?: string, endDate?: string) => {
   return `Until ${endDate}`;
 };
 
-export const GuidedPlanningScreen = () => (
+export const GuidedPlanningScreen = ({ showBackButton = true }: GuidedPlanningScreenProps) => (
   <RequireData>
     {(data) => {
       const navigation = useNavigation<any>();
@@ -143,7 +147,11 @@ export const GuidedPlanningScreen = () => (
           <ScreenHeader
             title="Guided Planning"
             subtitle="Turn Activity signals into the next planning action."
-            action={<IconButton icon="arrow-back" label="Go back" onPress={() => navigation.goBack()} />}
+            action={
+              showBackButton ? (
+                <IconButton icon="arrow-back" label="Go back" onPress={() => navigation.goBack()} />
+              ) : undefined
+            }
           />
 
           <Card shadow="sm" style={styles.heroCard}>
