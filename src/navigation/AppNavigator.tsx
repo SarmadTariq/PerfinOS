@@ -61,6 +61,7 @@ const Tabs = () => {
 
   return (
     <Tab.Navigator
+      initialRouteName="Map"
       // theme={scheme === 'dark' ? DarkTheme : DefaultTheme}
       screenOptions={({ route }) => ({
         headerShown: false,
@@ -95,9 +96,9 @@ const Tabs = () => {
         },
       })}
     >
-      <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ tabBarLabel: 'Home' }} />
-      <Tab.Screen name="Transactions" component={TransactionsScreen} options={{ tabBarLabel: 'Activity' }} />
       <Tab.Screen name="Map" component={MapScreen} options={{ tabBarLabel: 'Map' }} />
+      <Tab.Screen name="Transactions" component={TransactionsScreen} options={{ tabBarLabel: 'Activity' }} />
+      <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ tabBarLabel: 'Dashboard' }} />
       <Tab.Screen name="Insights" component={InsightsScreen} options={{ tabBarLabel: 'Insights' }} />
       <Tab.Screen name="More" component={MoreScreen} options={{ tabBarLabel: 'More' }} />
     </Tab.Navigator>
