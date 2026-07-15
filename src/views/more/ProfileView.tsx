@@ -43,6 +43,39 @@ export const ProfileScreen = () => {
               <Button label="Save Profile" onPress={() => updateUser({ name, email, phone, monthlyIncome: Number(income), monthlyBudget: Number(budget) }).then(() => setNotice('Profile saved'))} />
               <Button label="Logout" variant="danger" onPress={logout} style={{ marginTop: Spacing.md }} />
             </Card>
+
+            <Card shadow="sm" style={{ marginTop: Spacing.lg }}>
+              <Text variant="h4">Account & app</Text>
+
+              <Text
+                variant="bodySmall"
+                color="secondary"
+                style={{ marginTop: Spacing.sm }}
+              >
+                Manage categories, preferences, privacy, and support.
+              </Text>
+
+              <Button
+                label="Categories"
+                variant="secondary"
+                onPress={() => navigation.navigate('Categories')}
+                style={{ marginTop: Spacing.md }}
+              />
+
+              <Button
+                label="Settings"
+                variant="secondary"
+                onPress={() => navigation.navigate('Settings')}
+                style={{ marginTop: Spacing.sm }}
+              />
+
+              <Button
+                label="Privacy & Help"
+                variant="secondary"
+                onPress={() => navigation.navigate('HelpAbout')}
+                style={{ marginTop: Spacing.sm }}
+              />
+            </Card>
           </AppScroll>
         );
       }}
