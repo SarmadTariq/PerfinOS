@@ -16,7 +16,7 @@ export interface FinanceActions {
   logout: () => void;
   updateUser: (updates: Partial<User>) => Promise<void>;
   completeOnboarding: (updates: Partial<User>) => Promise<void>;
-  addTransaction: (input: Omit<Transaction, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'updateCount'>) => Promise<void>;
+  addTransaction: (input: Omit<Transaction, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'updateCount'>) => Promise<string>;
   updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   addCategory: (input: Omit<Category, 'id' | 'isDefault'>) => Promise<void>;
@@ -132,6 +132,7 @@ export const useFinanceActions = (): FinanceActions => {
       },
       addTransaction: async (input) => {
         validateTransactionInput(input);
+        const transactionId = uid("tx");
 
         await persist((current) => {
           const category = current.categories.find((item) => item.id === input.categoryId);
@@ -143,9 +144,8 @@ export const useFinanceActions = (): FinanceActions => {
               {
                 ...input,
                 receipts: input.receipts || [],
-                id: uid('tx'),
-                userId: current.user.id,
-                categoryName: category?.name || input.categoryName,
+                id: transactionId,
+                categoryId: category?.id || input.categoryId,
                 updateCount: 0,
                 createdAt: now,
                 updatedAt: now,
@@ -154,6 +154,7 @@ export const useFinanceActions = (): FinanceActions => {
             ],
           });
         });
+        return transactionId;
       },
       updateTransaction: async (id, updates) => {
         if (updates.amount !== undefined) validatePositiveAmount(updates.amount);
@@ -182,7 +183,7 @@ export const useFinanceActions = (): FinanceActions => {
                     ...transaction,
                     ...updates,
                     receipts: updates.receipts || transaction.receipts || [],
-                    categoryName: category?.name || updates.categoryName || transaction.categoryName,
+                    categoryId: category?.id || updates.categoryId || transaction.categoryId,
                     updateCount: transaction.updateCount + 1,
                     updatedAt: new Date().toISOString(),
                   }
@@ -226,7 +227,7 @@ export const useFinanceActions = (): FinanceActions => {
 
           if (category?.isDefault) throw new Error('Default categories cannot be deleted');
 
-          if (current.transactions.some((transaction) => transaction.categoryId === id)) {
+          if (current.transactions.some((transaction) => transaction.categoryId === category?.id)) {
             throw new Error('Category is used by existing transactions');
           }
 

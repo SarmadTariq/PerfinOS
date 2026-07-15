@@ -14,7 +14,7 @@ const json = (body: unknown, status = 200) =>
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Object-Key',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Transaction-Id, X-Receipt-Id',
       'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
     },
   }
@@ -57,15 +57,25 @@ const handleReceiptUpload = async (request: Request, env: Env): Promise<Response
   const userId = await requireAuth(request, env);
   if (!env.RECEIPTS) return notConfigured('R2 Receipts');
 
-  const filename = request.headers.get('X-Object-Key');
+  const transactionId = request.headers.get("X-Transaction-Id");
+  const receiptId = request.headers.get("X-Receipt-Id");
+
   const mimeType = (request.headers.get('Content-Type') || 'image/jpeg').split(';')[0].trim();
 
-  if (!filename) return json({ error: 'X-Object-Key header required' }, 400);
+  if (!transactionId || !receiptId) return json({ error: 'X-Transaction-Id and X-Receipt-Id header required' }, 400);
   if (!ALLOWED_RECEIPT_TYPES.includes(mimeType)) {
     return json({ error: 'Unsupported MIME type. Use JPG, PNG, HEIC, or HEIF.' }, 415);
   }
 
-  const objectKey = `${userId}/${filename}`;
+  const extensionMap: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/heic": "heic",
+    "image/heif": "heif",
+  };
+
+  const extension = extensionMap[mimeType];
+  const objectKey = `receipts/${userId}/${transactionId}/${receiptId}.${extension}`;
 
   const body = await request.arrayBuffer();
   if (body.byteLength === 0) return json({ error: 'Empty file body' }, 400);
@@ -83,12 +93,21 @@ const handleReceiptUpload = async (request: Request, env: Env): Promise<Response
 // ── Receipt download: Worker fetches from R2, streams back ─────────────────
 
 const handleReceiptDownload = async (request: Request, env: Env): Promise<Response> => {
-  requireAuth(request, env);
+  const uid = await requireAuth(request, env);
+  
   if (!env.RECEIPTS) return notConfigured('R2 Receipts');
 
   const body = (await request.json()) as { objectKey?: string };
   const objectKey = body?.objectKey;
   if (!objectKey) return json({ error: 'objectKey required' }, 400);
+
+  if (!objectKey.startsWith(`receipts/${uid}/`)) {
+      return json(
+          { error: "Forbidden" },
+          403
+      );
+  }
+
 
   const obj = await env.RECEIPTS.get(objectKey);
   if (!obj) return json({ error: 'Receipt not found' }, 404);
@@ -105,17 +124,23 @@ const handleReceiptDownload = async (request: Request, env: Env): Promise<Respon
 // ── Receipt delete ─────────────────────────────────────────────────────────
 
 const handleReceiptDelete = async (request: Request, env: Env): Promise<Response> => {
-  const userId = await requireAuth(request, env);
-  if (!env.RECEIPTS) return notConfigured('R2 Receipts');
+  const uid = await requireAuth(request, env);
 
-  // objectKey is everything after /receipts/ in the path
-  const rawKey = new URL(request.url).pathname.replace(/^\/receipts\//, '');
-  const fileName = decodeURIComponent(rawKey);
-  const objectKey = `${userId}/${fileName}`;
-  if (!objectKey) return json({ error: 'objectKey required in path' }, 400);
+  if (!env.RECEIPTS) return notConfigured("R2 Receipts");
+
+  const { objectKey } = await request.json() as { objectKey?: string; };
+
+  if (!objectKey) {
+    return json({ error: "objectKey required" }, 400);
+  }
+
+  if (!objectKey.startsWith(`receipts/${uid}/`)) {
+    return json({ error: "Forbidden" }, 403);
+  }
 
   await env.RECEIPTS.delete(objectKey);
-  return json({ deleted: true, objectKey });
+
+  return json({deleted: true, objectKey});
 };
 
 // ── Google Places proxy ────────────────────────────────────────────────────
@@ -158,7 +183,7 @@ const handleAiReport = async (request: Request, env: Env): Promise<Response> => 
   
   console.log("AI REPORT HIT");  //log test
   
-  requireAuth(request, env);
+  await requireAuth(request, env);
   console.log("passed auth");
   if (!env.GEMINI_API_KEY) return notConfigured('Gemini AI');
   console.log("has gemini key");

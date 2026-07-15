@@ -46,17 +46,15 @@ export interface ReceiptAttachment {
   sizeBytes: number;
   uploadedAt: string;
   status: ReceiptStatus;
-  uri?: string;
+  localUri?: string;
   error?: string;
 }
 
 export interface Transaction {
   id: string;
-  userId: string;
   type: TransactionType;
   amount: number;
   categoryId: string;
-  categoryName: string;
   merchant: string;
   date: string;
   notes: string;
@@ -91,7 +89,6 @@ export interface Budget {
 
 export interface SavingsGoal {
   id: string;
-  userId: string;
   name: string;
   targetAmount: number;
   currentAmount: number;
@@ -112,10 +109,9 @@ export interface Insight {
 
 export interface RecurringExpense {
   id: string;
-  userId: string;
+  categoryId: string;
   merchant: string;
   amount: number;
-  category: string;
   frequency: RecurringFrequency;
   nextDate: string;
   status: RecurringStatus;
@@ -123,11 +119,10 @@ export interface RecurringExpense {
 
 export interface Report {
   id: string;
-  userId: string;
   month: string;
   totalIncome: number;
   totalExpense: number;
-  topCategory: string;
+  topCategoryId: string;
   budgetStatus: string;
   savingsProgress: number;
   generatedAt: string;

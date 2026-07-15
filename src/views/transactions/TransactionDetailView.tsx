@@ -179,7 +179,7 @@ const TransactionHero = ({
     <Card shadow="sm" style={{ marginBottom: Spacing.lg }}>
       <View style={styles.rowBetween}>
         <CategoryBadge
-          label={transaction.categoryName}
+          label={transaction.categoryId}
           icon={categoryIcon}
           color={categoryColor}
         />

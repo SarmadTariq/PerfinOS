@@ -137,11 +137,9 @@ const buildPreviewTransaction = ({
   userId: string;
 }): Transaction => ({
   id: 'form-location-preview',
-  userId,
   type,
   amount: Number.isFinite(amount) && amount > 0 ? amount : 1,
   categoryId: selectedCategory?.id || 'preview-category',
-  categoryName: selectedCategory?.name || (type === 'income' ? 'Income' : 'Expense'),
   merchant: merchant.trim() || selectedPlace.name || 'Selected place',
   date,
   notes: '',
@@ -498,8 +496,8 @@ const ReceiptsSection = ({
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.receiptScroller}>
           {receipts.map((receipt) => (
             <View key={receipt.id} style={[styles.receiptPreview, { borderColor: colors.border, backgroundColor: colors.bgSecondary }]}>
-              {receipt.uri ? (
-                <Image source={{ uri: receipt.uri }} style={styles.receiptImage} />
+              {receipt.localUri ? (
+                <Image source={{ uri: receipt.localUri }} style={styles.receiptImage} />
               ) : (
                 <MaterialIcons name="receipt" size={30} color={colors.primary} />
               )}
@@ -790,22 +788,23 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
         receipts,
       };
 
-      if (mode === 'edit' && existing) {
+      let transactionId = existing?.id ?? "";
+
+      if (mode === "edit" && existing) {
         await updateTransaction(existing.id, payload);
       } else {
-        await addTransaction(payload);
+        transactionId = await addTransaction(payload);
       }
 
-      const pendingReceipts = receipts.filter((receipt) => receipt.status === 'local' && receipt.uri);
+      const pendingReceipts = receipts.filter((receipt) => receipt.status === "local" && receipt.localUri);
 
       if (pendingReceipts.length && receiptsEnabled && receiptBackendReady) {
-        Promise.all(pendingReceipts.map(uploadReceiptToWorker)).then((uploaded) => {
-          const patched = receipts.map((receipt) => uploaded.find((item) => item.id === receipt.id) || receipt);
 
-          if (mode === 'edit' && existing) {
-            updateTransaction(existing.id, { receipts: patched });
-          }
-        });
+        const uploaded = await Promise.all(pendingReceipts.map((receipt) => uploadReceiptToWorker(transactionId, receipt)));
+
+        const patched = receipts.map((receipt) => uploaded.find((item) => item.id === receipt.id) ?? receipt);
+
+        await updateTransaction(transactionId, { receipts: patched });
       }
 
       navigation.navigate('MainTabs', { screen: 'Dashboard' });
