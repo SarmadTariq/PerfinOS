@@ -23,8 +23,7 @@ import { ExpenseDetailScreen } from '../views/transactions/TransactionDetailView
 import { MapScreen } from '../views/map/MapView';
 // Insights
 import { InsightsScreen } from '../views/insights/InsightsView';
-// More
-import { MoreScreen } from '../views/more/MoreView';
+// Utility screens
 import { BudgetsScreen } from '../views/more/BudgetsView';
 import { CategoriesScreen } from '../views/more/CategoriesView';
 import { SavingsGoalsScreen } from '../views/more/SavingsGoalsView';
@@ -56,7 +55,9 @@ const AuthStack = () => (
   // const scheme = useThemeScheme();
   // const { data, isAuthenticated } = useFinance();
 
-const PlanTabScreen = () => <GuidedPlanningScreen showBackButton={false} />;
+const PlanTabScreen = () => (
+  <GuidedPlanningScreen showBackButton={false} showProfileButton />
+);
 
 const Tabs = () => {
   const colors = useColors();
@@ -93,7 +94,6 @@ const Tabs = () => {
             Map: focused ? 'map' : 'map-outline',
             Insights: focused ? 'bulb' : 'bulb-outline',
             Plan: focused ? 'flag' : 'flag-outline',
-            More: focused ? 'ellipsis-horizontal-circle' : 'ellipsis-horizontal-circle-outline',
           };
           return <Ionicons name={map[route.name] || 'ellipse-outline'} size={focused ? size + 1 : size} color={color} />;
         },
@@ -104,7 +104,6 @@ const Tabs = () => {
       <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ tabBarLabel: 'Dashboard' }} />
       <Tab.Screen name="Insights" component={InsightsScreen} options={{ tabBarLabel: 'Insights' }} />
       <Tab.Screen name="Plan" component={PlanTabScreen} options={{ tabBarLabel: 'Plan' }} />
-      <Tab.Screen name="More" component={MoreScreen} options={{ tabBarLabel: 'More' }} />
     </Tab.Navigator>
   )
 };

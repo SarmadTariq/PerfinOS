@@ -17,6 +17,7 @@ import { formatCurrency, getMonthKey, readableMonth } from '../../utils/format';
 
 type GuidedPlanningScreenProps = {
   showBackButton?: boolean;
+  showProfileButton?: boolean;
 };
 
 type PlanningStep = {
@@ -50,7 +51,10 @@ const rangeLabel = (startDate?: string, endDate?: string) => {
   return `Until ${endDate}`;
 };
 
-export const GuidedPlanningScreen = ({ showBackButton = true }: GuidedPlanningScreenProps) => (
+export const GuidedPlanningScreen = ({
+  showBackButton = true,
+  showProfileButton = false,
+}: GuidedPlanningScreenProps) => (
   <RequireData>
     {(data) => {
       const navigation = useNavigation<any>();
@@ -150,6 +154,12 @@ export const GuidedPlanningScreen = ({ showBackButton = true }: GuidedPlanningSc
             action={
               showBackButton ? (
                 <IconButton icon="arrow-back" label="Go back" onPress={() => navigation.goBack()} />
+              ) : showProfileButton ? (
+                <IconButton
+                  icon="person"
+                  label="Open profile"
+                  onPress={() => navigation.navigate('Profile')}
+                />
               ) : undefined
             }
           />
