@@ -12,6 +12,13 @@ export const Spacing = {
   xxxl: 32,
 };
 
+export const ControlSize = {
+  minimumTouchTarget: 44,
+  button: 48,
+  input: 48,
+  iconButton: 44,
+} as const;
+
 /**
  * Border-radius tokens.
  * `round` is suitable for pills/chips; `xl` for large cards.
