@@ -12,7 +12,7 @@ import { RequireData } from '../../components/layout/RequireData';
 import { calculateActivitySummary, useActivityFilters } from '../../context/ActivityFilterContext';
 import { useColors } from '../../context/ThemeContext';
 import { filterTransactions, sortTransactions } from '../../repositories/AnalyticsRepository';
-import { Radius, Spacing } from '../../theme';
+import { Radius, Spacing, Typography } from '../../theme';
 import { formatCurrency, getMonthKey, readableMonth } from '../../utils/format';
 
 type GuidedPlanningScreenProps = {
@@ -164,7 +164,7 @@ export const GuidedPlanningScreen = ({
             }
           />
 
-          <Card shadow="sm" style={styles.heroCard}>
+          <Card style={styles.heroCard}>
             <View style={styles.rowBetween}>
               <View style={styles.heroCopy}>
                 <Text variant="caption" color="secondary" style={styles.overline}>
@@ -202,8 +202,17 @@ export const GuidedPlanningScreen = ({
             </View>
 
             <View style={styles.cardActions}>
-              <Button label="Adjust Activity Filters" onPress={() => navigation.navigate('Transactions')} variant="secondary" style={{ flex: 1 }} />
-              <Button label={focusStep.actionLabel} onPress={() => navigation.navigate(focusStep.route)} style={{ flex: 1 }} />
+              <Button
+                label="Adjust activity filters"
+                onPress={() => navigation.navigate('Transactions')}
+                variant="secondary"
+                style={styles.heroAction}
+              />
+              <Button
+                label={focusStep.actionLabel}
+                onPress={() => navigation.navigate(focusStep.route)}
+                style={styles.heroAction}
+              />
             </View>
           </Card>
 
@@ -224,10 +233,10 @@ export const GuidedPlanningScreen = ({
                   : colors.danger;
 
             return (
-              <Card key={step.title} shadow="sm" style={styles.stepCard}>
+              <Card key={step.title} style={styles.stepCard}>
                 <View style={styles.stepRow}>
                   <View style={[styles.stepIcon, { backgroundColor: `${color}1F` }]}>
-                    <MaterialIcons name={step.icon} size={22} color={color} />
+                    <MaterialIcons name={step.icon} size={18} color={color} />
                   </View>
 
                   <View style={styles.stepCopy}>
@@ -271,12 +280,14 @@ const styles = StyleSheet.create({
   },
   rowBetween: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: Spacing.md,
   },
   heroCopy: {
     flex: 1,
+    minWidth: 180,
     gap: Spacing.xs,
   },
   sectionHeader: {
@@ -286,23 +297,30 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   overline: {
-    textTransform: 'uppercase',
-    letterSpacing: 0.45,
-    fontWeight: '800',
+    letterSpacing: 0.1,
+    fontWeight: Typography.label.fontWeight,
   },
   summaryGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.md,
     marginTop: Spacing.lg,
   },
   summaryItem: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: 96,
+    minWidth: 96,
     gap: Spacing.xs,
   },
   cardActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.md,
     marginTop: Spacing.lg,
+  },
+  heroAction: {
+    flexGrow: 1,
+    flexBasis: 160,
   },
   stepCard: {
     marginBottom: Spacing.md,
@@ -312,19 +330,21 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   stepIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: Radius.lg,
+    width: 32,
+    height: 32,
+    borderRadius: Radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepCopy: {
     flex: 1,
+    minWidth: 0,
     gap: Spacing.xs,
   },
   stepTitleRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: Spacing.sm,
   },
