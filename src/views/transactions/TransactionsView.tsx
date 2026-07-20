@@ -2,9 +2,10 @@
  * TransactionsView - Activity feed with compact search, quick filters,
  * advanced filter panel, and clean transaction rows.
  */
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Card, Text } from '../../components/base';
@@ -12,8 +13,17 @@ import { EmptyState, IconButton, ScreenHeader } from '../../components/finance';
 import { Field } from '../../components/form/Field';
 import { Segmented } from '../../components/form/Segmented';
 import { RequireData } from '../../components/layout/RequireData';
-import { useActivityFilters, calculateActivitySummary, DATE_PRESET_OPTIONS, FREQUENCY_FILTER_OPTIONS } from '../../context/ActivityFilterContext';
-import { useColors } from '../../context/ThemeContext';
+import {
+  useActivityFilters,
+  calculateActivitySummary,
+  DATE_PRESET_OPTIONS,
+  FREQUENCY_FILTER_OPTIONS,
+  toLocalIsoDate,
+} from '../../context/ActivityFilterContext';
+import {
+  useColors,
+  useThemeScheme,
+} from '../../context/ThemeContext';
 import { AppData, Category, Transaction, TransactionDatePreset, TransactionFrequencyFilter, TransactionSortKey } from '../../models/finance';
 import { filterTransactions, sortTransactions } from '../../repositories/AnalyticsRepository';
 import { ControlSize, Radius, Spacing, Typography } from '../../theme';
@@ -22,6 +32,198 @@ import { mcIconName } from '../../utils/icons';
 
 type TransactionTypeFilter = 'all' | 'income' | 'expense';
 type ReceiptFilter = 'any' | 'attached' | 'missing';
+type ActivitySheet =
+  | 'date'
+  | 'category'
+  | 'refine'
+  | null;
+
+const DATE_PRESET_LABELS: Record<
+  TransactionDatePreset,
+  string
+> = {
+  'this-week': 'This week',
+  'last-2-weeks': 'Last 2 weeks',
+  'this-month': 'This month',
+  'last-3-months': 'Last 3 months',
+  'last-6-months': 'Last 6 months',
+  'last-12-months': 'Last 12 months',
+  custom: 'Custom dates',
+};
+
+const parseIsoDate = (value: string) => {
+  if (!value) {
+    return new Date();
+  }
+
+  const parsed = new Date(`${value}T12:00:00`);
+
+  return Number.isNaN(parsed.getTime())
+    ? new Date()
+    : parsed;
+};
+
+const CalendarDateField = ({
+  label,
+  value,
+  open,
+  minimumDate,
+  maximumDate,
+  onOpen,
+  onClose,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  open: boolean;
+  minimumDate?: Date;
+  maximumDate?: Date;
+  onOpen: () => void;
+  onClose: () => void;
+  onChange: (value: string) => void;
+}) => {
+  const colors = useColors();
+  const themeScheme = useThemeScheme();
+
+  if (Platform.OS === 'web') {
+    return (
+      <View style={styles.calendarFieldGroup}>
+        <Text
+          variant="bodySmall"
+          style={styles.calendarFieldLabel}
+        >
+          {label}
+        </Text>
+
+        <input
+          type="date"
+          value={value}
+          min={
+            minimumDate
+              ? toLocalIsoDate(minimumDate)
+              : undefined
+          }
+          max={
+            maximumDate
+              ? toLocalIsoDate(maximumDate)
+              : undefined
+          }
+          onChange={(event: any) =>
+            onChange(event.target.value)
+          }
+          style={
+            {
+              width: '100%',
+              padding: '13px 16px',
+              fontSize: 16,
+              borderRadius: 12,
+              border: `1px solid ${colors.border}`,
+              backgroundColor:
+                colors.bgSecondary,
+              color: colors.text,
+              outline: 'none',
+              boxSizing: 'border-box',
+              fontFamily: 'inherit',
+              cursor: 'pointer',
+            } as any
+          }
+        />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.calendarFieldGroup}>
+      <Text
+        variant="bodySmall"
+        style={styles.calendarFieldLabel}
+      >
+        {label}
+      </Text>
+
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={`Select ${label.toLowerCase()}`}
+        onPress={onOpen}
+        activeOpacity={0.76}
+        style={[
+          styles.calendarField,
+          {
+            borderColor: colors.border,
+            backgroundColor:
+              colors.bgSecondary,
+          },
+        ]}
+      >
+        <Text
+          variant="body"
+          color={value ? 'primary' : 'secondary'}
+          style={styles.calendarFieldValue}
+        >
+          {value
+            ? formatDateLabel(value)
+            : `Select ${label.toLowerCase()}`}
+        </Text>
+
+        <MaterialIcons
+          name="calendar-today"
+          size={19}
+          color={colors.textSecondary}
+        />
+      </TouchableOpacity>
+
+      {open ? (
+        <View style={styles.calendarPicker}>
+          <DateTimePicker
+            value={parseIsoDate(value)}
+            mode="date"
+            display={
+              Platform.OS === 'ios'
+                ? 'inline'
+                : 'default'
+            }
+            themeVariant={themeScheme}
+            accentColor={colors.primary}
+            style={[
+              styles.nativeCalendar,
+              {
+                backgroundColor: colors.card,
+              },
+            ]}
+            minimumDate={minimumDate}
+            maximumDate={maximumDate}
+            onChange={(
+              event: any,
+              selectedDate?: Date
+            ) => {
+              if (
+                Platform.OS !== 'ios' ||
+                event.type === 'dismissed'
+              ) {
+                onClose();
+              }
+
+              if (
+                event.type === 'dismissed' ||
+                !selectedDate
+              ) {
+                return;
+              }
+
+              onChange(
+                toLocalIsoDate(selectedDate)
+              );
+
+              if (Platform.OS === 'ios') {
+                onClose();
+              }
+            }}
+          />
+        </View>
+      ) : null}
+    </View>
+  );
+};
 
 
 
@@ -150,7 +352,7 @@ const PeriodSelector = ({
       accessibilityLabel={`Review period: ${label}${
         rangeLabel ? `, ${rangeLabel}` : ''
       }`}
-      accessibilityHint="Opens review period filters"
+      accessibilityHint="Opens date range options"
       style={[
         styles.periodSelector,
         {
@@ -182,17 +384,20 @@ const PeriodSelector = ({
             variant="caption"
             color="secondary"
             numberOfLines={1}
+            style={styles.periodRange}
           >
             {rangeLabel}
           </Text>
         ) : null}
       </View>
 
-      <MaterialIcons
-        name="keyboard-arrow-down"
-        size={22}
-        color={colors.textSecondary}
-      />
+      <View style={styles.periodTrailing}>
+        <MaterialIcons
+          name="keyboard-arrow-down"
+          size={22}
+          color={colors.textSecondary}
+        />
+      </View>
     </TouchableOpacity>
   );
 };
@@ -359,24 +564,50 @@ const QuickFilters = ({
   value,
   onChange,
   categorySelected,
-  moreFilterCount,
+  refineFilterCount,
   onOpenCategory,
-  onOpenFilters,
+  onOpenRefine,
 }: {
   value: TransactionTypeFilter;
   onChange: (value: TransactionTypeFilter) => void;
   categorySelected: boolean;
-  moreFilterCount: number;
+  refineFilterCount: number;
   onOpenCategory: () => void;
-  onOpenFilters: () => void;
+  onOpenRefine: () => void;
 }) => {
   const colors = useColors();
+
   const chips = [
-    { key: 'all', label: 'All', selected: value === 'all', onPress: () => onChange('all') },
-    { key: 'expense', label: 'Expenses', selected: value === 'expense', onPress: () => onChange('expense') },
-    { key: 'income', label: 'Income', selected: value === 'income', onPress: () => onChange('income') },
-    { key: 'category', label: 'Category', selected: categorySelected, onPress: onOpenCategory },
-    { key: 'more', label: 'More', selected: moreFilterCount > 0, onPress: onOpenFilters },
+    {
+      key: 'all',
+      label: 'All',
+      selected: value === 'all',
+      onPress: () => onChange('all'),
+    },
+    {
+      key: 'expense',
+      label: 'Expenses',
+      selected: value === 'expense',
+      onPress: () => onChange('expense'),
+    },
+    {
+      key: 'income',
+      label: 'Income',
+      selected: value === 'income',
+      onPress: () => onChange('income'),
+    },
+    {
+      key: 'category',
+      label: 'Category',
+      selected: categorySelected,
+      onPress: onOpenCategory,
+    },
+    {
+      key: 'refine',
+      label: 'Refine',
+      selected: refineFilterCount > 0,
+      onPress: onOpenRefine,
+    },
   ];
 
   return (
@@ -388,16 +619,23 @@ const QuickFilters = ({
           accessibilityRole="button"
           accessibilityLabel={`${chip.label} activity filter`}
           accessibilityHint={
-            chip.key === 'category' || chip.key === 'more'
-              ? 'Opens additional activity filters'
+            chip.key === 'category' ||
+            chip.key === 'refine'
+              ? `Opens ${chip.label.toLowerCase()} filters`
               : `Shows ${chip.label.toLowerCase()} transactions`
           }
-          accessibilityState={{ selected: chip.selected }}
+          accessibilityState={{
+            selected: chip.selected,
+          }}
           style={[
             styles.filterChip,
             {
-              borderColor: chip.selected ? colors.primary : colors.border,
-              backgroundColor: chip.selected ? colors.primarySoft : colors.bgSecondary,
+              borderColor: chip.selected
+                ? colors.primary
+                : colors.border,
+              backgroundColor: chip.selected
+                ? colors.primarySoft
+                : colors.bgSecondary,
             },
           ]}
         >
@@ -405,19 +643,34 @@ const QuickFilters = ({
             variant="caption"
             style={[
               styles.filterChipLabel,
-              { color: chip.selected ? colors.primary : colors.textSecondary },
+              {
+                color: chip.selected
+                  ? colors.primary
+                  : colors.textSecondary,
+              },
             ]}
           >
             {chip.label}
           </Text>
 
-          {chip.key === 'more' && moreFilterCount > 0 ? (
-            <View style={[styles.filterBadge, { backgroundColor: colors.primary }]}>
+          {chip.key === 'refine' &&
+          refineFilterCount > 0 ? (
+            <View
+              style={[
+                styles.filterBadge,
+                {
+                  backgroundColor: colors.primary,
+                },
+              ]}
+            >
               <Text
                 variant="caption"
-                style={[styles.filterBadgeLabel, { color: colors.text }]}
+                style={[
+                  styles.filterBadgeLabel,
+                  { color: colors.text },
+                ]}
               >
-                {moreFilterCount}
+                {refineFilterCount}
               </Text>
             </View>
           ) : null}
@@ -427,8 +680,8 @@ const QuickFilters = ({
   );
 };
 
-const FilterPanel = ({
-  visible,
+const ActivityFilterSheet = ({
+  mode,
   categories,
   sortKey,
   categoryId,
@@ -444,10 +697,12 @@ const FilterPanel = ({
   onCustomStartDateChange,
   onCustomEndDateChange,
   onFrequencyFilterChange,
-  onClear,
+  onClearDate,
+  onClearCategory,
+  onClearRefine,
   onClose,
 }: {
-  visible: boolean;
+  mode: ActivitySheet;
   categories: Category[];
   sortKey: TransactionSortKey;
   categoryId: string;
@@ -456,140 +711,415 @@ const FilterPanel = ({
   customStartDate: string;
   customEndDate: string;
   frequencyFilter: TransactionFrequencyFilter;
-  onSortChange: (value: TransactionSortKey) => void;
+  onSortChange: (
+    value: TransactionSortKey
+  ) => void;
   onCategoryChange: (value: string) => void;
-  onReceiptFilterChange: (value: ReceiptFilter) => void;
-  onDatePresetChange: (value: TransactionDatePreset) => void;
-  onCustomStartDateChange: (value: string) => void;
-  onCustomEndDateChange: (value: string) => void;
-  onFrequencyFilterChange: (value: TransactionFrequencyFilter) => void;
-  onClear: () => void;
+  onReceiptFilterChange: (
+    value: ReceiptFilter
+  ) => void;
+  onDatePresetChange: (
+    value: TransactionDatePreset
+  ) => void;
+  onCustomStartDateChange: (
+    value: string
+  ) => void;
+  onCustomEndDateChange: (
+    value: string
+  ) => void;
+  onFrequencyFilterChange: (
+    value: TransactionFrequencyFilter
+  ) => void;
+  onClearDate: () => void;
+  onClearCategory: () => void;
+  onClearRefine: () => void;
   onClose: () => void;
 }) => {
   const colors = useColors();
+  const [draftDatePreset, setDraftDatePreset] =
+    useState<TransactionDatePreset>(datePreset);
+  const [draftStartDate, setDraftStartDate] =
+    useState(customStartDate);
+  const [draftEndDate, setDraftEndDate] =
+    useState(customEndDate);
+  const [activeDateField, setActiveDateField] =
+    useState<'start' | 'end' | null>(null);
+
+  useEffect(() => {
+    if (mode !== 'date') {
+      return;
+    }
+
+    setDraftDatePreset(datePreset);
+    setDraftStartDate(customStartDate);
+    setDraftEndDate(customEndDate);
+    setActiveDateField(null);
+  }, [
+    customEndDate,
+    customStartDate,
+    datePreset,
+    mode,
+  ]);
+
+  const customDateInvalid =
+    Boolean(
+      draftStartDate &&
+      draftEndDate &&
+      draftStartDate > draftEndDate
+    );
+
+  const dateApplyDisabled =
+    mode === 'date' &&
+    draftDatePreset === 'custom' &&
+    (
+      !draftStartDate ||
+      !draftEndDate ||
+      customDateInvalid
+    );
+
+  if (!mode) {
+    return null;
+  }
+
+  const sheetCopy = {
+    date: {
+      title: 'Review period',
+      subtitle:
+        'Choose the dates included in Activity.',
+      clearLabel: 'Reset dates',
+      applyLabel: 'Apply dates',
+    },
+    category: {
+      title: 'Category',
+      subtitle:
+        'Show activity from one category.',
+      clearLabel: 'All categories',
+      applyLabel: 'Apply category',
+    },
+    refine: {
+      title: 'Refine activity',
+      subtitle:
+        'Adjust frequency, receipts, and sorting.',
+      clearLabel: 'Clear refine',
+      applyLabel: 'Apply filters',
+    },
+  }[mode];
+
+  const handleClear = () => {
+    if (mode === 'date') {
+      setDraftDatePreset('this-month');
+      setDraftStartDate('');
+      setDraftEndDate('');
+      setActiveDateField(null);
+      onClearDate();
+      return;
+    }
+
+    if (mode === 'category') {
+      onClearCategory();
+      return;
+    }
+
+    onClearRefine();
+  };
+
+  const handleApply = () => {
+    if (mode === 'date') {
+      onDatePresetChange(draftDatePreset);
+
+      if (draftDatePreset === 'custom') {
+        onCustomStartDateChange(
+          draftStartDate
+        );
+        onCustomEndDateChange(
+          draftEndDate
+        );
+      }
+
+      onClose();
+      return;
+    }
+
+    onClose();
+  };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={[styles.modalBackdrop, { backgroundColor: `${colors.text}73` }]}
+        behavior={
+          Platform.OS === 'ios'
+            ? 'padding'
+            : undefined
+        }
+        style={[
+          styles.modalBackdrop,
+          {
+            backgroundColor: `${colors.text}73`,
+          },
+        ]}
       >
-        <View style={[styles.filterPanel, { backgroundColor: colors.card }]}>
+        <View
+          style={[
+            styles.filterPanel,
+            { backgroundColor: colors.card },
+          ]}
+        >
           <View style={styles.rowBetween}>
-            <View>
-              <Text variant="h3">Filters</Text>
-              <Text variant="bodySmall" color="secondary" style={{ marginTop: Spacing.xs }}>
-                Refine activity without cluttering the feed.
+            <View style={styles.sheetTitleCopy}>
+              <Text variant="h3">
+                {sheetCopy.title}
+              </Text>
+
+              <Text
+                variant="bodySmall"
+                color="secondary"
+                style={{
+                  marginTop: Spacing.xs,
+                }}
+              >
+                {sheetCopy.subtitle}
               </Text>
             </View>
 
-            <IconButton icon="close" label="Close filters" onPress={onClose} />
+            <IconButton
+              icon="close"
+              label={`Close ${sheetCopy.title}`}
+              onPress={onClose}
+            />
           </View>
 
           <ScrollView
             style={styles.filterScroll}
-            contentContainerStyle={styles.filterScrollContent}
+            contentContainerStyle={
+              styles.filterScrollContent
+            }
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <View style={styles.filterSection}>
-            <Text variant="bodySmall" style={styles.filterSectionTitle}>
-              Sort by
-            </Text>
-            <Segmented
-              options={['date-desc', 'date-asc', 'amount-desc', 'amount-asc', 'merchant-asc']}
-              value={sortKey}
-              onChange={(value) => onSortChange(value as TransactionSortKey)}
-            />
-          </View>
+            {mode === 'date' ? (
+              <View style={styles.filterSection}>
+                <Text
+                  variant="bodySmall"
+                  style={
+                    styles.filterSectionTitle
+                  }
+                >
+                  Date range
+                </Text>
 
-          <View style={styles.filterSection}>
-            <Text variant="bodySmall" style={styles.filterSectionTitle}>
-              Date range
-            </Text>
-            <Segmented
-              options={DATE_PRESET_OPTIONS}
-              value={datePreset}
-              onChange={(value) => onDatePresetChange(value as TransactionDatePreset)}
-            />
+                <View
+                  style={styles.datePresetGrid}
+                >
+                  {DATE_PRESET_OPTIONS.map(
+                    (preset) => {
+                      const selected =
+                        draftDatePreset ===
+                        preset;
+                      const custom =
+                        preset === 'custom';
 
-            {datePreset === 'custom' ? (
-              <View style={styles.customDateGrid}>
-                <Field
-                  label="Start date"
-                  value={customStartDate}
-                  onChangeText={onCustomStartDateChange}
-                  placeholder="YYYY-MM-DD"
-                />
-                <Field
-                  label="End date"
-                  value={customEndDate}
-                  onChangeText={onCustomEndDateChange}
-                  placeholder="YYYY-MM-DD"
-                />
+                      return (
+                        <TouchableOpacity
+                          key={preset}
+                          accessibilityRole="button"
+                          accessibilityState={{
+                            selected,
+                          }}
+                          accessibilityLabel={
+                            DATE_PRESET_LABELS[
+                              preset
+                            ] || preset
+                          }
+                          activeOpacity={0.76}
+                          onPress={() => {
+                            setDraftDatePreset(
+                              preset
+                            );
+
+                            if (custom) {
+                              setActiveDateField(
+                                null
+                              );
+                              return;
+                            }
+
+                            setDraftStartDate('');
+                            setDraftEndDate('');
+                            setActiveDateField(
+                              null
+                            );
+                          }}
+                          style={[
+                            styles.datePresetButton,
+                            custom &&
+                              styles.datePresetButtonWide,
+                            {
+                              borderColor:
+                                selected
+                                  ? colors.primary
+                                  : colors.border,
+                              backgroundColor:
+                                selected
+                                  ? colors.primarySoft
+                                  : colors.bgSecondary,
+                            },
+                          ]}
+                        >
+                          <Text
+                            variant="bodySmall"
+                            style={[
+                              styles.datePresetLabel,
+                              {
+                                color: selected
+                                  ? colors.primary
+                                  : colors.text,
+                              },
+                            ]}
+                          >
+                            {
+                              DATE_PRESET_LABELS[
+                                preset
+                              ] || preset
+                            }
+                          </Text>
+
+                          {selected ? (
+                            <MaterialIcons
+                              name="check"
+                              size={18}
+                              color={
+                                colors.primary
+                              }
+                            />
+                          ) : null}
+                        </TouchableOpacity>
+                      );
+                    }
+                  )}
+                </View>
+
+                {draftDatePreset ===
+                'custom' ? (
+                  <View
+                    style={
+                      styles.customCalendarRange
+                    }
+                  >
+                    <CalendarDateField
+                      label="Start date"
+                      value={draftStartDate}
+                      open={
+                        activeDateField ===
+                        'start'
+                      }
+                      maximumDate={
+                        draftEndDate
+                          ? parseIsoDate(
+                              draftEndDate
+                            )
+                          : new Date()
+                      }
+                      onOpen={() =>
+                        setActiveDateField(
+                          'start'
+                        )
+                      }
+                      onClose={() =>
+                        setActiveDateField(
+                          null
+                        )
+                      }
+                      onChange={(value) => {
+                        setDraftStartDate(
+                          value
+                        );
+
+                        if (
+                          draftEndDate &&
+                          value > draftEndDate
+                        ) {
+                          setDraftEndDate('');
+                        }
+                      }}
+                    />
+
+                    <CalendarDateField
+                      label="End date"
+                      value={draftEndDate}
+                      open={
+                        activeDateField ===
+                        'end'
+                      }
+                      minimumDate={
+                        draftStartDate
+                          ? parseIsoDate(
+                              draftStartDate
+                            )
+                          : undefined
+                      }
+                      maximumDate={
+                        new Date()
+                      }
+                      onOpen={() =>
+                        setActiveDateField(
+                          'end'
+                        )
+                      }
+                      onClose={() =>
+                        setActiveDateField(
+                          null
+                        )
+                      }
+                      onChange={
+                        setDraftEndDate
+                      }
+                    />
+
+                    {customDateInvalid ? (
+                      <Text
+                        variant="caption"
+                        color="danger"
+                        style={
+                          styles.customDateError
+                        }
+                      >
+                        End date must be on or
+                        after the start date.
+                      </Text>
+                    ) : null}
+                  </View>
+                ) : null}
               </View>
             ) : null}
-          </View>
 
-          <View style={styles.filterSection}>
-            <Text variant="bodySmall" style={styles.filterSectionTitle}>
-              Frequency
-            </Text>
-            <Segmented
-              options={FREQUENCY_FILTER_OPTIONS}
-              value={frequencyFilter}
-              onChange={(value) => onFrequencyFilterChange(value as TransactionFrequencyFilter)}
-            />
-          </View>
-
-          <View style={styles.filterSection}>
-            <Text variant="bodySmall" style={styles.filterSectionTitle}>
-              Category
-            </Text>
-
-            <View style={styles.chipWrap}>
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityState={{ selected: categoryId === 'all' }}
-                onPress={() => onCategoryChange('all')}
-                style={[
-                  styles.filterChip,
-                  {
-                    borderColor: categoryId === 'all' ? colors.primary : colors.border,
-                    backgroundColor: categoryId === 'all' ? colors.primarySoft : colors.bgSecondary,
-                  },
-                ]}
-              >
-                <Text
-                  variant="caption"
-                  style={[
-                    styles.filterChipLabel,
-                    {
-                      color:
-                        categoryId === 'all'
-                          ? colors.primary
-                          : colors.textSecondary,
-                    },
-                  ]}
-                >
-                  All categories
-                </Text>
-              </TouchableOpacity>
-
-              {categories.map((category) => {
-                const selected = categoryId === category.id;
-
-                return (
+            {mode === 'category' ? (
+              <View style={styles.filterSection}>
+                <View style={styles.chipWrap}>
                   <TouchableOpacity
-                    key={category.id}
                     accessibilityRole="button"
-                    accessibilityState={{ selected }}
-                    onPress={() => onCategoryChange(category.id)}
+                    accessibilityState={{
+                      selected:
+                        categoryId === 'all',
+                    }}
+                    onPress={() =>
+                      onCategoryChange('all')
+                    }
                     style={[
                       styles.filterChip,
                       {
-                        borderColor: selected ? category.color : colors.border,
-                        backgroundColor: selected ? `${category.color}1F` : colors.bgSecondary,
+                        borderColor:
+                          categoryId === 'all'
+                            ? colors.primary
+                            : colors.border,
+                        backgroundColor:
+                          categoryId === 'all'
+                            ? colors.primarySoft
+                            : colors.bgSecondary,
                       },
                     ]}
                   >
@@ -598,43 +1128,158 @@ const FilterPanel = ({
                       style={[
                         styles.filterChipLabel,
                         {
-                          color: selected
-                            ? category.color
-                            : colors.textSecondary,
+                          color:
+                            categoryId === 'all'
+                              ? colors.primary
+                              : colors.textSecondary,
                         },
                       ]}
                     >
-                      {category.name}
+                      All categories
                     </Text>
                   </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
 
-          <View style={styles.filterSection}>
-            <Text variant="bodySmall" style={styles.filterSectionTitle}>
-              Receipts
-            </Text>
-            <Segmented
-              options={['any', 'attached', 'missing']}
-              value={receiptFilter}
-              onChange={(value) => onReceiptFilterChange(value as ReceiptFilter)}
-            />
-          </View>
+                  {categories.map((category) => {
+                    const selected =
+                      categoryId === category.id;
 
+                    return (
+                      <TouchableOpacity
+                        key={category.id}
+                        accessibilityRole="button"
+                        accessibilityState={{
+                          selected,
+                        }}
+                        onPress={() =>
+                          onCategoryChange(
+                            category.id
+                          )
+                        }
+                        style={[
+                          styles.filterChip,
+                          {
+                            borderColor: selected
+                              ? category.color
+                              : colors.border,
+                            backgroundColor:
+                              selected
+                                ? `${category.color}1F`
+                                : colors.bgSecondary,
+                          },
+                        ]}
+                      >
+                        <Text
+                          variant="caption"
+                          style={[
+                            styles.filterChipLabel,
+                            {
+                              color: selected
+                                ? category.color
+                                : colors.textSecondary,
+                            },
+                          ]}
+                        >
+                          {category.name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            ) : null}
+
+            {mode === 'refine' ? (
+              <>
+                <View style={styles.filterSection}>
+                  <Text
+                    variant="bodySmall"
+                    style={
+                      styles.filterSectionTitle
+                    }
+                  >
+                    Frequency
+                  </Text>
+
+                  <Segmented
+                    options={
+                      FREQUENCY_FILTER_OPTIONS
+                    }
+                    value={frequencyFilter}
+                    onChange={(value) =>
+                      onFrequencyFilterChange(
+                        value as TransactionFrequencyFilter
+                      )
+                    }
+                  />
+                </View>
+
+                <View style={styles.filterSection}>
+                  <Text
+                    variant="bodySmall"
+                    style={
+                      styles.filterSectionTitle
+                    }
+                  >
+                    Receipts
+                  </Text>
+
+                  <Segmented
+                    options={[
+                      'any',
+                      'attached',
+                      'missing',
+                    ]}
+                    value={receiptFilter}
+                    onChange={(value) =>
+                      onReceiptFilterChange(
+                        value as ReceiptFilter
+                      )
+                    }
+                  />
+                </View>
+
+                <View style={styles.filterSection}>
+                  <Text
+                    variant="bodySmall"
+                    style={
+                      styles.filterSectionTitle
+                    }
+                  >
+                    Sort by
+                  </Text>
+
+                  <Segmented
+                    options={[
+                      'date-desc',
+                      'date-asc',
+                      'amount-desc',
+                      'amount-asc',
+                      'merchant-asc',
+                    ]}
+                    value={sortKey}
+                    onChange={(value) =>
+                      onSortChange(
+                        value as TransactionSortKey
+                      )
+                    }
+                  />
+                </View>
+              </>
+            ) : null}
           </ScrollView>
 
           <View style={styles.modalActions}>
             <Button
-              label="Clear all"
+              label={sheetCopy.clearLabel}
               variant="secondary"
-              onPress={onClear}
+              onPress={handleClear}
               style={styles.modalAction}
             />
+
             <Button
-              label="Apply"
-              onPress={onClose}
+              label={sheetCopy.applyLabel}
+              onPress={handleApply}
+              disabled={dateApplyDisabled}
               style={styles.modalAction}
             />
           </View>
@@ -821,9 +1466,9 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
     setCustomStartDate,
     setCustomEndDate,
     setFrequencyFilter,
-    resetPeriodFilters,
   } = useActivityFilters();
-  const [showFilters, setShowFilters] = useState(false);
+  const [activeSheet, setActiveSheet] =
+    useState<ActivitySheet>(null);
 
   const categoriesForFilter = useMemo(() => {
     if (type === 'all') {
@@ -866,12 +1511,15 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
   const resultSummary = `${dateRange.label} · ${summary.transactionCount} transaction${summary.transactionCount === 1 ? '' : 's'} · ${summary.recurringCount} recurring · ${summary.oneTimeCount} one-time`;
 
 
-  const advancedFilterCount =
+  const refineFilterCount =
     (sortKey !== 'date-desc' ? 1 : 0) +
-    (categoryId !== 'all' ? 1 : 0) +
     (receiptFilter !== 'any' ? 1 : 0) +
-    (datePreset !== 'this-month' ? 1 : 0) +
     (frequencyFilter !== 'all' ? 1 : 0);
+
+  const advancedFilterCount =
+    refineFilterCount +
+    (categoryId !== 'all' ? 1 : 0) +
+    (datePreset !== 'this-month' ? 1 : 0);
 
   const activeFilters: Array<{
     key: string;
@@ -957,17 +1605,28 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
     });
   }
 
-  const clearFilters = () => {
-    setSortKey('date-desc');
+  const clearDateFilters = () => {
+    setDatePreset('this-month');
+    setCustomStartDate('');
+    setCustomEndDate('');
+  };
+
+  const clearCategoryFilter = () => {
     setCategoryId('all');
+  };
+
+  const clearRefineFilters = () => {
+    setSortKey('date-desc');
     setReceiptFilter('any');
-    resetPeriodFilters();
+    setFrequencyFilter('all');
   };
 
   const resetAllFilters = () => {
     setQuery('');
     setType('all');
-    clearFilters();
+    clearDateFilters();
+    clearCategoryFilter();
+    clearRefineFilters();
   };
 
   return (
@@ -985,6 +1644,15 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
               subtitle="Review the money movement behind your financial picture."
             />
 
+            <PeriodSelector
+              label={dateRange.label}
+              startDate={dateRange.startDate}
+              endDate={dateRange.endDate}
+              onPress={() =>
+                setActiveSheet('date')
+              }
+            />
+
             <Card style={styles.searchCard}>
               <Field
                 label="Search transactions"
@@ -994,41 +1662,41 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
               />
             </Card>
 
-            <PeriodSelector
-              label={dateRange.label}
-              startDate={dateRange.startDate}
-              endDate={dateRange.endDate}
-              onPress={() => setShowFilters(true)}
-            />
-
             <SummaryStrip
               income={summary.income}
               expenses={summary.expenses}
               net={summary.netCashFlow}
-              transactionCount={summary.transactionCount}
+              transactionCount={
+                summary.transactionCount
+              }
               currency={data.user.currency}
             />
 
-            <Card style={styles.filterCard}>
+            <View style={styles.filterArea}>
               <QuickFilters
                 value={type}
                 onChange={(value) => {
                   setType(value);
                   setCategoryId('all');
                 }}
-                categorySelected={categoryId !== 'all'}
-                moreFilterCount={
-                  (sortKey !== 'date-desc' ? 1 : 0) +
-                  (receiptFilter !== 'any' ? 1 : 0) +
-                  (datePreset !== 'this-month' ? 1 : 0) +
-                  (frequencyFilter !== 'all' ? 1 : 0)
+                categorySelected={
+                  categoryId !== 'all'
                 }
-                onOpenCategory={() => setShowFilters(true)}
-                onOpenFilters={() => setShowFilters(true)}
+                refineFilterCount={
+                  refineFilterCount
+                }
+                onOpenCategory={() =>
+                  setActiveSheet('category')
+                }
+                onOpenRefine={() =>
+                  setActiveSheet('refine')
+                }
               />
 
               {activeFilters.length > 0 ? (
-                <View style={styles.activeFilterRow}>
+                <View
+                  style={styles.activeFilterRow}
+                >
                   {activeFilters.map((filter) => (
                     <TouchableOpacity
                       key={filter.key}
@@ -1039,8 +1707,10 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
                       style={[
                         styles.activeFilterChip,
                         {
-                          backgroundColor: colors.primarySoft,
-                          borderColor: colors.primary,
+                          backgroundColor:
+                            colors.primarySoft,
+                          borderColor:
+                            colors.primary,
                         },
                       ]}
                     >
@@ -1049,7 +1719,10 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
                         numberOfLines={1}
                         style={[
                           styles.activeFilterChipLabel,
-                          { color: colors.primary },
+                          {
+                            color:
+                              colors.primary,
+                          },
                         ]}
                       >
                         {filter.label}
@@ -1066,7 +1739,10 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
               ) : null}
 
               <View style={styles.resultLine}>
-                <Text variant="caption" color="tertiary">
+                <Text
+                  variant="caption"
+                  color="tertiary"
+                >
                   {resultSummary}
                 </Text>
 
@@ -1078,17 +1754,15 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
                     accessibilityLabel="Reset all activity filters"
                     activeOpacity={0.76}
                     style={styles.resetAction}
-                    onPress={() => {
-                      setQuery('');
-                      setType('all');
-                      clearFilters();
-                    }}
+                    onPress={resetAllFilters}
                   >
                     <Text
                       variant="caption"
                       style={[
                         styles.actionLabel,
-                        { color: colors.primary },
+                        {
+                          color: colors.primary,
+                        },
                       ]}
                     >
                       Reset
@@ -1096,7 +1770,7 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
                   </TouchableOpacity>
                 ) : null}
               </View>
-            </Card>
+            </View>
           </>
         }
         ListEmptyComponent={
@@ -1119,7 +1793,9 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
               title={`No activity in ${dateRange.label.toLowerCase()}`}
               message="Choose another review period to see earlier transactions."
               actionLabel="Adjust period"
-              onAction={() => setShowFilters(true)}
+              onAction={() =>
+                setActiveSheet('date')
+              }
             />
           )
         }
@@ -1169,8 +1845,8 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
         </TouchableOpacity>
       </View>
 
-      <FilterPanel
-        visible={showFilters}
+      <ActivityFilterSheet
+        mode={activeSheet}
         categories={categoriesForFilter}
         sortKey={sortKey}
         categoryId={categoryId}
@@ -1181,13 +1857,23 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
         frequencyFilter={frequencyFilter}
         onSortChange={setSortKey}
         onCategoryChange={setCategoryId}
-        onReceiptFilterChange={setReceiptFilter}
+        onReceiptFilterChange={
+          setReceiptFilter
+        }
         onDatePresetChange={setDatePreset}
-        onCustomStartDateChange={setCustomStartDate}
-        onCustomEndDateChange={setCustomEndDate}
-        onFrequencyFilterChange={setFrequencyFilter}
-        onClear={resetAllFilters}
-        onClose={() => setShowFilters(false)}
+        onCustomStartDateChange={
+          setCustomStartDate
+        }
+        onCustomEndDateChange={
+          setCustomEndDate
+        }
+        onFrequencyFilterChange={
+          setFrequencyFilter
+        }
+        onClearDate={clearDateFilters}
+        onClearCategory={clearCategoryFilter}
+        onClearRefine={clearRefineFilters}
+        onClose={() => setActiveSheet(null)}
       />
     </SafeAreaView>
   );
@@ -1212,9 +1898,15 @@ const styles = StyleSheet.create({
     paddingBottom: 180,
   },
   searchCard: {
-    marginBottom: Spacing.sm,
+    width: '100%',
+    maxWidth: 760,
+    alignSelf: 'center',
+    marginBottom: Spacing.lg,
   },
   periodSelector: {
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
     minHeight: 64,
     marginBottom: Spacing.lg,
     borderWidth: 1,
@@ -1235,10 +1927,20 @@ const styles = StyleSheet.create({
   periodCopy: {
     flex: 1,
     minWidth: 0,
+    alignItems: 'center',
     gap: Spacing.xs,
   },
   periodTitle: {
+    textAlign: 'center',
     fontWeight: Typography.label.fontWeight,
+  },
+  periodRange: {
+    textAlign: 'center',
+  },
+  periodTrailing: {
+    width: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   summaryCard: {
     marginBottom: Spacing.lg,
@@ -1270,7 +1972,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontWeight: Typography.label.fontWeight,
   },
-  filterCard: {
+  filterArea: {
     marginBottom: Spacing.md,
   },
   quickFilterRow: {
@@ -1424,6 +2126,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'flex-end',
   },
+  sheetTitleCopy: {
+    flex: 1,
+    minWidth: 0,
+    paddingRight: Spacing.sm,
+  },
   filterPanel: {
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
@@ -1435,6 +2142,69 @@ const styles = StyleSheet.create({
   },
   filterScrollContent: {
     paddingBottom: Spacing.md,
+  },
+  datePresetGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  datePresetButton: {
+    flexGrow: 1,
+    flexBasis: '47%',
+    minHeight:
+      ControlSize.minimumTouchTarget,
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+  },
+  datePresetButtonWide: {
+    flexBasis: '100%',
+  },
+  datePresetLabel: {
+    flexShrink: 1,
+    fontWeight:
+      Typography.label.fontWeight,
+  },
+  customCalendarRange: {
+    marginTop: Spacing.xl,
+    gap: Spacing.lg,
+  },
+  calendarFieldGroup: {
+    width: '100%',
+  },
+  calendarFieldLabel: {
+    marginBottom: Spacing.sm,
+    fontWeight:
+      Typography.label.fontWeight,
+  },
+  calendarField: {
+    minHeight:
+      ControlSize.minimumTouchTarget,
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  calendarFieldValue: {
+    flex: 1,
+    minWidth: 0,
+  },
+  calendarPicker: {
+    marginTop: Spacing.sm,
+  },
+  nativeCalendar: {
+    width: '100%',
+    alignSelf: 'center',
+  },
+  customDateError: {
+    marginTop: -Spacing.sm,
   },
   filterSection: {
     marginTop: Spacing.lg,

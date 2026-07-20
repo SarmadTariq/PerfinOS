@@ -36,11 +36,12 @@ interface ActivityFilterContextValue {
 const ActivityFilterContext = createContext<ActivityFilterContextValue | undefined>(undefined);
 
 export const DATE_PRESET_OPTIONS: TransactionDatePreset[] = [
+  'this-week',
+  'last-2-weeks',
   'this-month',
-  'last-month',
-  'last-30-days',
-  'this-year',
-  'all',
+  'last-3-months',
+  'last-6-months',
+  'last-12-months',
   'custom',
 ];
 
@@ -56,8 +57,46 @@ export const toLocalIsoDate = (date: Date) => {
   return local.toISOString().slice(0, 10);
 };
 
-const startOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
-const endOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0);
+const startOfMonth = (date: Date) =>
+  new Date(date.getFullYear(), date.getMonth(), 1);
+
+const startOfWeek = (date: Date) => {
+  const start = new Date(date);
+  const daysSinceMonday = (start.getDay() + 6) % 7;
+
+  start.setDate(start.getDate() - daysSinceMonday);
+
+  return start;
+};
+
+const subtractDays = (date: Date, days: number) => {
+  const result = new Date(date);
+
+  result.setDate(result.getDate() - days);
+
+  return result;
+};
+
+const subtractMonths = (
+  date: Date,
+  months: number
+) => {
+  const result = new Date(date);
+  const targetDay = result.getDate();
+
+  result.setDate(1);
+  result.setMonth(result.getMonth() - months);
+
+  const lastDay = new Date(
+    result.getFullYear(),
+    result.getMonth() + 1,
+    0
+  ).getDate();
+
+  result.setDate(Math.min(targetDay, lastDay));
+
+  return result;
+};
 
 export const getPresetDateRange = (
   preset: TransactionDatePreset,
@@ -65,54 +104,73 @@ export const getPresetDateRange = (
   customEndDate: string
 ): ActivityDateRange => {
   const today = new Date();
-
-  if (preset === 'all') {
-    return { startDate: undefined, endDate: undefined, label: 'All dates' };
-  }
+  const todayIso = toLocalIsoDate(today);
 
   if (preset === 'custom') {
     return {
-      startDate: customStartDate.trim() || undefined,
-      endDate: customEndDate.trim() || undefined,
-      label:
-        customStartDate || customEndDate
-          ? `${customStartDate || 'Start'} to ${customEndDate || 'Today'}`
-          : 'Custom range',
+      startDate:
+        customStartDate.trim() || undefined,
+      endDate:
+        customEndDate.trim() || undefined,
+      label: 'Custom dates',
     };
   }
 
-  if (preset === 'last-month') {
-    const previousMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-
+  if (preset === 'this-week') {
     return {
-      startDate: toLocalIsoDate(startOfMonth(previousMonth)),
-      endDate: toLocalIsoDate(endOfMonth(previousMonth)),
-      label: 'Last month',
+      startDate: toLocalIsoDate(
+        startOfWeek(today)
+      ),
+      endDate: todayIso,
+      label: 'This week',
     };
   }
 
-  if (preset === 'last-30-days') {
-    const start = new Date(today);
-    start.setDate(today.getDate() - 30);
-
+  if (preset === 'last-2-weeks') {
     return {
-      startDate: toLocalIsoDate(start),
-      endDate: toLocalIsoDate(today),
-      label: 'Last 30 days',
+      startDate: toLocalIsoDate(
+        subtractDays(today, 13)
+      ),
+      endDate: todayIso,
+      label: 'Last 2 weeks',
     };
   }
 
-  if (preset === 'this-year') {
+  if (preset === 'last-3-months') {
     return {
-      startDate: `${today.getFullYear()}-01-01`,
-      endDate: toLocalIsoDate(today),
-      label: 'This year',
+      startDate: toLocalIsoDate(
+        subtractMonths(today, 3)
+      ),
+      endDate: todayIso,
+      label: 'Last 3 months',
+    };
+  }
+
+  if (preset === 'last-6-months') {
+    return {
+      startDate: toLocalIsoDate(
+        subtractMonths(today, 6)
+      ),
+      endDate: todayIso,
+      label: 'Last 6 months',
+    };
+  }
+
+  if (preset === 'last-12-months') {
+    return {
+      startDate: toLocalIsoDate(
+        subtractMonths(today, 12)
+      ),
+      endDate: todayIso,
+      label: 'Last 12 months',
     };
   }
 
   return {
-    startDate: toLocalIsoDate(startOfMonth(today)),
-    endDate: toLocalIsoDate(endOfMonth(today)),
+    startDate: toLocalIsoDate(
+      startOfMonth(today)
+    ),
+    endDate: todayIso,
     label: 'This month',
   };
 };
