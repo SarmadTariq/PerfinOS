@@ -3,7 +3,7 @@
  * advanced filter panel, and clean transaction rows.
  */
 import React, { useMemo, useState } from 'react';
-import { FlatList, Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -16,8 +16,8 @@ import { useActivityFilters, calculateActivitySummary, DATE_PRESET_OPTIONS, FREQ
 import { useColors } from '../../context/ThemeContext';
 import { AppData, Category, Transaction, TransactionDatePreset, TransactionFrequencyFilter, TransactionSortKey } from '../../models/finance';
 import { filterTransactions, sortTransactions } from '../../repositories/AnalyticsRepository';
-import { Radius, Spacing } from '../../theme';
-import { formatCurrency, formatCurrencyPrecise, getMonthKey, readableMonth } from '../../utils/format';
+import { ControlSize, Radius, Spacing, Typography } from '../../theme';
+import { formatCurrency, formatCurrencyPrecise } from '../../utils/format';
 import { mcIconName } from '../../utils/icons';
 
 type TransactionTypeFilter = 'all' | 'income' | 'expense';
@@ -26,7 +26,12 @@ type ReceiptFilter = 'any' | 'attached' | 'missing';
 
 
 type FeedItem =
-  | { type: 'date'; date: string }
+  | {
+      type: 'date';
+      date: string;
+      net: number;
+      transactionCount: number;
+    }
   | { type: 'transaction'; transaction: Transaction };
 
 const formatDateLabel = (dateValue: string) => {
@@ -43,14 +48,78 @@ const formatDateLabel = (dateValue: string) => {
   }).format(date);
 };
 
+const formatPeriodRange = (
+  startDate?: string,
+  endDate?: string
+) => {
+  const formatValue = (
+    value: string | undefined,
+    fallback: string
+  ) => {
+    if (!value) {
+      return fallback;
+    }
+
+    const date = new Date(`${value}T00:00:00`);
+
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+    }).format(date);
+  };
+
+  if (!startDate && !endDate) {
+    return '';
+  }
+
+  return `${formatValue(startDate, 'Start')} – ${formatValue(
+    endDate,
+    'Today'
+  )}`;
+};
+
 const buildFeedItems = (transactions: Transaction[]): FeedItem[] => {
   const items: FeedItem[] = [];
+  const dailySummaries = new Map<
+    string,
+    { net: number; transactionCount: number }
+  >();
+
+  transactions.forEach((transaction) => {
+    const current = dailySummaries.get(transaction.date) ?? {
+      net: 0,
+      transactionCount: 0,
+    };
+
+    current.net +=
+      transaction.type === 'income'
+        ? transaction.amount
+        : -transaction.amount;
+    current.transactionCount += 1;
+
+    dailySummaries.set(transaction.date, current);
+  });
+
   let activeDate = '';
 
   transactions.forEach((transaction) => {
     if (transaction.date !== activeDate) {
       activeDate = transaction.date;
-      items.push({ type: 'date', date: transaction.date });
+      const summary = dailySummaries.get(transaction.date) ?? {
+        net: 0,
+        transactionCount: 0,
+      };
+
+      items.push({
+        type: 'date',
+        date: transaction.date,
+        net: summary.net,
+        transactionCount: summary.transactionCount,
+      });
     }
 
     items.push({ type: 'transaction', transaction });
@@ -59,46 +128,226 @@ const buildFeedItems = (transactions: Transaction[]): FeedItem[] => {
   return items;
 };
 
+const PeriodSelector = ({
+  label,
+  startDate,
+  endDate,
+  onPress,
+}: {
+  label: string;
+  startDate?: string;
+  endDate?: string;
+  onPress: () => void;
+}) => {
+  const colors = useColors();
+  const rangeLabel = formatPeriodRange(startDate, endDate);
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.76}
+      accessibilityRole="button"
+      accessibilityLabel={`Review period: ${label}${
+        rangeLabel ? `, ${rangeLabel}` : ''
+      }`}
+      accessibilityHint="Opens review period filters"
+      style={[
+        styles.periodSelector,
+        {
+          backgroundColor: colors.bgSecondary,
+          borderColor: colors.borderLight,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.periodIcon,
+          { backgroundColor: colors.primarySoft },
+        ]}
+      >
+        <MaterialIcons
+          name="calendar-today"
+          size={19}
+          color={colors.primary}
+        />
+      </View>
+
+      <View style={styles.periodCopy}>
+        <Text variant="bodySmall" style={styles.periodTitle}>
+          {label}
+        </Text>
+
+        {rangeLabel ? (
+          <Text
+            variant="caption"
+            color="secondary"
+            numberOfLines={1}
+          >
+            {rangeLabel}
+          </Text>
+        ) : null}
+      </View>
+
+      <MaterialIcons
+        name="keyboard-arrow-down"
+        size={22}
+        color={colors.textSecondary}
+      />
+    </TouchableOpacity>
+  );
+};
+
 const SummaryStrip = ({
   income,
   expenses,
   net,
+  transactionCount,
   currency,
 }: {
   income: number;
   expenses: number;
   net: number;
+  transactionCount: number;
   currency: string;
 }) => {
   const colors = useColors();
+  const netColor = net >= 0 ? colors.success : colors.danger;
 
   return (
-    <Card shadow="sm" style={styles.summaryCard}>
+    <Card style={styles.summaryCard}>
       <View style={styles.summaryGrid}>
-        <View style={styles.summaryItem}>
-          <Text variant="caption" color="secondary" style={styles.summaryLabel}>
-            Income
-          </Text>
-          <Text variant="h4" style={{ color: colors.success }} numberOfLines={1} adjustsFontSizeToFit>
+        <View style={styles.summaryMetric}>
+          <View style={styles.summaryMetricHeader}>
+            <View
+              style={[
+                styles.summaryIcon,
+                { backgroundColor: `${colors.success}1F` },
+              ]}
+            >
+              <MaterialIcons
+                name="south"
+                size={17}
+                color={colors.success}
+              />
+            </View>
+
+            <Text
+              variant="caption"
+              color="secondary"
+              style={styles.summaryLabel}
+            >
+              Income
+            </Text>
+          </View>
+
+          <Text
+            variant="h4"
+            style={{ color: colors.success }}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
             {formatCurrency(income, currency)}
           </Text>
         </View>
 
-        <View style={[styles.summaryItem, styles.summaryDivider, { borderColor: colors.border }]}>
-          <Text variant="caption" color="secondary" style={styles.summaryLabel}>
-            Spend
-          </Text>
-          <Text variant="h4" style={{ color: colors.danger }} numberOfLines={1} adjustsFontSizeToFit>
+        <View style={styles.summaryMetric}>
+          <View style={styles.summaryMetricHeader}>
+            <View
+              style={[
+                styles.summaryIcon,
+                { backgroundColor: `${colors.danger}1F` },
+              ]}
+            >
+              <MaterialIcons
+                name="north"
+                size={17}
+                color={colors.danger}
+              />
+            </View>
+
+            <Text
+              variant="caption"
+              color="secondary"
+              style={styles.summaryLabel}
+            >
+              Spending
+            </Text>
+          </View>
+
+          <Text
+            variant="h4"
+            style={{ color: colors.danger }}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
             {formatCurrency(expenses, currency)}
           </Text>
         </View>
 
-        <View style={[styles.summaryItem, styles.summaryDivider, { borderColor: colors.border }]}>
-          <Text variant="caption" color="secondary" style={styles.summaryLabel}>
-            Net
-          </Text>
-          <Text variant="h4" numberOfLines={1} adjustsFontSizeToFit>
+        <View style={styles.summaryMetric}>
+          <View style={styles.summaryMetricHeader}>
+            <View
+              style={[
+                styles.summaryIcon,
+                { backgroundColor: `${netColor}1F` },
+              ]}
+            >
+              <MaterialIcons
+                name="swap-vert"
+                size={18}
+                color={netColor}
+              />
+            </View>
+
+            <Text
+              variant="caption"
+              color="secondary"
+              style={styles.summaryLabel}
+            >
+              Net movement
+            </Text>
+          </View>
+
+          <Text
+            variant="h4"
+            style={{ color: netColor }}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
             {formatCurrency(net, currency)}
+          </Text>
+        </View>
+
+        <View style={styles.summaryMetric}>
+          <View style={styles.summaryMetricHeader}>
+            <View
+              style={[
+                styles.summaryIcon,
+                { backgroundColor: colors.primarySoft },
+              ]}
+            >
+              <MaterialIcons
+                name="receipt-long"
+                size={17}
+                color={colors.primary}
+              />
+            </View>
+
+            <Text
+              variant="caption"
+              color="secondary"
+              style={styles.summaryLabel}
+            >
+              Transactions
+            </Text>
+          </View>
+
+          <Text
+            variant="h4"
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
+            {transactionCount}
           </Text>
         </View>
       </View>
@@ -109,45 +358,71 @@ const SummaryStrip = ({
 const QuickFilters = ({
   value,
   onChange,
-  advancedCount,
+  categorySelected,
+  moreFilterCount,
+  onOpenCategory,
   onOpenFilters,
 }: {
   value: TransactionTypeFilter;
   onChange: (value: TransactionTypeFilter) => void;
-  advancedCount: number;
+  categorySelected: boolean;
+  moreFilterCount: number;
+  onOpenCategory: () => void;
   onOpenFilters: () => void;
 }) => {
   const colors = useColors();
+  const chips = [
+    { key: 'all', label: 'All', selected: value === 'all', onPress: () => onChange('all') },
+    { key: 'expense', label: 'Expenses', selected: value === 'expense', onPress: () => onChange('expense') },
+    { key: 'income', label: 'Income', selected: value === 'income', onPress: () => onChange('income') },
+    { key: 'category', label: 'Category', selected: categorySelected, onPress: onOpenCategory },
+    { key: 'more', label: 'More', selected: moreFilterCount > 0, onPress: onOpenFilters },
+  ];
 
   return (
     <View style={styles.quickFilterRow}>
-      <View style={{ flex: 1 }}>
-        <Segmented
-          options={['all', 'income', 'expense']}
-          value={value}
-          onChange={(next) => onChange(next as TransactionTypeFilter)}
-        />
-      </View>
+      {chips.map((chip) => (
+        <TouchableOpacity
+          key={chip.key}
+          onPress={chip.onPress}
+          accessibilityRole="button"
+          accessibilityLabel={`${chip.label} activity filter`}
+          accessibilityHint={
+            chip.key === 'category' || chip.key === 'more'
+              ? 'Opens additional activity filters'
+              : `Shows ${chip.label.toLowerCase()} transactions`
+          }
+          accessibilityState={{ selected: chip.selected }}
+          style={[
+            styles.filterChip,
+            {
+              borderColor: chip.selected ? colors.primary : colors.border,
+              backgroundColor: chip.selected ? colors.primarySoft : colors.bgSecondary,
+            },
+          ]}
+        >
+          <Text
+            variant="caption"
+            style={[
+              styles.filterChipLabel,
+              { color: chip.selected ? colors.primary : colors.textSecondary },
+            ]}
+          >
+            {chip.label}
+          </Text>
 
-      <TouchableOpacity
-        onPress={onOpenFilters}
-        accessibilityRole="button"
-        accessibilityLabel="Open filters"
-        style={[styles.filterButton, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}
-      >
-        <MaterialIcons name="tune" size={18} color={colors.primary} />
-        <Text variant="caption" style={{ color: colors.primary, fontWeight: '800' }}>
-          Filter
-        </Text>
-
-        {advancedCount > 0 ? (
-          <View style={[styles.filterBadge, { backgroundColor: colors.primary }]}>
-            <Text variant="caption" style={{ color: '#FFFFFF', fontWeight: '800' }}>
-              {advancedCount}
-            </Text>
-          </View>
-        ) : null}
-      </TouchableOpacity>
+          {chip.key === 'more' && moreFilterCount > 0 ? (
+            <View style={[styles.filterBadge, { backgroundColor: colors.primary }]}>
+              <Text
+                variant="caption"
+                style={[styles.filterBadgeLabel, { color: colors.text }]}
+              >
+                {moreFilterCount}
+              </Text>
+            </View>
+          ) : null}
+        </TouchableOpacity>
+      ))}
     </View>
   );
 };
@@ -195,7 +470,10 @@ const FilterPanel = ({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalBackdrop}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={[styles.modalBackdrop, { backgroundColor: `${colors.text}73` }]}
+      >
         <View style={[styles.filterPanel, { backgroundColor: colors.card }]}>
           <View style={styles.rowBetween}>
             <View>
@@ -208,7 +486,13 @@ const FilterPanel = ({
             <IconButton icon="close" label="Close filters" onPress={onClose} />
           </View>
 
-          <View style={styles.filterSection}>
+          <ScrollView
+            style={styles.filterScroll}
+            contentContainerStyle={styles.filterScrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.filterSection}>
             <Text variant="bodySmall" style={styles.filterSectionTitle}>
               Sort by
             </Text>
@@ -278,10 +562,15 @@ const FilterPanel = ({
               >
                 <Text
                   variant="caption"
-                  style={{
-                    color: categoryId === 'all' ? colors.primary : colors.textSecondary,
-                    fontWeight: '800',
-                  }}
+                  style={[
+                    styles.filterChipLabel,
+                    {
+                      color:
+                        categoryId === 'all'
+                          ? colors.primary
+                          : colors.textSecondary,
+                    },
+                  ]}
                 >
                   All categories
                 </Text>
@@ -306,10 +595,14 @@ const FilterPanel = ({
                   >
                     <Text
                       variant="caption"
-                      style={{
-                        color: selected ? category.color : colors.textSecondary,
-                        fontWeight: '800',
-                      }}
+                      style={[
+                        styles.filterChipLabel,
+                        {
+                          color: selected
+                            ? category.color
+                            : colors.textSecondary,
+                        },
+                      ]}
                     >
                       {category.name}
                     </Text>
@@ -330,24 +623,70 @@ const FilterPanel = ({
             />
           </View>
 
+          </ScrollView>
+
           <View style={styles.modalActions}>
-            <Button label="Clear all" variant="secondary" onPress={onClear} style={{ flex: 1 }} />
-            <Button label="Apply" onPress={onClose} style={{ flex: 1 }} />
+            <Button
+              label="Clear all"
+              variant="secondary"
+              onPress={onClear}
+              style={styles.modalAction}
+            />
+            <Button
+              label="Apply"
+              onPress={onClose}
+              style={styles.modalAction}
+            />
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
 
-const DateHeader = ({ date }: { date: string }) => {
+const DateHeader = ({
+  date,
+  net,
+  transactionCount,
+  currency,
+}: {
+  date: string;
+  net: number;
+  transactionCount: number;
+  currency: string;
+}) => {
   const colors = useColors();
+  const amountColor = net >= 0 ? colors.success : colors.danger;
 
   return (
     <View style={styles.dateHeader}>
-      <Text variant="caption" color="secondary" style={[styles.dateHeaderText, { color: colors.textTertiary }]}>
-        {formatDateLabel(date)}
-      </Text>
+      <View style={styles.rowBetween}>
+        <View>
+          <Text
+            variant="bodySmall"
+            style={styles.dateHeaderText}
+          >
+            {formatDateLabel(date)}
+          </Text>
+
+          <Text variant="caption" color="tertiary">
+            {transactionCount}{' '}
+            {transactionCount === 1 ? 'transaction' : 'transactions'}
+          </Text>
+        </View>
+
+        <Text
+          variant="bodySmall"
+          style={[
+            styles.dateHeaderAmount,
+            { color: amountColor },
+          ]}
+          numberOfLines={1}
+        >
+          {net > 0 ? '+' : ''}
+          {formatCurrency(net, currency)}
+        </Text>
+      </View>
     </View>
   );
 };
@@ -367,15 +706,27 @@ const TransactionCard = ({
   const category = categories.find((item) => item.id === transaction.categoryId);
   const amountColor = transaction.type === 'income' ? colors.success : colors.danger;
   const receiptCount = transaction.receipts?.length || 0;
+  const placeLabel =
+    transaction.location?.neighborhood ||
+    transaction.location?.name ||
+    'No place';
+  const metadata = [
+    transaction.categoryName || category?.name || 'Uncategorized',
+    transaction.paymentMethod,
+    placeLabel,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <TouchableOpacity
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`Open ${transaction.merchant} transaction`}
+      accessibilityHint="Opens transaction details"
       activeOpacity={0.76}
     >
-      <Card shadow="sm" style={styles.transactionCard}>
+      <Card style={styles.transactionCard}>
         <View style={styles.transactionRow}>
           <View style={[styles.iconTile, { backgroundColor: `${category?.color || colors.primary}1F` }]}>
             <MaterialCommunityIcons
@@ -387,14 +738,21 @@ const TransactionCard = ({
 
           <View style={styles.transactionCopy}>
             <View style={styles.transactionTitleRow}>
-              <Text variant="body" style={{ fontWeight: '800', flex: 1 }} numberOfLines={1}>
+              <Text
+                variant="body"
+                style={styles.transactionTitle}
+                numberOfLines={1}
+              >
                 {transaction.merchant}
               </Text>
 
               {transaction.isRecurring ? (
                 <View style={[styles.receiptPill, { backgroundColor: colors.primarySoft }]}>
                   <MaterialIcons name="autorenew" size={13} color={colors.primary} />
-                  <Text variant="caption" style={{ color: colors.primary, fontWeight: '800' }}>
+                  <Text
+                    variant="caption"
+                    style={[styles.pillLabel, { color: colors.primary }]}
+                  >
                     Recurring
                   </Text>
                 </View>
@@ -403,23 +761,40 @@ const TransactionCard = ({
               {receiptCount > 0 ? (
                 <View style={[styles.receiptPill, { backgroundColor: colors.primarySoft }]}>
                   <MaterialIcons name="receipt-long" size={13} color={colors.primary} />
-                  <Text variant="caption" style={{ color: colors.primary, fontWeight: '800' }}>
+                  <Text
+                    variant="caption"
+                    style={[styles.pillLabel, { color: colors.primary }]}
+                  >
                     {receiptCount}
                   </Text>
                 </View>
               ) : null}
             </View>
 
-            <Text variant="caption" color="secondary" numberOfLines={1} style={{ marginTop: Spacing.xs }}>
-              {transaction.categoryName} · {transaction.paymentMethod} · {transaction.location.neighborhood || transaction.location.name || transaction.location.address}
+            <Text
+              variant="caption"
+              color="secondary"
+              numberOfLines={1}
+              style={styles.transactionMeta}
+            >
+              {metadata}
             </Text>
           </View>
 
           <View style={styles.amountBlock}>
-            <Text style={{ color: amountColor, fontWeight: '900' }} numberOfLines={1}>
-              {transaction.type === 'income' ? '+' : '-'}{formatCurrencyPrecise(transaction.amount, currency)}
+            <Text
+              style={[styles.amountText, { color: amountColor }]}
+              numberOfLines={1}
+            >
+              {transaction.type === 'income' ? '+' : '-'}
+              {formatCurrencyPrecise(transaction.amount, currency)}
             </Text>
-            <MaterialIcons name="chevron-right" size={20} color={colors.textTertiary} style={{ marginTop: Spacing.xs }} />
+            <MaterialIcons
+              name="chevron-right"
+              size={20}
+              color={colors.textTertiary}
+              style={styles.chevron}
+            />
           </View>
         </View>
       </Card>
@@ -430,7 +805,6 @@ const TransactionCard = ({
 const TransactionsContent = ({ data }: { data: AppData }) => {
   const navigation = useNavigation<any>();
   const colors = useColors();
-  const month = getMonthKey();
 
   const [query, setQuery] = useState('');
   const [type, setType] = useState<TransactionTypeFilter>('all');
@@ -499,11 +873,101 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
     (datePreset !== 'this-month' ? 1 : 0) +
     (frequencyFilter !== 'all' ? 1 : 0);
 
+  const activeFilters: Array<{
+    key: string;
+    label: string;
+    clear: () => void;
+  }> = [];
+
+  if (query.trim()) {
+    activeFilters.push({
+      key: 'query',
+      label: `Search: ${query.trim()}`,
+      clear: () => setQuery(''),
+    });
+  }
+
+  if (type !== 'all') {
+    activeFilters.push({
+      key: 'type',
+      label: type === 'income' ? 'Income' : 'Expenses',
+      clear: () => setType('all'),
+    });
+  }
+
+  if (datePreset !== 'this-month') {
+    activeFilters.push({
+      key: 'date',
+      label: dateRange.label,
+      clear: () => {
+        setDatePreset('this-month');
+        setCustomStartDate('');
+        setCustomEndDate('');
+      },
+    });
+  }
+
+  if (frequencyFilter !== 'all') {
+    activeFilters.push({
+      key: 'frequency',
+      label:
+        frequencyFilter === 'recurring'
+          ? 'Recurring'
+          : 'One-time',
+      clear: () => setFrequencyFilter('all'),
+    });
+  }
+
+  if (categoryId !== 'all') {
+    activeFilters.push({
+      key: 'category',
+      label:
+        data.categories.find(
+          (category) => category.id === categoryId
+        )?.name || 'Category',
+      clear: () => setCategoryId('all'),
+    });
+  }
+
+  if (receiptFilter !== 'any') {
+    activeFilters.push({
+      key: 'receipt',
+      label:
+        receiptFilter === 'attached'
+          ? 'Receipt attached'
+          : 'Receipt missing',
+      clear: () => setReceiptFilter('any'),
+    });
+  }
+
+  if (sortKey !== 'date-desc') {
+    const sortLabels: Partial<
+      Record<TransactionSortKey, string>
+    > = {
+      'date-asc': 'Oldest first',
+      'amount-desc': 'Highest amount first',
+      'amount-asc': 'Lowest amount first',
+      'merchant-asc': 'Merchant A–Z',
+    };
+
+    activeFilters.push({
+      key: 'sort',
+      label: sortLabels[sortKey] || 'Custom sort',
+      clear: () => setSortKey('date-desc'),
+    });
+  }
+
   const clearFilters = () => {
     setSortKey('date-desc');
     setCategoryId('all');
     setReceiptFilter('any');
     resetPeriodFilters();
+  };
+
+  const resetAllFilters = () => {
+    setQuery('');
+    setType('all');
+    clearFilters();
   };
 
   return (
@@ -518,51 +982,115 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
           <>
             <ScreenHeader
               title="Activity"
-              subtitle={`${readableMonth(month)} transaction feed`}
-              action={<IconButton icon="add" label="Add transaction" onPress={() => navigation.navigate('AddTransaction')} />}
+              subtitle="Review the money movement behind your financial picture."
+            />
+
+            <Card style={styles.searchCard}>
+              <Field
+                label="Search transactions"
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Merchant, category, location, note, or payment method"
+              />
+            </Card>
+
+            <PeriodSelector
+              label={dateRange.label}
+              startDate={dateRange.startDate}
+              endDate={dateRange.endDate}
+              onPress={() => setShowFilters(true)}
             />
 
             <SummaryStrip
               income={summary.income}
               expenses={summary.expenses}
               net={summary.netCashFlow}
+              transactionCount={summary.transactionCount}
               currency={data.user.currency}
             />
 
-            <Card shadow="sm" style={styles.searchCard}>
-              <Field
-                label="Search transactions"
-                value={query}
-                onChangeText={setQuery}
-                placeholder="Merchant, note, category, or payment method"
-              />
-
+            <Card style={styles.filterCard}>
               <QuickFilters
                 value={type}
                 onChange={(value) => {
                   setType(value);
                   setCategoryId('all');
                 }}
-                advancedCount={advancedFilterCount}
+                categorySelected={categoryId !== 'all'}
+                moreFilterCount={
+                  (sortKey !== 'date-desc' ? 1 : 0) +
+                  (receiptFilter !== 'any' ? 1 : 0) +
+                  (datePreset !== 'this-month' ? 1 : 0) +
+                  (frequencyFilter !== 'all' ? 1 : 0)
+                }
+                onOpenCategory={() => setShowFilters(true)}
                 onOpenFilters={() => setShowFilters(true)}
               />
+
+              {activeFilters.length > 0 ? (
+                <View style={styles.activeFilterRow}>
+                  {activeFilters.map((filter) => (
+                    <TouchableOpacity
+                      key={filter.key}
+                      onPress={filter.clear}
+                      activeOpacity={0.72}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remove ${filter.label} filter`}
+                      style={[
+                        styles.activeFilterChip,
+                        {
+                          backgroundColor: colors.primarySoft,
+                          borderColor: colors.primary,
+                        },
+                      ]}
+                    >
+                      <Text
+                        variant="caption"
+                        numberOfLines={1}
+                        style={[
+                          styles.activeFilterChipLabel,
+                          { color: colors.primary },
+                        ]}
+                      >
+                        {filter.label}
+                      </Text>
+
+                      <MaterialIcons
+                        name="close"
+                        size={15}
+                        color={colors.primary}
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : null}
 
               <View style={styles.resultLine}>
                 <Text variant="caption" color="tertiary">
                   {resultSummary}
                 </Text>
 
-                {query || type !== 'all' || advancedFilterCount > 0 ? (
+                {query ||
+                type !== 'all' ||
+                advancedFilterCount > 0 ? (
                   <TouchableOpacity
                     accessibilityRole="button"
                     accessibilityLabel="Reset all activity filters"
+                    activeOpacity={0.76}
+                    style={styles.resetAction}
                     onPress={() => {
                       setQuery('');
                       setType('all');
                       clearFilters();
                     }}
                   >
-                    <Text variant="caption" style={{ color: colors.primary, fontWeight: '800' }}>
+                    <Text
+                      variant="caption"
+                      style={[
+                        styles.actionLabel,
+                        { color: colors.primary },
+                      ]}
+                    >
                       Reset
                     </Text>
                   </TouchableOpacity>
@@ -572,16 +1100,39 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
           </>
         }
         ListEmptyComponent={
-          <EmptyState
-            title="No matching transactions"
-            message="Try a different search or filter, or add a new transaction."
-            actionLabel="Add Transaction"
-            onAction={() => navigation.navigate('AddTransaction')}
-          />
+          data.transactions.length === 0 ? (
+            <EmptyState
+              title="No activity yet"
+              message="Add your first transaction to start building your money history."
+              actionLabel="Add transaction"
+              onAction={() => navigation.navigate('AddTransaction')}
+            />
+          ) : activeFilters.length > 0 ? (
+            <EmptyState
+              title="No matching transactions"
+              message="No transactions match the current search or filters."
+              actionLabel="Reset filters"
+              onAction={resetAllFilters}
+            />
+          ) : (
+            <EmptyState
+              title={`No activity in ${dateRange.label.toLowerCase()}`}
+              message="Choose another review period to see earlier transactions."
+              actionLabel="Adjust period"
+              onAction={() => setShowFilters(true)}
+            />
+          )
         }
         renderItem={({ item }) => {
           if (item.type === 'date') {
-            return <DateHeader date={item.date} />;
+            return (
+              <DateHeader
+                date={item.date}
+                net={item.net}
+                transactionCount={item.transactionCount}
+                currency={data.user.currency}
+              />
+            );
           }
 
           return (
@@ -593,8 +1144,30 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
             />
           );
         }}
-        ListFooterComponent={<View style={{ height: Spacing.xxxl }} />}
+        ListFooterComponent={<View style={styles.listFooter} />}
       />
+
+      <View pointerEvents="box-none" style={styles.addActionLayer}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('AddTransaction')}
+          activeOpacity={0.82}
+          accessibilityRole="button"
+          accessibilityLabel="Add transaction"
+          accessibilityHint="Opens the new transaction form"
+          style={[
+            styles.addActionButton,
+            { backgroundColor: colors.primary },
+          ]}
+        >
+          <MaterialIcons name="add" size={22} color={colors.text} />
+          <Text
+            variant="bodySmall"
+            style={[styles.actionLabel, { color: colors.text }]}
+          >
+            Add transaction
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       <FilterPanel
         visible={showFilters}
@@ -613,7 +1186,7 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
         onCustomStartDateChange={setCustomStartDate}
         onCustomEndDateChange={setCustomEndDate}
         onFrequencyFilterChange={setFrequencyFilter}
-        onClear={clearFilters}
+        onClear={resetAllFilters}
         onClose={() => setShowFilters(false)}
       />
     </SafeAreaView>
@@ -636,39 +1209,82 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.xl,
-    paddingBottom: 140,
+    paddingBottom: 180,
+  },
+  searchCard: {
+    marginBottom: Spacing.sm,
+  },
+  periodSelector: {
+    minHeight: 64,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderRadius: Radius.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  periodIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  periodCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: Spacing.xs,
+  },
+  periodTitle: {
+    fontWeight: Typography.label.fontWeight,
   },
   summaryCard: {
     marginBottom: Spacing.lg,
   },
   summaryGrid: {
     flexDirection: 'row',
-    alignItems: 'stretch',
+    flexWrap: 'wrap',
+    gap: Spacing.lg,
   },
-  summaryItem: {
-    flex: 1,
-    gap: Spacing.xs,
+  summaryMetric: {
+    flexGrow: 1,
+    flexBasis: 132,
+    minWidth: 0,
+    gap: Spacing.sm,
   },
-  summaryDivider: {
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    paddingLeft: Spacing.md,
-    marginLeft: Spacing.md,
+  summaryMetricHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  summaryIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: Radius.round,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   summaryLabel: {
-    textTransform: 'uppercase',
-    letterSpacing: 0.45,
-    fontWeight: '800',
+    flex: 1,
+    fontWeight: Typography.label.fontWeight,
   },
-  searchCard: {
+  filterCard: {
     marginBottom: Spacing.md,
   },
   quickFilterRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: Spacing.sm,
   },
+  quickFilterControl: {
+    flex: 1,
+    minWidth: 0,
+  },
   filterButton: {
-    minHeight: 38,
+    minHeight: ControlSize.minimumTouchTarget,
     borderRadius: Radius.md,
     borderWidth: 1,
     paddingHorizontal: Spacing.md,
@@ -678,18 +1294,49 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   filterBadge: {
-    minWidth: 18,
-    height: 18,
+    minWidth: 20,
+    height: 20,
     borderRadius: Radius.round,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.xs,
   },
-  resultLine: {
+  filterBadgeLabel: {
+    fontWeight: Typography.label.fontWeight,
+  },
+  actionLabel: {
+    fontWeight: Typography.label.fontWeight,
+  },
+  activeFilterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  activeFilterChip: {
+    maxWidth: '100%',
+    minHeight: 36,
+    borderWidth: 1,
+    borderRadius: Radius.round,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  resultLine: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
     justifyContent: 'space-between',
+    gap: Spacing.sm,
     marginTop: -Spacing.xs,
+  },
+  resetAction: {
+    minHeight: ControlSize.minimumTouchTarget,
+    paddingHorizontal: Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   dateHeader: {
     paddingTop: Spacing.md,
@@ -698,7 +1345,7 @@ const styles = StyleSheet.create({
   dateHeaderText: {
     textTransform: 'uppercase',
     letterSpacing: 0.6,
-    fontWeight: '800',
+    fontWeight: Typography.label.fontWeight,
   },
   transactionCard: {
     marginBottom: Spacing.sm,
@@ -722,8 +1369,17 @@ const styles = StyleSheet.create({
   },
   transactionTitleRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: Spacing.sm,
+  },
+  transactionTitle: {
+    flex: 1,
+    minWidth: 120,
+    fontWeight: Typography.label.fontWeight,
+  },
+  transactionMeta: {
+    marginTop: Spacing.xs,
   },
   receiptPill: {
     minHeight: 24,
@@ -733,9 +1389,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
+  pillLabel: {
+    fontWeight: Typography.label.fontWeight,
+  },
   amountBlock: {
     alignItems: 'flex-end',
-    maxWidth: 116,
+    flexShrink: 0,
+    maxWidth: 132,
+  },
+  amountText: {
+    fontWeight: Typography.label.fontWeight,
+  },
+  chevron: {
+    marginTop: Spacing.xs,
+  },
+  addActionLayer: {
+    position: 'absolute',
+    left: Spacing.lg,
+    right: Spacing.lg,
+    bottom: Spacing.lg,
+    alignItems: 'flex-end',
+  },
+  addActionButton: {
+    minHeight: ControlSize.minimumTouchTarget,
+    borderRadius: Radius.round,
+    paddingHorizontal: Spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
   },
   modalBackdrop: {
     flex: 1,
@@ -748,11 +1430,17 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
     maxHeight: '86%',
   },
+  filterScroll: {
+    marginTop: Spacing.sm,
+  },
+  filterScrollContent: {
+    paddingBottom: Spacing.md,
+  },
   filterSection: {
     marginTop: Spacing.lg,
   },
   filterSectionTitle: {
-    fontWeight: '800',
+    fontWeight: Typography.label.fontWeight,
     marginBottom: Spacing.sm,
   },
   customDateGrid: {
@@ -765,15 +1453,29 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   filterChip: {
+    minHeight: ControlSize.minimumTouchTarget,
     borderWidth: 1,
     borderRadius: Radius.round,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterChipLabel: {
+    fontWeight: Typography.label.fontWeight,
   },
   modalActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.md,
     marginTop: Spacing.xl,
+  },
+  modalAction: {
+    flexGrow: 1,
+    flexBasis: 140,
+  },
+  listFooter: {
+    height: Spacing.xxxl,
   },
   rowBetween: {
     flexDirection: 'row',
@@ -781,4 +1483,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: Spacing.md,
   },
+  activeFilterChipLabel: {
+    flexShrink: 1,
+  },
+  dateHeaderAmount: {
+    flexShrink: 1,
+    marginLeft: Spacing.md,
+    fontWeight: Typography.label.fontWeight,
+  },
+
 });
