@@ -126,6 +126,25 @@ export const toMinorUnits = (
   return minorUnits;
 };
 
+const toNonNegativeMinorUnits = (
+  value: number,
+  currency: string,
+  label: string
+) => {
+  assertFiniteMoneyValue(value);
+
+  if (value < 0) {
+    throw new Error(
+      `${label} cannot be negative`
+    );
+  }
+
+  return toMinorUnits(
+    value,
+    currency
+  );
+};
+
 export const fromMinorUnits = (
   minorUnits: number,
   currency: string
@@ -437,9 +456,10 @@ export const calculateRecordedFinancials = (
     incomeTransactions.reduce(
       (sum, transaction) =>
         sum +
-        toMinorUnits(
+        toNonNegativeMinorUnits(
           transaction.amount,
-          currency
+          currency,
+          'Transaction amount'
         ),
       0
     );
@@ -501,10 +521,12 @@ export const resolveExpectedIncome = (
   }
 
   return {
-    amountMinor: toMinorUnits(
-      monthlyIncome,
-      currency
-    ),
+    amountMinor:
+      toNonNegativeMinorUnits(
+        monthlyIncome,
+        currency,
+        'Monthly income'
+      ),
     basis:
       'profile_monthly_income',
   };
@@ -550,9 +572,10 @@ export const resolveBudgetContext = (
           .map(
             ([categoryId, value]) => [
               categoryId,
-              toMinorUnits(
+              toNonNegativeMinorUnits(
                 value,
-                currency
+                currency,
+                'Category budget'
               ),
             ]
           )
@@ -560,10 +583,12 @@ export const resolveBudgetContext = (
 
     return {
       monthKey,
-      totalMinor: toMinorUnits(
-        explicitBudget.totalBudget,
-        currency
-      ),
+      totalMinor:
+        toNonNegativeMinorUnits(
+          explicitBudget.totalBudget,
+          currency,
+          'Budget total'
+        ),
       basis: 'explicit_budget',
       categoryBudgetMinor,
     };
@@ -609,9 +634,10 @@ export const resolveBudgetContext = (
       budgetCategories.map(
         (category) => [
           category.id,
-          toMinorUnits(
+          toNonNegativeMinorUnits(
             category.monthlyBudget,
-            currency
+            currency,
+            'Category budget'
           ),
         ]
       )
@@ -695,9 +721,10 @@ export const calculateCategorySignals = (
             (
               existing?.spendMinor || 0
             ) +
-            toMinorUnits(
+            toNonNegativeMinorUnits(
               transaction.amount,
-              currency
+              currency,
+              'Transaction amount'
             ),
         };
 
@@ -774,9 +801,10 @@ export const calculateSavingsProgressEvidence = (
     goals.reduce(
       (sum, goal) =>
         sum +
-        toMinorUnits(
+        toNonNegativeMinorUnits(
           goal.targetAmount,
-          currency
+          currency,
+          'Savings target amount'
         ),
       0
     );
@@ -785,9 +813,10 @@ export const calculateSavingsProgressEvidence = (
     goals.reduce(
       (sum, goal) =>
         sum +
-        toMinorUnits(
+        toNonNegativeMinorUnits(
           goal.currentAmount,
-          currency
+          currency,
+          'Savings current amount'
         ),
       0
     );
@@ -1302,10 +1331,23 @@ export const calculateRecurringEvidence = (
           period
         );
 
+      if (
+        occurrenceDates.length === 0
+      ) {
+        return;
+      }
+
+      if (
+        occurrenceDates.length === 0
+      ) {
+        return;
+      }
+
       const amountMinor =
-        toMinorUnits(
+        toNonNegativeMinorUnits(
           recurringExpense.amount,
-          currency
+          currency,
+          'Recurring amount'
         );
 
       const categoryName =
@@ -1522,9 +1564,10 @@ export const calculateLocationEvidence = (
               existing
                 ?.totalSpendMinor || 0
             ) +
-            toMinorUnits(
+            toNonNegativeMinorUnits(
               transaction.amount,
-              currency
+              currency,
+              'Transaction amount'
             ),
         }
       );
@@ -1713,200 +1756,14 @@ const deterministicRevision = (
     .join('')}`;
 };
 
-const sortRevisionRows = <
-  T extends Record<
-    string,
-    unknown
-  >
->(
-  rows: T[]
-) =>
-  rows
-    .slice()
-    .sort((left, right) =>
-      stableSerialize(left)
-        .localeCompare(
-          stableSerialize(right)
-        )
-    );
-
-const revisionCategoryBudgets = (
-  categoryBudgets:
-    Record<string, number>,
-  currency: string
-) =>
-  Object.fromEntries(
-    Object.entries(
-      categoryBudgets
-    )
-      .sort(
-        ([left], [right]) =>
-          left.localeCompare(right)
-      )
-      .map(
-        ([categoryId, amount]) => [
-          categoryId,
-          toMinorUnits(
-            amount,
-            currency
-          ),
-        ]
-      )
-  );
-
 const createEvidenceRevision = (
-  input: PlanEvidenceInput,
-  period: PlanEvidencePeriod,
   snapshot:
     Omit<
       PlanEvidenceSnapshot,
       'baselineRevision'
     >
-) => {
-  const currency =
-    normalizeCurrency(
-      input.user.currency
-    );
-
-  const budgetMonthKey =
-    evidenceBudgetMonthKey(
-      input.horizon
-    );
-
-  const transactionRows =
-    sortRevisionRows(
-      input.transactions
-        .filter((transaction) =>
-          transactionIsInPeriod(
-            transaction,
-            period
-          )
-        )
-        .map((transaction) => ({
-          type: transaction.type,
-          amountMinor:
-            toMinorUnits(
-              transaction.amount,
-              currency
-            ),
-          categoryId:
-            transaction.categoryId,
-          categoryName:
-            normalizeMatchValue(
-              transaction.categoryName
-            ),
-          merchant:
-            normalizeMatchValue(
-              transaction.merchant
-            ),
-          date: transaction.date,
-          neighborhood:
-            canonicalAreaLabel(
-              transaction.location
-                .neighborhood
-            ),
-        }))
-    );
-
-  const categoryRows =
-    sortRevisionRows(
-      input.categories.map(
-        (category) => ({
-          categoryId: category.id,
-          categoryName:
-            category.name.trim(),
-          type: category.type,
-          monthlyBudgetMinor:
-            toMinorUnits(
-              category.monthlyBudget,
-              currency
-            ),
-        })
-      )
-    );
-
-  const budgetRows =
-    sortRevisionRows(
-      input.budgets
-        .filter(
-          (budget) =>
-            budget.month ===
-            budgetMonthKey
-        )
-        .map((budget) => ({
-          month: budget.month,
-          totalBudgetMinor:
-            toMinorUnits(
-              budget.totalBudget,
-              currency
-            ),
-          categoryBudgetsMinor:
-            revisionCategoryBudgets(
-              budget.categoryBudgets,
-              currency
-            ),
-        }))
-    );
-
-  const savingsRows =
-    sortRevisionRows(
-      input.savingsGoals.map(
-        (goal) => ({
-          targetMinor:
-            toMinorUnits(
-              goal.targetAmount,
-              currency
-            ),
-          savedMinor:
-            toMinorUnits(
-              goal.currentAmount,
-              currency
-            ),
-          targetDate:
-            goal.targetDate,
-        })
-      )
-    );
-
-  const recurringRows =
-    sortRevisionRows(
-      input.recurringExpenses.map(
-        (recurringExpense) => ({
-          merchant:
-            normalizeMatchValue(
-              recurringExpense.merchant
-            ),
-          amountMinor:
-            toMinorUnits(
-              recurringExpense.amount,
-              currency
-            ),
-          category:
-            normalizeMatchValue(
-              recurringExpense.category
-            ),
-          frequency:
-            recurringExpense.frequency,
-          nextDate:
-            recurringExpense.nextDate,
-          status:
-            recurringExpense.status,
-        })
-      )
-    );
-
-  return deterministicRevision({
-    snapshot,
-    sourceState: {
-      transactions:
-        transactionRows,
-      categories: categoryRows,
-      budgets: budgetRows,
-      savings: savingsRows,
-      recurring: recurringRows,
-    },
-  });
-};
+) =>
+  deterministicRevision(snapshot);
 
 export const buildPlanEvidenceSnapshot = (
   input: PlanEvidenceInput
@@ -2059,8 +1916,6 @@ export const buildPlanEvidenceSnapshot = (
       snapshot.schemaVersion,
     baselineRevision:
       createEvidenceRevision(
-        input,
-        period,
         snapshot
       ),
     period: snapshot.period,
