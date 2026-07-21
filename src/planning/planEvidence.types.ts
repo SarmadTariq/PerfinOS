@@ -151,3 +151,16 @@ export interface PlanEvidenceCoverageInput {
   budgetAvailable: boolean;
   savingsGoalCount: number;
 }
+
+export interface PlanEvidenceRecurringResult {
+  projectedMinor: number;
+  unmatchedMinor: number;
+  occurrenceCount: number;
+  recordedMatchCount: number;
+  signals: PlanEvidenceRecurringSignal[];
+}
+
+export interface PlanEvidenceLocationResult {
+  eligibleTransactionCount: number;
+  signals: PlanEvidenceLocationSignal[];
+}

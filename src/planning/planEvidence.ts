@@ -1,6 +1,8 @@
 import type {
   Budget,
   Category,
+  RecurringExpense,
+  RecurringFrequency,
   SavingsGoal,
   Transaction,
 } from '../models/finance';
@@ -11,7 +13,10 @@ import type {
   PlanEvidenceCoverageInput,
   PlanEvidenceExpectedIncome,
   PlanEvidenceHorizonRequest,
+  PlanEvidenceLocationResult,
   PlanEvidencePeriod,
+  PlanEvidenceRecurringResult,
+  PlanEvidenceRecurringSignal,
   PlanEvidenceRecordedFinancials,
   PlanEvidenceSavingsProgress,
   PlanEvidenceWarning,
@@ -881,6 +886,691 @@ export const buildBaseEvidenceCoverage = (
     locationEligibleTransactionCount:
       input
         .locationEligibleTransactionCount,
+    warnings,
+  };
+};
+
+
+const millisecondsPerDay =
+  86_400_000;
+
+const compareUtcDates = (
+  left: Date,
+  right: Date
+) =>
+  left.getTime() -
+  right.getTime();
+
+const daysBetweenUtcDates = (
+  startDate: Date,
+  endDate: Date
+) =>
+  Math.floor(
+    (
+      endDate.getTime() -
+      startDate.getTime()
+    ) /
+      millisecondsPerDay
+  );
+
+const daysInUtcMonth = (
+  year: number,
+  monthIndex: number
+) =>
+  new Date(
+    Date.UTC(
+      year,
+      monthIndex + 1,
+      0
+    )
+  ).getUTCDate();
+
+const addMonthsFromRecurrenceAnchor = (
+  anchorDate: Date,
+  monthOffset: number
+) => {
+  const targetMonthStart =
+    new Date(
+      Date.UTC(
+        anchorDate.getUTCFullYear(),
+        anchorDate.getUTCMonth() +
+          monthOffset,
+        1
+      )
+    );
+
+  const targetYear =
+    targetMonthStart.getUTCFullYear();
+
+  const targetMonth =
+    targetMonthStart.getUTCMonth();
+
+  const targetDay =
+    Math.min(
+      anchorDate.getUTCDate(),
+      daysInUtcMonth(
+        targetYear,
+        targetMonth
+      )
+    );
+
+  return new Date(
+    Date.UTC(
+      targetYear,
+      targetMonth,
+      targetDay
+    )
+  );
+};
+
+const recurrenceDayStep = (
+  frequency: RecurringFrequency
+) => {
+  if (frequency === 'weekly') {
+    return 7;
+  }
+
+  if (frequency === 'biweekly') {
+    return 14;
+  }
+
+  return null;
+};
+
+const recurrenceMonthStep = (
+  frequency: RecurringFrequency
+) => {
+  if (frequency === 'monthly') {
+    return 1;
+  }
+
+  if (frequency === 'quarterly') {
+    return 3;
+  }
+
+  if (frequency === 'annual') {
+    return 12;
+  }
+
+  return null;
+};
+
+export const projectRecurringOccurrenceDates = (
+  recurringExpense: RecurringExpense,
+  period: PlanEvidencePeriod
+): string[] => {
+  if (
+    recurringExpense.status !==
+    'active'
+  ) {
+    return [];
+  }
+
+  const recurrenceAnchor =
+    parseIsoDate(
+      recurringExpense.nextDate,
+      'Recurring next date'
+    );
+
+  const periodStart =
+    parseIsoDate(
+      period.startDate,
+      'Evidence start date'
+    );
+
+  const periodEnd =
+    parseIsoDate(
+      period.endDate,
+      'Evidence end date'
+    );
+
+  if (
+    compareUtcDates(
+      recurrenceAnchor,
+      periodEnd
+    ) > 0
+  ) {
+    return [];
+  }
+
+  const dayStep =
+    recurrenceDayStep(
+      recurringExpense.frequency
+    );
+
+  if (dayStep !== null) {
+    const difference =
+      Math.max(
+        0,
+        daysBetweenUtcDates(
+          recurrenceAnchor,
+          periodStart
+        )
+      );
+
+    let jumpCount =
+      Math.floor(
+        difference / dayStep
+      );
+
+    let occurrence =
+      addUtcDays(
+        recurrenceAnchor,
+        jumpCount * dayStep
+      );
+
+    if (
+      compareUtcDates(
+        occurrence,
+        periodStart
+      ) < 0
+    ) {
+      jumpCount += 1;
+      occurrence =
+        addUtcDays(
+          recurrenceAnchor,
+          jumpCount * dayStep
+        );
+    }
+
+    const dates: string[] = [];
+
+    while (
+      compareUtcDates(
+        occurrence,
+        periodEnd
+      ) <= 0
+    ) {
+      dates.push(
+        toIsoDate(occurrence)
+      );
+
+      occurrence =
+        addUtcDays(
+          occurrence,
+          dayStep
+        );
+    }
+
+    return dates;
+  }
+
+  const monthStep =
+    recurrenceMonthStep(
+      recurringExpense.frequency
+    );
+
+  if (monthStep === null) {
+    return [];
+  }
+
+  const monthDifference =
+    (
+      periodStart.getUTCFullYear() -
+      recurrenceAnchor.getUTCFullYear()
+    ) *
+      12 +
+    (
+      periodStart.getUTCMonth() -
+      recurrenceAnchor.getUTCMonth()
+    );
+
+  let jumpCount =
+    Math.max(
+      0,
+      Math.floor(
+        monthDifference /
+          monthStep
+      )
+    );
+
+  let occurrence =
+    addMonthsFromRecurrenceAnchor(
+      recurrenceAnchor,
+      jumpCount * monthStep
+    );
+
+  while (
+    compareUtcDates(
+      occurrence,
+      periodStart
+    ) < 0
+  ) {
+    jumpCount += 1;
+
+    occurrence =
+      addMonthsFromRecurrenceAnchor(
+        recurrenceAnchor,
+        jumpCount * monthStep
+      );
+  }
+
+  const dates: string[] = [];
+
+  while (
+    compareUtcDates(
+      occurrence,
+      periodEnd
+    ) <= 0
+  ) {
+    dates.push(
+      toIsoDate(occurrence)
+    );
+
+    jumpCount += 1;
+
+    occurrence =
+      addMonthsFromRecurrenceAnchor(
+        recurrenceAnchor,
+        jumpCount * monthStep
+      );
+  }
+
+  return dates;
+};
+
+const normalizeMatchValue = (
+  value: string
+) =>
+  value
+    .normalize('NFKC')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLocaleLowerCase('en-US');
+
+const transactionMatchesCommitment = (
+  transaction: Transaction,
+  recurringExpense:
+    RecurringExpense,
+  occurrenceDate: string,
+  amountMinor: number,
+  currency: string
+) => {
+  if (
+    transaction.type !== 'expense' ||
+    transaction.date !==
+      occurrenceDate
+  ) {
+    return false;
+  }
+
+  if (
+    toMinorUnits(
+      transaction.amount,
+      currency
+    ) !== amountMinor
+  ) {
+    return false;
+  }
+
+  const recurringMerchant =
+    normalizeMatchValue(
+      recurringExpense.merchant
+    );
+
+  const transactionMerchant =
+    normalizeMatchValue(
+      transaction.merchant
+    );
+
+  if (
+    recurringMerchant !==
+    transactionMerchant
+  ) {
+    return false;
+  }
+
+  const recurringCategory =
+    normalizeMatchValue(
+      recurringExpense.category
+    );
+
+  const transactionCategoryName =
+    normalizeMatchValue(
+      transaction.categoryName
+    );
+
+  const transactionCategoryId =
+    normalizeMatchValue(
+      transaction.categoryId
+    );
+
+  return (
+    recurringCategory ===
+      transactionCategoryName ||
+    recurringCategory ===
+      transactionCategoryId
+  );
+};
+
+export const calculateRecurringEvidence = (
+  recurringExpenses:
+    RecurringExpense[],
+  transactions: Transaction[],
+  period: PlanEvidencePeriod,
+  currency: string
+): PlanEvidenceRecurringResult => {
+  const matchableTransactions =
+    transactions
+      .filter(
+        (transaction) =>
+          transaction.type ===
+            'expense' &&
+          transactionIsInPeriod(
+            transaction,
+            period
+          )
+      )
+      .map((transaction) => ({
+        transaction,
+        matched: false,
+      }));
+
+  const signals =
+    new Map<
+      string,
+      PlanEvidenceRecurringSignal
+    >();
+
+  let projectedMinor = 0;
+  let unmatchedMinor = 0;
+  let occurrenceCount = 0;
+  let recordedMatchCount = 0;
+
+  const activeRecurringExpenses =
+    recurringExpenses
+      .filter(
+        (recurringExpense) =>
+          recurringExpense.status ===
+          'active'
+      )
+      .slice()
+      .sort(
+        (left, right) =>
+          left.id.localeCompare(
+            right.id
+          )
+      );
+
+  activeRecurringExpenses.forEach(
+    (recurringExpense) => {
+      const occurrenceDates =
+        projectRecurringOccurrenceDates(
+          recurringExpense,
+          period
+        );
+
+      const amountMinor =
+        toMinorUnits(
+          recurringExpense.amount,
+          currency
+        );
+
+      const categoryName =
+        recurringExpense.category
+          .trim() ||
+        'Uncategorized';
+
+      const signalKey =
+        `${normalizeMatchValue(
+          categoryName
+        )}|${
+          recurringExpense.frequency
+        }`;
+
+      const existingSignal =
+        signals.get(signalKey);
+
+      const signal:
+        PlanEvidenceRecurringSignal =
+          existingSignal || {
+            categoryName,
+            frequency:
+              recurringExpense
+                .frequency,
+            occurrenceCount: 0,
+            recordedMatchCount: 0,
+            projectedMinor: 0,
+            unmatchedMinor: 0,
+          };
+
+      occurrenceDates.forEach(
+        (occurrenceDate) => {
+          occurrenceCount += 1;
+          projectedMinor +=
+            amountMinor;
+
+          signal.occurrenceCount += 1;
+          signal.projectedMinor +=
+            amountMinor;
+
+          const matchingIndex =
+            matchableTransactions
+              .findIndex(
+                ({
+                  transaction,
+                  matched,
+                }) =>
+                  !matched &&
+                  transactionMatchesCommitment(
+                    transaction,
+                    recurringExpense,
+                    occurrenceDate,
+                    amountMinor,
+                    currency
+                  )
+              );
+
+          if (matchingIndex >= 0) {
+            matchableTransactions[
+              matchingIndex
+            ].matched = true;
+
+            recordedMatchCount += 1;
+            signal.recordedMatchCount +=
+              1;
+
+            return;
+          }
+
+          unmatchedMinor +=
+            amountMinor;
+
+          signal.unmatchedMinor +=
+            amountMinor;
+        }
+      );
+
+      if (
+        signal.occurrenceCount > 0
+      ) {
+        signals.set(
+          signalKey,
+          signal
+        );
+      }
+    }
+  );
+
+  return {
+    projectedMinor,
+    unmatchedMinor,
+    occurrenceCount,
+    recordedMatchCount,
+    signals:
+      Array.from(
+        signals.values()
+      ).sort(
+        (left, right) =>
+          right.projectedMinor -
+            left.projectedMinor ||
+          left.categoryName.localeCompare(
+            right.categoryName
+          ) ||
+          left.frequency.localeCompare(
+            right.frequency
+          )
+      ),
+  };
+};
+
+export const calculateAvailableAfterCommitments = (
+  recordedFinancials:
+    PlanEvidenceRecordedFinancials,
+  recurringEvidence:
+    PlanEvidenceRecurringResult
+) =>
+  recordedFinancials
+    .recordedIncomeMinor -
+  recordedFinancials
+    .recordedExpensesMinor -
+  recurringEvidence.unmatchedMinor;
+
+export const calculateLocationEvidence = (
+  transactions: Transaction[],
+  period: PlanEvidencePeriod,
+  currency: string
+): PlanEvidenceLocationResult => {
+  const groupedAreas =
+    new Map<
+      string,
+      {
+        areaLabel: string;
+        transactionCount: number;
+        totalSpendMinor: number;
+      }
+    >();
+
+  let eligibleTransactionCount = 0;
+
+  transactions
+    .filter(
+      (transaction) =>
+        transaction.type ===
+          'expense' &&
+        transactionIsInPeriod(
+          transaction,
+          period
+        )
+    )
+    .forEach((transaction) => {
+      const areaLabel =
+        transaction.location
+          .neighborhood
+          ?.trim();
+
+      if (!areaLabel) {
+        return;
+      }
+
+      eligibleTransactionCount += 1;
+
+      const areaKey =
+        normalizeMatchValue(
+          areaLabel
+        );
+
+      const existing =
+        groupedAreas.get(areaKey);
+
+      groupedAreas.set(
+        areaKey,
+        {
+          areaLabel:
+            existing?.areaLabel ||
+            areaLabel,
+          transactionCount:
+            (
+              existing
+                ?.transactionCount || 0
+            ) + 1,
+          totalSpendMinor:
+            (
+              existing
+                ?.totalSpendMinor || 0
+            ) +
+            toMinorUnits(
+              transaction.amount,
+              currency
+            ),
+        }
+      );
+    });
+
+  return {
+    eligibleTransactionCount,
+    signals:
+      Array.from(
+        groupedAreas.values()
+      )
+        .filter(
+          (area) =>
+            area.transactionCount >= 3
+        )
+        .sort(
+          (left, right) =>
+            right.totalSpendMinor -
+              left.totalSpendMinor ||
+            left.areaLabel.localeCompare(
+              right.areaLabel
+            )
+        ),
+  };
+};
+
+export const finalizeEvidenceCoverage = (
+  coverage: PlanEvidenceCoverage,
+  recurringOccurrenceCount: number,
+  locationSignalCount: number
+): PlanEvidenceCoverage => {
+  const warnings =
+    coverage.warnings.slice();
+
+  const warningCodes =
+    new Set(
+      warnings.map(
+        (warning) =>
+          warning.code
+      )
+    );
+
+  if (
+    recurringOccurrenceCount === 0 &&
+    !warningCodes.has(
+      'NO_RECURRING_COMMITMENTS'
+    )
+  ) {
+    warnings.push({
+      code:
+        'NO_RECURRING_COMMITMENTS',
+      message:
+        'No recurring commitments are due in this evidence period.',
+    });
+  }
+
+  if (
+    locationSignalCount === 0 &&
+    !warningCodes.has(
+      'LOCATION_COVERAGE_UNAVAILABLE'
+    )
+  ) {
+    warnings.push({
+      code:
+        'LOCATION_COVERAGE_UNAVAILABLE',
+      message:
+        'No coarse location area meets the minimum evidence threshold.',
+    });
+  }
+
+  return {
+    ...coverage,
+    status:
+      coverage.status ===
+      'insufficient'
+        ? 'insufficient'
+        : warnings.length > 0
+          ? 'partial'
+          : 'complete',
     warnings,
   };
 };

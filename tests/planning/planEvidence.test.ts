@@ -686,3 +686,871 @@ describe('Plan evidence base coverage', () => {
     ).toBe('insufficient');
   });
 });
+
+import type {
+  RecurringExpense,
+} from '../../src/models/finance';
+import {
+  calculateAvailableAfterCommitments,
+  calculateLocationEvidence,
+  calculateRecurringEvidence,
+  finalizeEvidenceCoverage,
+  projectRecurringOccurrenceDates,
+} from '../../src/planning/planEvidence';
+
+const recurringExpense = (
+  overrides: Partial<RecurringExpense> = {}
+): RecurringExpense => ({
+  id: 'recurring-1',
+  userId: 'alice',
+  merchant: 'Private Merchant',
+  amount: 50,
+  category: 'Food',
+  frequency: 'weekly',
+  nextDate: '2026-07-15',
+  status: 'active',
+  ...overrides,
+});
+
+describe('Plan recurring occurrence projection', () => {
+  it('projects a weekly occurrence forward from a date before the horizon', () => {
+    const period = resolvePlanEvidencePeriod({
+      kind: '7_days',
+      anchorDate: '2026-07-21',
+    });
+
+    expect(
+      projectRecurringOccurrenceDates(
+        recurringExpense({
+          nextDate: '2026-07-01',
+          frequency: 'weekly',
+        }),
+        period
+      )
+    ).toEqual([
+      '2026-07-15',
+    ]);
+  });
+
+  it('clamps a monthly occurrence to the end of February', () => {
+    const period = resolvePlanEvidencePeriod({
+      kind: 'calendar_month',
+      anchorDate: '2026-03-15',
+      month: '2026-02',
+    });
+
+    expect(
+      projectRecurringOccurrenceDates(
+        recurringExpense({
+          nextDate: '2026-01-31',
+          frequency: 'monthly',
+        }),
+        period
+      )
+    ).toEqual([
+      '2026-02-28',
+    ]);
+  });
+
+  it('returns to the original monthly day after a clamped month', () => {
+    const period = resolvePlanEvidencePeriod({
+      kind: 'calendar_month',
+      anchorDate: '2026-04-15',
+      month: '2026-03',
+    });
+
+    expect(
+      projectRecurringOccurrenceDates(
+        recurringExpense({
+          nextDate: '2026-01-31',
+          frequency: 'monthly',
+        }),
+        period
+      )
+    ).toEqual([
+      '2026-03-31',
+    ]);
+  });
+
+  it('clamps a leap-day annual recurrence in a non-leap year', () => {
+    const period = resolvePlanEvidencePeriod({
+      kind: 'calendar_month',
+      anchorDate: '2025-03-15',
+      month: '2025-02',
+    });
+
+    expect(
+      projectRecurringOccurrenceDates(
+        recurringExpense({
+          nextDate: '2024-02-29',
+          frequency: 'annual',
+        }),
+        period
+      )
+    ).toEqual([
+      '2025-02-28',
+    ]);
+  });
+
+  it('does not project inactive commitments', () => {
+    const period = resolvePlanEvidencePeriod({
+      kind: '7_days',
+      anchorDate: '2026-07-21',
+    });
+
+    expect(
+      projectRecurringOccurrenceDates(
+        recurringExpense({
+          status: 'inactive',
+        }),
+        period
+      )
+    ).toEqual([]);
+  });
+});
+
+describe('Plan recurring reconciliation', () => {
+  it('matches recorded occurrences without deducting them twice', () => {
+    const period = resolvePlanEvidencePeriod({
+      kind: '7_days',
+      anchorDate: '2026-07-21',
+    });
+
+    const transactions = [
+      transaction({
+        id: 'income',
+        type: 'income',
+        amount: 1000,
+        date: '2026-07-15',
+      }),
+      transaction({
+        id: 'recorded-commitment',
+        type: 'expense',
+        amount: 50,
+        merchant: '  private   merchant ',
+        categoryId: 'food',
+        categoryName: 'Food',
+        date: '2026-07-15',
+      }),
+    ];
+
+    const recorded =
+      calculateRecordedFinancials(
+        transactions,
+        period,
+        'CAD'
+      );
+
+    const recurring =
+      calculateRecurringEvidence(
+        [
+          recurringExpense(),
+          recurringExpense({
+            id: 'recurring-rent',
+            merchant: 'Private Rent',
+            amount: 100,
+            category: 'Housing',
+            frequency: 'monthly',
+            nextDate: '2026-07-18',
+          }),
+        ],
+        transactions,
+        period,
+        'CAD'
+      );
+
+    expect(recurring).toMatchObject({
+      projectedMinor: 15000,
+      unmatchedMinor: 10000,
+      occurrenceCount: 2,
+      recordedMatchCount: 1,
+    });
+
+    expect(
+      calculateAvailableAfterCommitments(
+        recorded,
+        recurring
+      )
+    ).toBe(85000);
+
+    const serialized =
+      JSON.stringify(recurring);
+
+    expect(serialized).not.toContain(
+      'Private Merchant'
+    );
+
+    expect(serialized).not.toContain(
+      'Private Rent'
+    );
+  });
+
+  it('does not use raw transaction recurring flags as commitment sources', () => {
+    const period = resolvePlanEvidencePeriod({
+      kind: '7_days',
+      anchorDate: '2026-07-21',
+    });
+
+    const result =
+      calculateRecurringEvidence(
+        [],
+        [
+          transaction({
+            amount: 100,
+            isRecurring: true,
+          }),
+        ],
+        period,
+        'CAD'
+      );
+
+    expect(result).toEqual({
+      projectedMinor: 0,
+      unmatchedMinor: 0,
+      occurrenceCount: 0,
+      recordedMatchCount: 0,
+      signals: [],
+    });
+  });
+});
+
+describe('Plan coarse location evidence', () => {
+  it('includes only neighborhoods supported by at least three expenses', () => {
+    const period = resolvePlanEvidencePeriod({
+      kind: 'current_month',
+      anchorDate: '2026-07-21',
+    });
+
+    const result =
+      calculateLocationEvidence(
+        [
+          transaction({
+            id: 'midtown-1',
+            amount: 10,
+            location: {
+              ...location,
+              neighborhood: 'Midtown',
+            },
+          }),
+          transaction({
+            id: 'midtown-2',
+            amount: 20,
+            location: {
+              ...location,
+              neighborhood: ' midtown ',
+            },
+          }),
+          transaction({
+            id: 'midtown-3',
+            amount: 30,
+            location: {
+              ...location,
+              neighborhood: 'MIDTOWN',
+            },
+          }),
+          transaction({
+            id: 'downtown-1',
+            amount: 10,
+            location: {
+              ...location,
+              neighborhood: 'Downtown',
+            },
+          }),
+          transaction({
+            id: 'downtown-2',
+            amount: 20,
+            location: {
+              ...location,
+              neighborhood: 'Downtown',
+            },
+          }),
+          transaction({
+            id: 'address-only',
+            amount: 500,
+            location: {
+              ...location,
+              neighborhood: undefined,
+              formattedAddress:
+                '100 Private Street',
+              address:
+                '100 Private Street',
+            },
+          }),
+        ],
+        period,
+        'CAD'
+      );
+
+    expect(result).toEqual({
+      eligibleTransactionCount: 5,
+      signals: [
+        {
+          areaLabel: 'Midtown',
+          transactionCount: 3,
+          totalSpendMinor: 6000,
+        },
+      ],
+    });
+
+    const serialized =
+      JSON.stringify(result);
+
+    expect(serialized).not.toContain(
+      '100 Private Street'
+    );
+
+    expect(serialized).not.toContain(
+      'latitude'
+    );
+
+    expect(serialized).not.toContain(
+      'longitude'
+    );
+  });
+
+  it('excludes income transactions from location evidence', () => {
+    const period = resolvePlanEvidencePeriod({
+      kind: 'current_month',
+      anchorDate: '2026-07-21',
+    });
+
+    const result =
+      calculateLocationEvidence(
+        [
+          transaction({
+            id: 'income-1',
+            type: 'income',
+            location: {
+              ...location,
+              neighborhood: 'Midtown',
+            },
+          }),
+          transaction({
+            id: 'income-2',
+            type: 'income',
+            location: {
+              ...location,
+              neighborhood: 'Midtown',
+            },
+          }),
+          transaction({
+            id: 'income-3',
+            type: 'income',
+            location: {
+              ...location,
+              neighborhood: 'Midtown',
+            },
+          }),
+        ],
+        period,
+        'CAD'
+      );
+
+    expect(result).toEqual({
+      eligibleTransactionCount: 0,
+      signals: [],
+    });
+  });
+});
+
+describe('Plan recurring and location coverage', () => {
+  it('adds deterministic warnings when both signals are unavailable', () => {
+    const baseCoverage =
+      buildBaseEvidenceCoverage({
+        transactionCount: 1,
+        incomeTransactionCount: 1,
+        expenseTransactionCount: 0,
+        locationEligibleTransactionCount: 0,
+        expectedIncome: {
+          amountMinor: 400000,
+          basis:
+            'profile_monthly_income',
+        },
+        budgetAvailable: true,
+        savingsGoalCount: 1,
+      });
+
+    expect(
+      finalizeEvidenceCoverage(
+        baseCoverage,
+        0,
+        0
+      )
+    ).toMatchObject({
+      status: 'partial',
+      warnings: [
+        {
+          code:
+            'NO_RECURRING_COMMITMENTS',
+          message:
+            'No recurring commitments are due in this evidence period.',
+        },
+        {
+          code:
+            'LOCATION_COVERAGE_UNAVAILABLE',
+          message:
+            'No coarse location area meets the minimum evidence threshold.',
+        },
+      ],
+    });
+  });
+
+  it('preserves insufficient status for an empty evidence period', () => {
+    const baseCoverage =
+      buildBaseEvidenceCoverage({
+        transactionCount: 0,
+        incomeTransactionCount: 0,
+        expenseTransactionCount: 0,
+        locationEligibleTransactionCount: 0,
+        expectedIncome: {
+          amountMinor: null,
+          basis:
+            'unavailable_historical',
+        },
+        budgetAvailable: false,
+        savingsGoalCount: 0,
+      });
+
+    expect(
+      finalizeEvidenceCoverage(
+        baseCoverage,
+        0,
+        0
+      ).status
+    ).toBe('insufficient');
+  });
+});
+
+import type {
+  RecurringExpense,
+} from '../../src/models/finance';
+import {
+  calculateAvailableAfterCommitments,
+  calculateLocationEvidence,
+  calculateRecurringEvidence,
+  finalizeEvidenceCoverage,
+  projectRecurringOccurrenceDates,
+} from '../../src/planning/planEvidence';
+
+const recurringExpense = (
+  overrides: Partial<RecurringExpense> = {}
+): RecurringExpense => ({
+  id: 'recurring-1',
+  userId: 'alice',
+  merchant: 'Private Merchant',
+  amount: 50,
+  category: 'Food',
+  frequency: 'weekly',
+  nextDate: '2026-07-15',
+  status: 'active',
+  ...overrides,
+});
+
+describe('Plan recurring occurrence projection', () => {
+  it('projects a weekly occurrence forward from a date before the horizon', () => {
+    const period = resolvePlanEvidencePeriod({
+      kind: '7_days',
+      anchorDate: '2026-07-21',
+    });
+
+    expect(
+      projectRecurringOccurrenceDates(
+        recurringExpense({
+          nextDate: '2026-07-01',
+          frequency: 'weekly',
+        }),
+        period
+      )
+    ).toEqual([
+      '2026-07-15',
+    ]);
+  });
+
+  it('clamps a monthly occurrence to the end of February', () => {
+    const period = resolvePlanEvidencePeriod({
+      kind: 'calendar_month',
+      anchorDate: '2026-03-15',
+      month: '2026-02',
+    });
+
+    expect(
+      projectRecurringOccurrenceDates(
+        recurringExpense({
+          nextDate: '2026-01-31',
+          frequency: 'monthly',
+        }),
+        period
+      )
+    ).toEqual([
+      '2026-02-28',
+    ]);
+  });
+
+  it('returns to the original monthly day after a clamped month', () => {
+    const period = resolvePlanEvidencePeriod({
+      kind: 'calendar_month',
+      anchorDate: '2026-04-15',
+      month: '2026-03',
+    });
+
+    expect(
+      projectRecurringOccurrenceDates(
+        recurringExpense({
+          nextDate: '2026-01-31',
+          frequency: 'monthly',
+        }),
+        period
+      )
+    ).toEqual([
+      '2026-03-31',
+    ]);
+  });
+
+  it('clamps a leap-day annual recurrence in a non-leap year', () => {
+    const period = resolvePlanEvidencePeriod({
+      kind: 'calendar_month',
+      anchorDate: '2025-03-15',
+      month: '2025-02',
+    });
+
+    expect(
+      projectRecurringOccurrenceDates(
+        recurringExpense({
+          nextDate: '2024-02-29',
+          frequency: 'annual',
+        }),
+        period
+      )
+    ).toEqual([
+      '2025-02-28',
+    ]);
+  });
+
+  it('does not project inactive commitments', () => {
+    const period = resolvePlanEvidencePeriod({
+      kind: '7_days',
+      anchorDate: '2026-07-21',
+    });
+
+    expect(
+      projectRecurringOccurrenceDates(
+        recurringExpense({
+          status: 'inactive',
+        }),
+        period
+      )
+    ).toEqual([]);
+  });
+});
+
+describe('Plan recurring reconciliation', () => {
+  it('matches recorded occurrences without deducting them twice', () => {
+    const period = resolvePlanEvidencePeriod({
+      kind: '7_days',
+      anchorDate: '2026-07-21',
+    });
+
+    const transactions = [
+      transaction({
+        id: 'income',
+        type: 'income',
+        amount: 1000,
+        date: '2026-07-15',
+      }),
+      transaction({
+        id: 'recorded-commitment',
+        type: 'expense',
+        amount: 50,
+        merchant: '  private   merchant ',
+        categoryId: 'food',
+        categoryName: 'Food',
+        date: '2026-07-15',
+      }),
+    ];
+
+    const recorded =
+      calculateRecordedFinancials(
+        transactions,
+        period,
+        'CAD'
+      );
+
+    const recurring =
+      calculateRecurringEvidence(
+        [
+          recurringExpense(),
+          recurringExpense({
+            id: 'recurring-rent',
+            merchant: 'Private Rent',
+            amount: 100,
+            category: 'Housing',
+            frequency: 'monthly',
+            nextDate: '2026-07-18',
+          }),
+        ],
+        transactions,
+        period,
+        'CAD'
+      );
+
+    expect(recurring).toMatchObject({
+      projectedMinor: 15000,
+      unmatchedMinor: 10000,
+      occurrenceCount: 2,
+      recordedMatchCount: 1,
+    });
+
+    expect(
+      calculateAvailableAfterCommitments(
+        recorded,
+        recurring
+      )
+    ).toBe(85000);
+
+    const serialized =
+      JSON.stringify(recurring);
+
+    expect(serialized).not.toContain(
+      'Private Merchant'
+    );
+
+    expect(serialized).not.toContain(
+      'Private Rent'
+    );
+  });
+
+  it('does not use raw transaction recurring flags as commitment sources', () => {
+    const period = resolvePlanEvidencePeriod({
+      kind: '7_days',
+      anchorDate: '2026-07-21',
+    });
+
+    const result =
+      calculateRecurringEvidence(
+        [],
+        [
+          transaction({
+            amount: 100,
+            isRecurring: true,
+          }),
+        ],
+        period,
+        'CAD'
+      );
+
+    expect(result).toEqual({
+      projectedMinor: 0,
+      unmatchedMinor: 0,
+      occurrenceCount: 0,
+      recordedMatchCount: 0,
+      signals: [],
+    });
+  });
+});
+
+describe('Plan coarse location evidence', () => {
+  it('includes only neighborhoods supported by at least three expenses', () => {
+    const period = resolvePlanEvidencePeriod({
+      kind: 'current_month',
+      anchorDate: '2026-07-21',
+    });
+
+    const result =
+      calculateLocationEvidence(
+        [
+          transaction({
+            id: 'midtown-1',
+            amount: 10,
+            location: {
+              ...location,
+              neighborhood: 'Midtown',
+            },
+          }),
+          transaction({
+            id: 'midtown-2',
+            amount: 20,
+            location: {
+              ...location,
+              neighborhood: ' midtown ',
+            },
+          }),
+          transaction({
+            id: 'midtown-3',
+            amount: 30,
+            location: {
+              ...location,
+              neighborhood: 'MIDTOWN',
+            },
+          }),
+          transaction({
+            id: 'downtown-1',
+            amount: 10,
+            location: {
+              ...location,
+              neighborhood: 'Downtown',
+            },
+          }),
+          transaction({
+            id: 'downtown-2',
+            amount: 20,
+            location: {
+              ...location,
+              neighborhood: 'Downtown',
+            },
+          }),
+          transaction({
+            id: 'address-only',
+            amount: 500,
+            location: {
+              ...location,
+              neighborhood: undefined,
+              formattedAddress:
+                '100 Private Street',
+              address:
+                '100 Private Street',
+            },
+          }),
+        ],
+        period,
+        'CAD'
+      );
+
+    expect(result).toEqual({
+      eligibleTransactionCount: 5,
+      signals: [
+        {
+          areaLabel: 'Midtown',
+          transactionCount: 3,
+          totalSpendMinor: 6000,
+        },
+      ],
+    });
+
+    const serialized =
+      JSON.stringify(result);
+
+    expect(serialized).not.toContain(
+      '100 Private Street'
+    );
+
+    expect(serialized).not.toContain(
+      'latitude'
+    );
+
+    expect(serialized).not.toContain(
+      'longitude'
+    );
+  });
+
+  it('excludes income transactions from location evidence', () => {
+    const period = resolvePlanEvidencePeriod({
+      kind: 'current_month',
+      anchorDate: '2026-07-21',
+    });
+
+    const result =
+      calculateLocationEvidence(
+        [
+          transaction({
+            id: 'income-1',
+            type: 'income',
+            location: {
+              ...location,
+              neighborhood: 'Midtown',
+            },
+          }),
+          transaction({
+            id: 'income-2',
+            type: 'income',
+            location: {
+              ...location,
+              neighborhood: 'Midtown',
+            },
+          }),
+          transaction({
+            id: 'income-3',
+            type: 'income',
+            location: {
+              ...location,
+              neighborhood: 'Midtown',
+            },
+          }),
+        ],
+        period,
+        'CAD'
+      );
+
+    expect(result).toEqual({
+      eligibleTransactionCount: 0,
+      signals: [],
+    });
+  });
+});
+
+describe('Plan recurring and location coverage', () => {
+  it('adds deterministic warnings when both signals are unavailable', () => {
+    const baseCoverage =
+      buildBaseEvidenceCoverage({
+        transactionCount: 1,
+        incomeTransactionCount: 1,
+        expenseTransactionCount: 0,
+        locationEligibleTransactionCount: 0,
+        expectedIncome: {
+          amountMinor: 400000,
+          basis:
+            'profile_monthly_income',
+        },
+        budgetAvailable: true,
+        savingsGoalCount: 1,
+      });
+
+    expect(
+      finalizeEvidenceCoverage(
+        baseCoverage,
+        0,
+        0
+      )
+    ).toMatchObject({
+      status: 'partial',
+      warnings: [
+        {
+          code:
+            'NO_RECURRING_COMMITMENTS',
+          message:
+            'No recurring commitments are due in this evidence period.',
+        },
+        {
+          code:
+            'LOCATION_COVERAGE_UNAVAILABLE',
+          message:
+            'No coarse location area meets the minimum evidence threshold.',
+        },
+      ],
+    });
+  });
+
+  it('preserves insufficient status for an empty evidence period', () => {
+    const baseCoverage =
+      buildBaseEvidenceCoverage({
+        transactionCount: 0,
+        incomeTransactionCount: 0,
+        expenseTransactionCount: 0,
+        locationEligibleTransactionCount: 0,
+        expectedIncome: {
+          amountMinor: null,
+          basis:
+            'unavailable_historical',
+        },
+        budgetAvailable: false,
+        savingsGoalCount: 0,
+      });
+
+    expect(
+      finalizeEvidenceCoverage(
+        baseCoverage,
+        0,
+        0
+      ).status
+    ).toBe('insufficient');
+  });
+});
