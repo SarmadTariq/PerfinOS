@@ -19,6 +19,15 @@ import {
   createCloudflarePlanRateLimiter,
 } from './plan/rateLimit';
 
+import {
+  createPlanActionHandler,
+} from './plan/actionHandler';
+
+import {
+  createGeminiPlanProvider,
+  createInMemoryPlanCircuitBreaker,
+} from './plan/provider';
+
 const ALLOWED_RECEIPT_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/heif'];
 const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
 
@@ -204,6 +213,21 @@ const handlePlaces = async (request: Request, env: Env): Promise<Response> => {
 const planRateLimiter =
   createCloudflarePlanRateLimiter();
 
+const planProviderCircuitBreaker =
+  createInMemoryPlanCircuitBreaker();
+
+const planProvider =
+  createGeminiPlanProvider({
+    circuitBreaker:
+      planProviderCircuitBreaker,
+  });
+
+const planActionHandler =
+  createPlanActionHandler({
+    provider:
+      planProvider,
+  });
+
 const planGateway =
   createPlanGateway({
     rateLimiter:
@@ -222,23 +246,13 @@ const planGateway =
       },
 
     invokeAction:
-      async () =>
-        new Response(
-          JSON.stringify({
-            error: {
-              code:
-                'PLAN_ACTION_UNAVAILABLE',
-              message:
-                'Plan AI actions are not available.',
-            },
-          }),
-          {
-            status: 501,
-            headers: {
-              'Content-Type':
-                'application/json; charset=utf-8',
-            },
-          }
+      (
+        context,
+        env
+      ) =>
+        planActionHandler(
+          context,
+          env
         ),
   });
 
