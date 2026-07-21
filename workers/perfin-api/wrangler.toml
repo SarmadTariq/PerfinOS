@@ -1,4 +1,4 @@
-name = "perfin-os"
+name = "perfin-os-local"
 main = "src/index.ts"
 compatibility_date = "2026-05-19"
 
@@ -7,7 +7,10 @@ binding = "RECEIPTS"
 bucket_name = "perfin-bucket"
 
 [vars]
+PLAN_ENV = "local"
 FIREBASE_PROJECT_ID = "perfin-os-a9f2d"
+GEMINI_MODEL = "gemini-3.5-flash"
+GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 
 [observability]
 enabled = true
@@ -23,3 +26,88 @@ invocation_logs = true
 enabled = true
 persist = true
 head_sampling_rate = 1
+
+[[ratelimits]]
+name = "PLAN_SESSION_RATE_LIMITER"
+namespace_id = "20801"
+
+  [ratelimits.simple]
+  limit = 10
+  period = 60
+
+[[ratelimits]]
+name = "PLAN_TURN_RATE_LIMITER"
+namespace_id = "20802"
+
+  [ratelimits.simple]
+  limit = 30
+  period = 60
+
+[[ratelimits]]
+name = "PLAN_GENERATE_RATE_LIMITER"
+namespace_id = "20803"
+
+  [ratelimits.simple]
+  limit = 6
+  period = 60
+
+[[ratelimits]]
+name = "PLAN_REVISE_RATE_LIMITER"
+namespace_id = "20804"
+
+  [ratelimits.simple]
+  limit = 6
+  period = 60
+
+[env.production]
+name = "perfin-os"
+
+[env.production.vars]
+PLAN_ENV = "production"
+FIREBASE_PROJECT_ID = "perfin-os-a9f2d"
+GEMINI_MODEL = "gemini-3.5-flash"
+GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
+
+[env.production.secrets]
+required = [
+  "GEMINI_API_KEY",
+  "FIREBASE_PROJECT_NUMBER",
+  "ALLOWED_ORIGINS"
+]
+
+[[env.production.r2_buckets]]
+binding = "RECEIPTS"
+bucket_name = "perfin-bucket"
+
+[[env.production.ratelimits]]
+name = "PLAN_SESSION_RATE_LIMITER"
+namespace_id = "20801"
+
+  [env.production.ratelimits.simple]
+  limit = 10
+  period = 60
+
+[[env.production.ratelimits]]
+name = "PLAN_TURN_RATE_LIMITER"
+namespace_id = "20802"
+
+  [env.production.ratelimits.simple]
+  limit = 30
+  period = 60
+
+[[env.production.ratelimits]]
+name = "PLAN_GENERATE_RATE_LIMITER"
+namespace_id = "20803"
+
+  [env.production.ratelimits.simple]
+  limit = 6
+  period = 60
+
+[[env.production.ratelimits]]
+name = "PLAN_REVISE_RATE_LIMITER"
+namespace_id = "20804"
+
+  [env.production.ratelimits.simple]
+  limit = 6
+  period = 60
+

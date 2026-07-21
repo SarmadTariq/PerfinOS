@@ -6,14 +6,21 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify:config": "node scripts/verify-config.mjs",
+    "verify:security": "node scripts/verify-security.mjs",
+    "verify:release": "npm run test && npm run typecheck && npm run verify:config && npm run verify:security && wrangler deploy --dry-run"
   },
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.18.7",
     "@cloudflare/workers-types": "^4.20260518.0",
     "typescript": "~5.9.2",
+    "vitest": "^4.1.10",
     "wrangler": "^4.0.0"
   },
   "dependencies": {
-    "jose": "^6.2.3"
+    "jose": "^6.2.4"
   }
 }
