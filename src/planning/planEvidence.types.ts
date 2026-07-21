@@ -119,3 +119,35 @@ export interface PlanEvidenceSnapshot {
   locations: PlanEvidenceLocationSignal[];
   coverage: PlanEvidenceCoverage;
 }
+
+export interface PlanEvidenceRecordedFinancials {
+  recordedIncomeMinor: number;
+  recordedExpensesMinor: number;
+  netCashFlowMinor: number;
+  horizonBudgetSpendMinor: number;
+  transactionCount: number;
+  incomeTransactionCount: number;
+  expenseTransactionCount: number;
+}
+
+export type PlanEvidenceBudgetBasis =
+  | 'explicit_budget'
+  | 'category_baseline'
+  | 'unavailable';
+
+export interface PlanEvidenceBudgetContext {
+  monthKey: string;
+  totalMinor: number | null;
+  basis: PlanEvidenceBudgetBasis;
+  categoryBudgetMinor: Record<string, number>;
+}
+
+export interface PlanEvidenceCoverageInput {
+  transactionCount: number;
+  incomeTransactionCount: number;
+  expenseTransactionCount: number;
+  locationEligibleTransactionCount: number;
+  expectedIncome: PlanEvidenceExpectedIncome;
+  budgetAvailable: boolean;
+  savingsGoalCount: number;
+}
