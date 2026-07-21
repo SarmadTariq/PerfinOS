@@ -16,7 +16,7 @@ const featureDefaults = (isGuest: boolean): Record<FeatureKey, boolean> => ({
   cloudSync: !isGuest,
   receiptUploads: !isGuest,
   aiReports: !isGuest,
-  plannerChat: !isGuest,
+  aiPlanning: !isGuest,
   accountRecovery: !isGuest,
 });
 

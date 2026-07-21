@@ -19,7 +19,7 @@ The product does not connect to bank accounts, process payments, or provide lega
 | Add/edit expense | Numeric amount guards, required category/date/merchant/payment method, place-based location selection |
 | Maps | Google Places-ready search adapter, current-location default, colorful heatmap, category pins with location name and amount |
 | Receipts | Authenticated-only multi-image receipt placeholders, up to 5 images per expense, 5 MB/image guard |
-| AI | Authenticated-only AI Reports + Planner Chat using aggregate-only data with rule-based fallback |
+| AI | Authenticated-only AI Reports + Plan guidance using aggregate-only data with rule-based fallback |
 
 ## Tech Stack
 
@@ -53,7 +53,7 @@ Key boundaries:
 - `src/services/initialData.ts` creates empty PerFin OS workspaces and default categories without seeded transaction data.
 - `src/utils/validation.ts` centralizes money, location, receipt, and transaction guards.
 - `src/services/locationService.ts` uses the Worker Places endpoint when configured and Expo geocoding as a safe fallback.
-- `src/services/aiService.ts` sends aggregate-only payloads when configured and otherwise returns rule-based planner output.
+- `src/services/aiService.ts` sends aggregate-only payloads when configured and otherwise returns rule-based Plan output.
 - `workers/perfin-api` contains placeholder Worker endpoints for Places, receipts, and AI proxying.
 
 ## Data Model

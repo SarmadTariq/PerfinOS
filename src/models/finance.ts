@@ -3,7 +3,7 @@ export type InsightSeverity = 'low' | 'medium' | 'high';
 export type RecurringStatus = 'active' | 'inactive';
 export type RecurringFrequency = 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'annual';
 export type UserPlanName = 'guest' | 'free' | 'premium_placeholder';
-export type FeatureKey = 'cloudSync' | 'receiptUploads' | 'aiReports' | 'plannerChat' | 'accountRecovery';
+export type FeatureKey = 'cloudSync' | 'receiptUploads' | 'aiReports' | 'aiPlanning' | 'accountRecovery';
 export type LocationSource = 'current_location' | 'google_place' | 'imported';
 export type ReceiptStatus = 'local' | 'uploading' | 'uploaded' | 'error';
 
