@@ -16,6 +16,7 @@ import {
   toJsonSafeValue,
 } from './serializers';
 import type {
+  MutableUserEntityCollectionKey,
   UserEntityCollectionKey,
   UserEntityForCollection,
 } from './schema';
@@ -61,7 +62,7 @@ export const getUserEntity = async <TCollection extends UserEntityCollectionKey>
   });
 };
 
-export const createUserEntity = async <TCollection extends UserEntityCollectionKey>(
+export const createUserEntity = async <TCollection extends MutableUserEntityCollectionKey>(
   userId: string,
   collectionKey: TCollection,
   entity: UserEntityForCollection<TCollection> & EntityWithId
@@ -74,7 +75,7 @@ export const createUserEntity = async <TCollection extends UserEntityCollectionK
   return entity;
 };
 
-export const updateUserEntity = async <TCollection extends UserEntityCollectionKey>(
+export const updateUserEntity = async <TCollection extends MutableUserEntityCollectionKey>(
   userId: string,
   collectionKey: TCollection,
   id: string,
@@ -90,7 +91,7 @@ export const updateUserEntity = async <TCollection extends UserEntityCollectionK
   await updateDoc(ref, safeUpdates);
 };
 
-export const deleteUserEntity = async <TCollection extends UserEntityCollectionKey>(
+export const deleteUserEntity = async <TCollection extends MutableUserEntityCollectionKey>(
   userId: string,
   collectionKey: TCollection,
   id: string
@@ -102,7 +103,7 @@ export const deleteUserEntity = async <TCollection extends UserEntityCollectionK
   await deleteDoc(getUserEntityDocumentRef(userId, collectionKey, id));
 };
 
-export const replaceUserEntityCollection = async <TCollection extends UserEntityCollectionKey>(
+export const replaceUserEntityCollection = async <TCollection extends MutableUserEntityCollectionKey>(
   userId: string,
   collectionKey: TCollection,
   entities: Array<UserEntityForCollection<TCollection> & EntityWithId>

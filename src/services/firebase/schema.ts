@@ -6,6 +6,7 @@ import type {
   SavingsGoal,
   Transaction,
 } from '../../models/finance';
+import type { FinancialPlan } from '../../models/planning';
 
 export const FIRESTORE_ROOT_COLLECTIONS = {
   users: 'users',
@@ -13,6 +14,7 @@ export const FIRESTORE_ROOT_COLLECTIONS = {
 
 export const USER_PRIVATE_COLLECTION = 'private' as const;
 export const LEGACY_APP_DATA_DOCUMENT = 'appData' as const;
+export const PLAN_VERSIONS_COLLECTION = 'versions' as const;
 
 export const USER_ENTITY_COLLECTIONS = {
   transactions: 'transactions',
@@ -21,6 +23,7 @@ export const USER_ENTITY_COLLECTIONS = {
   savingsGoals: 'savingsGoals',
   recurringExpenses: 'recurringExpenses',
   reports: 'reports',
+  plans: 'plans',
 } as const;
 
 export type FirestoreRootCollectionKey = keyof typeof FIRESTORE_ROOT_COLLECTIONS;
@@ -28,6 +31,10 @@ export type FirestoreRootCollectionName =
   (typeof FIRESTORE_ROOT_COLLECTIONS)[FirestoreRootCollectionKey];
 
 export type UserEntityCollectionKey = keyof typeof USER_ENTITY_COLLECTIONS;
+export type MutableUserEntityCollectionKey = Exclude<
+  UserEntityCollectionKey,
+  'plans'
+>;
 export type UserEntityCollectionName =
   (typeof USER_ENTITY_COLLECTIONS)[UserEntityCollectionKey];
 
@@ -38,6 +45,7 @@ export interface UserEntityMap {
   savingsGoals: SavingsGoal;
   recurringExpenses: RecurringExpense;
   reports: Report;
+  plans: FinancialPlan;
 }
 
 export type UserEntityForCollection<TCollection extends UserEntityCollectionKey> =
