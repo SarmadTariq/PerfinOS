@@ -1,5 +1,5 @@
 /**
- * GuidedPlanningView — structured planning flow built from current Activity context.
+ * PlanView — structured planning flow built from current Activity context.
  */
 import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -15,7 +15,7 @@ import { filterTransactions, sortTransactions } from '../../repositories/Analyti
 import { Radius, Spacing, Typography } from '../../theme';
 import { formatCurrency, getMonthKey, readableMonth } from '../../utils/format';
 
-type GuidedPlanningScreenProps = {
+type PlanScreenProps = {
   showBackButton?: boolean;
   showProfileButton?: boolean;
 };
@@ -51,10 +51,10 @@ const rangeLabel = (startDate?: string, endDate?: string) => {
   return `Until ${endDate}`;
 };
 
-export const GuidedPlanningScreen = ({
+export const PlanScreen = ({
   showBackButton = true,
   showProfileButton = false,
-}: GuidedPlanningScreenProps) => (
+}: PlanScreenProps) => (
   <RequireData>
     {(data) => {
       const navigation = useNavigation<any>();
@@ -149,7 +149,7 @@ export const GuidedPlanningScreen = ({
       return (
         <AppScroll>
           <ScreenHeader
-            title="Guided Planning"
+            title="Your Plan"
             subtitle="Turn Activity signals into the next planning action."
             action={
               showBackButton ? (
@@ -272,7 +272,6 @@ export const GuidedPlanningScreen = ({
   </RequireData>
 );
 
-export const PlannerChatScreen = GuidedPlanningScreen;
 
 const styles = StyleSheet.create({
   heroCard: {

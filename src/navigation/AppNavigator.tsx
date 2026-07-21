@@ -30,7 +30,7 @@ import { SavingsGoalsScreen } from '../views/more/SavingsGoalsView';
 import { AnalyticsScreen } from '../views/more/AnalyticsView';
 import { RecurringExpensesScreen } from '../views/more/RecurringExpensesView';
 import { ReportsScreen } from '../views/more/ReportsView';
-import { GuidedPlanningScreen } from '../views/more/GuidedPlanningView';
+import { PlanScreen } from '../views/planning/PlanView';
 import { SettingsScreen } from '../views/more/SettingsView';
 import { ProfileScreen } from '../views/more/ProfileView';
 import { HelpAboutScreen } from '../views/more/HelpAboutView';
@@ -56,7 +56,7 @@ const AuthStack = () => (
   // const { data, isAuthenticated } = useFinance();
 
 const PlanTabScreen = () => (
-  <GuidedPlanningScreen showBackButton={false} showProfileButton />
+  <PlanScreen showBackButton={false} showProfileButton />
 );
 
 const Tabs = () => {
@@ -123,7 +123,6 @@ const MainStack = () => (
     <Stack.Screen name="Settings" component={SettingsScreen} />
     <Stack.Screen name="Profile" component={ProfileScreen} />
     <Stack.Screen name="HelpAbout" component={HelpAboutScreen} />
-    <Stack.Screen name="PlannerChat" component={GuidedPlanningScreen} />
     <Stack.Screen name="NotFound" component={NotFoundScreen} />
   </Stack.Navigator>
 );
