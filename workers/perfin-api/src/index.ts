@@ -15,6 +15,10 @@ import {
   serializePlanOperationalEvent,
 } from './plan/operational';
 
+import {
+  createCloudflarePlanRateLimiter,
+} from './plan/rateLimit';
+
 const ALLOWED_RECEIPT_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/heif'];
 const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
 
@@ -197,8 +201,13 @@ const handlePlaces = async (request: Request, env: Env): Promise<Response> => {
   );
 };
 
+const planRateLimiter =
+  createCloudflarePlanRateLimiter();
+
 const planGateway =
   createPlanGateway({
+    rateLimiter:
+      planRateLimiter,
     verifyIdToken:
       verifyFirebaseIdToken,
     verifyAppCheckToken:

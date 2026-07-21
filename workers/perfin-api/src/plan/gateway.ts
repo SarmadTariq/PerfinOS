@@ -13,6 +13,7 @@ import {
   PLAN_AUTHORIZATION_HEADER,
   PLAN_JSON_CONTENT_TYPE,
   PLAN_MAX_BODY_BYTES,
+  PLAN_RATE_LIMIT_WINDOW_SECONDS,
   resolvePlanRoute,
   type PlanGatewayAction,
 } from './contracts';
@@ -28,6 +29,10 @@ import {
   validatePlanActionRequest,
   type PlanActionRequest,
 } from './validation';
+
+import type {
+  PlanRateLimiter,
+} from './rateLimit';
 
 const REQUEST_ID_HEADER =
   'X-Request-Id';
@@ -67,6 +72,9 @@ export interface PlanGatewayDependencies {
     VerifiedFirebaseApp
   >;
 
+  readonly rateLimiter:
+    PlanRateLimiter;
+
   readonly invokeAction: (
     context: PlanRequestContext,
     env: Env
@@ -85,7 +93,14 @@ class PlanHttpError
   constructor(
     readonly status: number,
     readonly code: string,
-    message: string
+    message: string,
+    readonly responseHeaders:
+      Readonly<
+        Record<
+          string,
+          string
+        >
+      > = {}
   ) {
     super(message);
   }
@@ -205,19 +220,34 @@ const errorResponse = (
   error: PlanHttpError,
   allowedOrigin: string | null,
   requestId: string
-): Response =>
-  jsonResponse(
-    {
-      error: {
-        code: error.code,
-        message:
-          error.message,
+): Response => {
+  const response =
+    jsonResponse(
+      {
+        error: {
+          code: error.code,
+          message:
+            error.message,
+        },
       },
-    },
-    error.status,
-    allowedOrigin,
-    requestId
+      error.status,
+      allowedOrigin,
+      requestId
+    );
+
+  Object.entries(
+    error.responseHeaders
+  ).forEach(
+    ([key, value]) => {
+      response.headers.set(
+        key,
+        value
+      );
+    }
   );
+
+  return response;
+};
 
 const preflightResponse = (
   allowedOrigin: string,
@@ -690,6 +720,52 @@ export const createPlanGateway = (
           401,
           'APP_CHECK_INVALID',
           'App verification failed.'
+        );
+      }
+
+      let rateLimitDecision;
+
+      try {
+        rateLimitDecision =
+          await dependencies
+            .rateLimiter
+            .consume(
+              {
+                uid:
+                  verifiedUser.uid,
+                action:
+                  route.action,
+                requestsPerWindow:
+                  route
+                    .requestsPerWindow,
+                windowSeconds:
+                  PLAN_RATE_LIMIT_WINDOW_SECONDS,
+              },
+              env
+            );
+      } catch {
+        throw new PlanHttpError(
+          503,
+          'RATE_LIMIT_UNAVAILABLE',
+          'Plan service is unavailable.'
+        );
+      }
+
+      if (
+        !rateLimitDecision
+          .allowed
+      ) {
+        throw new PlanHttpError(
+          429,
+          'RATE_LIMITED',
+          'Too many requests.',
+          {
+            'Retry-After':
+              String(
+                rateLimitDecision
+                  .retryAfterSeconds
+              ),
+          }
         );
       }
 

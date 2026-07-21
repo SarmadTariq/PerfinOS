@@ -73,6 +73,9 @@ const dependenciesFor = (
       })
     ),
 
+  rateLimiter:
+    allowAllPlanRateLimiter,
+
   invokeAction:
     vi.fn(
       async () =>
@@ -100,6 +103,10 @@ const dependenciesFor = (
     };
   })(),
 });
+
+import {
+  allowAllPlanRateLimiter,
+} from './plan-rate-limit-fixtures';
 
 describe(
   'PF-208 validated gateway metadata',

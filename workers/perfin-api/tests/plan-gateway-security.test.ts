@@ -149,7 +149,10 @@ const createDependencies =
         })
       ),
 
-    invokeAction:
+    rateLimiter:
+    allowAllPlanRateLimiter,
+
+  invokeAction:
       vi.fn(
         async () =>
           new Response(
@@ -179,6 +182,10 @@ const requireResponse = (
 
   return response;
 };
+
+import {
+  allowAllPlanRateLimiter,
+} from './plan-rate-limit-fixtures';
 
 describe(
   'PF-208 protected Plan gateway',
@@ -617,6 +624,21 @@ describe(
               };
             },
 
+          rateLimiter: {
+            consume:
+              async () => {
+                sequence.push(
+                  'rate-limit'
+                );
+
+                return {
+                  allowed: true,
+                  retryAfterSeconds:
+                    60,
+                };
+              },
+          },
+
           invokeAction:
             async (
               context
@@ -668,6 +690,7 @@ describe(
             'auth-end',
             'app-start',
             'app-end',
+            'rate-limit',
             'action',
           ]);
       }
