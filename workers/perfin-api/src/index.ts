@@ -1,9 +1,15 @@
-interface Env {
-  RECEIPTS: R2Bucket;
-  GEMINI_API_KEY?: string;
-  GOOGLE_PLACES_API_KEY?: string;
-  FIREBASE_PROJECT_ID?: string;
-}
+import type {
+  Env,
+} from './env';
+
+import {
+  verifyFirebaseAppCheckToken,
+  verifyFirebaseIdToken,
+} from './plan/firebaseVerification';
+
+import {
+  createPlanGateway,
+} from './plan/gateway';
 
 const ALLOWED_RECEIPT_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/heif'];
 const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
@@ -20,31 +26,66 @@ const json = (body: unknown, status = 200) =>
   }
 );
 
-import { createRemoteJWKSet, jwtVerify } from 'jose';
-const JWKS = createRemoteJWKSet(new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'));
+export async function requireAuth(
+  request: Request,
+  env: Env
+): Promise<string> {
+  const authorization =
+    request.headers.get(
+      'Authorization'
+    );
 
-export async function requireAuth(request: Request, env: Env): Promise<string> {
-
-  const auth = request.headers.get('Authorization');
-
-  if (!auth?.startsWith('Bearer ')) {
-
-    throw new Response(JSON.stringify({error: 'Authentication required'}), { status: 401 });
+  if (
+    !authorization?.startsWith(
+      'Bearer '
+    )
+  ) {
+    throw new Response(
+      JSON.stringify({
+        error:
+          'Authentication required',
+      }),
+      {
+        status: 401,
+      }
+    );
   }
 
-  const token = auth.slice(7);
+  const token =
+    authorization
+      .slice(7)
+      .trim();
+
+  if (!token) {
+    throw new Response(
+      JSON.stringify({
+        error:
+          'Authentication required',
+      }),
+      {
+        status: 401,
+      }
+    );
+  }
 
   try {
-    const { payload } = await jwtVerify(token, JWKS,
-      {
-        issuer: `https://securetoken.google.com/${env.FIREBASE_PROJECT_ID}`,
-        audience: env.FIREBASE_PROJECT_ID,
-      });
+    const verified =
+      await verifyFirebaseIdToken(
+        token,
+        env
+      );
 
-    return payload.sub!;
-  }
-  catch {
-    throw new Response(JSON.stringify({error: 'Invalid token'}), { status: 401 });
+    return verified.uid;
+  } catch {
+    throw new Response(
+      JSON.stringify({
+        error:
+          'Invalid token',
+      }),
+      {
+        status: 401,
+      }
+    );
   }
 }
 
@@ -83,7 +124,7 @@ const handleReceiptUpload = async (request: Request, env: Env): Promise<Response
 // ── Receipt download: Worker fetches from R2, streams back ─────────────────
 
 const handleReceiptDownload = async (request: Request, env: Env): Promise<Response> => {
-  requireAuth(request, env);
+  await requireAuth(request, env);
   if (!env.RECEIPTS) return notConfigured('R2 Receipts');
 
   const body = (await request.json()) as { objectKey?: string };
@@ -152,74 +193,77 @@ const handlePlaces = async (request: Request, env: Env): Promise<Response> => {
   );
 };
 
-// ── Gemini AI proxy (report + chat share same handler) ─────────────────────
-
-const handleAiReport = async (request: Request, env: Env): Promise<Response> => {
-  
-  console.log("AI REPORT HIT");  //log test
-  
-  requireAuth(request, env);
-  console.log("passed auth");
-  if (!env.GEMINI_API_KEY) return notConfigured('Gemini AI');
-  console.log("has gemini key");
-
-  const aggregatePayload = await request.json();
-  const prompt = [
-    'You are PerFin OS, an educational personal finance planning assistant.',
-    'Use only the aggregate JSON data provided. Do not infer private personal details.',
-    'Do not provide tax, legal, banking, or investment advice.',
-    'Respond in plain language with 2–4 concise, actionable planning observations.',
-    JSON.stringify(aggregatePayload),
-  ].join('\n\n');
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-    }
-  );
-
-  console.log("gemini status", response.status);
-
-  if (!response.ok) {
-    const text = await response.text();
-
-    console.log("GEMINI STATUS:", response.status);
-    console.log("GEMINI ERROR:", text);
-
-    throw new Error(`Gemini failed: ${response.status}`);
-  }
-  const model = (await response.json()) as any;
-  const text =
-    model.candidates?.[0]?.content?.parts?.[0]?.text || 'No AI response was generated.';
-
-  return json({
-    title: 'AI Planner Summary',
-    summary: text,
-    recommendations: [],
+const planGateway =
+  createPlanGateway({
+    verifyIdToken:
+      verifyFirebaseIdToken,
+    verifyAppCheckToken:
+      verifyFirebaseAppCheckToken,
+    invokeAction:
+      async () =>
+        new Response(
+          JSON.stringify({
+            error: {
+              code:
+                'PLAN_ACTION_UNAVAILABLE',
+              message:
+                'Plan AI actions are not available.',
+            },
+          }),
+          {
+            status: 501,
+            headers: {
+              'Content-Type':
+                'application/json; charset=utf-8',
+            },
+          }
+        ),
   });
-};
 
 // ── Main router ────────────────────────────────────────────────────────────
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-
-    if (request.method === 'OPTIONS') return json({});
-
-    const url = new URL(request.url);
+    const url =
+      new URL(request.url);
 
     try {
+      const planResponse =
+        await planGateway(
+          request,
+          env
+        );
+
+      if (planResponse) {
+        return planResponse;
+      }
+
+      if (
+        request.method ===
+        'OPTIONS'
+      ) {
+        return json({});
+      }
       if (url.pathname === '/places/search' && request.method === 'GET') {
         return handlePlaces(request, env);
       }
-      if (url.pathname === '/ai/report' && request.method === 'POST') {
-        return handleAiReport(request, env);
-      }
-      if (url.pathname === '/ai/chat' && request.method === 'POST') {
-        return handleAiReport(request, env);
+      if (
+        (
+          url.pathname ===
+            '/ai/report' ||
+          url.pathname ===
+            '/ai/chat'
+        ) &&
+        request.method ===
+          'POST'
+      ) {
+        return json(
+          {
+            error:
+              'Legacy AI route is disabled',
+          },
+          410
+        );
       }
       if (url.pathname === '/receipts/upload' && request.method === 'POST') {
         return handleReceiptUpload(request, env);
