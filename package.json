@@ -14,7 +14,8 @@
     "test": "npm run test:planning",
     "test:planning": "vitest run tests/planning/planLifecycle.test.ts --fileParallelism=false",
     "test:firebase": "firebase emulators:exec --project demo-perfin-os --only firestore \"vitest run tests/firebase/planPersistence.test.ts --fileParallelism=false\"",
-    "test:pf206": "npm run test:planning && npm run test:firebase"
+    "test:pf206": "npm run test:planning && npm run test:firebase",
+    "test:pf207": "vitest run tests/planning/planEvidence.test.ts --fileParallelism=false"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
