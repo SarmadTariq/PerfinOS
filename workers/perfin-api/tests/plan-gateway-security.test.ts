@@ -18,6 +18,12 @@ import {
   type PlanGatewayDependencies,
 } from '../src/plan/gateway';
 
+import {
+  baselineRevision,
+  sessionId,
+  validPlanEvidence,
+} from './plan-fixtures';
+
 const allowedOrigin =
   'https://app.perfin.test';
 
@@ -115,7 +121,11 @@ const createRequest = (
         method === 'POST'
           ? options.body ??
             JSON.stringify({
-              version: 1,
+              schemaVersion: 1,
+              sessionId,
+              baselineRevision,
+              evidence:
+                validPlanEvidence,
             })
           : undefined,
     }

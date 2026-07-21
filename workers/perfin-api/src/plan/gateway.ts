@@ -17,6 +17,18 @@ import {
   type PlanGatewayAction,
 } from './contracts';
 
+import {
+  createPlanOperationalEvent,
+  type PlanOperationalEvent,
+  type PlanOperationalOutcome,
+} from './operational';
+
+import {
+  PlanRequestValidationError,
+  validatePlanActionRequest,
+  type PlanActionRequest,
+} from './validation';
+
 const REQUEST_ID_HEADER =
   'X-Request-Id';
 
@@ -33,7 +45,11 @@ export interface PlanRequestContext {
   readonly uid: string;
   readonly appId: string;
   readonly requestId: string;
-  readonly body: unknown;
+  readonly body:
+    PlanActionRequest;
+
+  readonly bodyBytes:
+    number;
 }
 
 export interface PlanGatewayDependencies {
@@ -55,6 +71,13 @@ export interface PlanGatewayDependencies {
     context: PlanRequestContext,
     env: Env
   ) => Promise<Response>;
+
+  readonly recordOperationalEvent?: (
+    event:
+      PlanOperationalEvent
+  ) => void;
+
+  readonly now?: () => number;
 }
 
 class PlanHttpError
@@ -332,7 +355,10 @@ const assertContentLength = (
 
 const readBoundedJson = async (
   request: Request
-): Promise<unknown> => {
+): Promise<{
+  readonly body: unknown;
+  readonly bodyBytes: number;
+}> => {
   if (!request.body) {
     throw new PlanHttpError(
       400,
@@ -414,7 +440,12 @@ const readBoundedJson = async (
   }
 
   try {
-    return JSON.parse(text);
+    return {
+      body:
+        JSON.parse(text),
+      bodyBytes:
+        totalBytes,
+    };
   } catch {
     throw new PlanHttpError(
       400,
@@ -503,11 +534,52 @@ export const createPlanGateway = (
       return null;
     }
 
+    const now =
+      dependencies.now ??
+      (() => Date.now());
+
+    const startedAt =
+      now();
+
+    let bodyBytes = 0;
+
     const requestId =
       requestIdFor(request);
 
     let allowedOrigin:
       string | null = null;
+
+    const recordEvent = (
+      outcome:
+        PlanOperationalOutcome,
+      status: number,
+      errorCode?: string
+    ) => {
+      try {
+        dependencies
+          .recordOperationalEvent?.(
+            createPlanOperationalEvent({
+              requestId,
+              action:
+                route.action,
+              outcome,
+              status,
+              durationMs:
+                Math.max(
+                  0,
+                  Math.round(
+                    now() -
+                    startedAt
+                  )
+                ),
+              bodyBytes,
+              errorCode,
+            })
+          );
+      } catch {
+        return;
+      }
+    };
 
     try {
       allowedOrigin =
@@ -528,10 +600,18 @@ export const createPlanGateway = (
           );
         }
 
-        return preflightResponse(
-          allowedOrigin,
-          requestId
+        const response =
+          preflightResponse(
+            allowedOrigin,
+            requestId
+          );
+
+        recordEvent(
+          'accepted',
+          response.status
         );
+
+        return response;
       }
 
       if (
@@ -613,10 +693,37 @@ export const createPlanGateway = (
         );
       }
 
-      const body =
+      const readResult =
         await readBoundedJson(
           request
         );
+
+      bodyBytes =
+        readResult.bodyBytes;
+
+      let body:
+        PlanActionRequest;
+
+      try {
+        body =
+          validatePlanActionRequest(
+            route.action,
+            readResult.body
+          );
+      } catch (error) {
+        if (
+          error instanceof
+          PlanRequestValidationError
+        ) {
+          throw new PlanHttpError(
+            400,
+            'INVALID_REQUEST',
+            'Request body is invalid.'
+          );
+        }
+
+        throw error;
+      }
 
       const response =
         await dependencies
@@ -630,50 +737,98 @@ export const createPlanGateway = (
                 verifiedApp.appId,
               requestId,
               body,
+              bodyBytes,
             },
             env
           );
 
-      return decorateResponse(
-        response,
-        allowedOrigin,
-        requestId
+      const decorated =
+        decorateResponse(
+          response,
+          allowedOrigin,
+          requestId
+        );
+
+      recordEvent(
+        response.status >= 500
+          ? 'failed'
+          : response.status >= 400
+            ? 'rejected'
+            : 'accepted',
+        response.status
       );
+
+      return decorated;
     } catch (error) {
       if (
         error instanceof
         PlanHttpError
       ) {
-        return errorResponse(
-          error,
-          allowedOrigin,
-          requestId
+        const response =
+          errorResponse(
+            error,
+            allowedOrigin,
+            requestId
+          );
+
+        recordEvent(
+          error.status >= 500
+            ? 'failed'
+            : 'rejected',
+          error.status,
+          error.code
         );
+
+        return response;
       }
 
       if (
         error instanceof
         FirebaseVerificationConfigurationError
       ) {
-        return errorResponse(
+        const serviceError =
           new PlanHttpError(
             503,
             'SERVICE_UNAVAILABLE',
             'Plan service is unavailable.'
-          ),
-          allowedOrigin,
-          requestId
+          );
+
+        const response =
+          errorResponse(
+            serviceError,
+            allowedOrigin,
+            requestId
+          );
+
+        recordEvent(
+          'failed',
+          response.status,
+          serviceError.code
         );
+
+        return response;
       }
 
-      return errorResponse(
+      const internalError =
         new PlanHttpError(
           500,
           'INTERNAL_ERROR',
           'Unexpected worker error.'
-        ),
-        allowedOrigin,
-        requestId
+        );
+
+      const response =
+        errorResponse(
+          internalError,
+          allowedOrigin,
+          requestId
+        );
+
+      recordEvent(
+        'failed',
+        response.status,
+        internalError.code
       );
+
+      return response;
     }
   };

@@ -11,6 +11,10 @@ import {
   createPlanGateway,
 } from './plan/gateway';
 
+import {
+  serializePlanOperationalEvent,
+} from './plan/operational';
+
 const ALLOWED_RECEIPT_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/heif'];
 const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
 
@@ -199,6 +203,15 @@ const planGateway =
       verifyFirebaseIdToken,
     verifyAppCheckToken:
       verifyFirebaseAppCheckToken,
+    recordOperationalEvent:
+      (event) => {
+        console.log(
+          serializePlanOperationalEvent(
+            event
+          )
+        );
+      },
+
     invokeAction:
       async () =>
         new Response(
