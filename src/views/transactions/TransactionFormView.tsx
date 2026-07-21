@@ -423,26 +423,69 @@ const LocationSection = ({
       ) : null}
 
       {selectedPlace ? (
-        <View style={[styles.selectedPlaceBox, { borderColor: colors.border, backgroundColor: colors.bgSecondary }]}>
-          <View style={[styles.suggestionIcon, { backgroundColor: colors.primarySoft }]}>
-            <MaterialIcons name="check-circle" size={18} color={colors.primary} />
-          </View>
+        <View
+          style={[
+            styles.selectedPlaceBox,
+            { backgroundColor: colors.primarySoft },
+          ]}
+        >
+          <MaterialIcons
+            name="check-circle"
+            size={16}
+            color={colors.primary}
+          />
 
-          <View style={{ flex: 1 }}>
-            <Text variant="body" style={{ fontWeight: '800' }} numberOfLines={1}>
-              {selectedPlace.name}
-            </Text>
-            <Text variant="bodySmall" color="secondary" numberOfLines={2} style={{ marginTop: Spacing.xs }}>
-              {selectedPlace.formattedAddress || selectedPlace.address}
-            </Text>
-          </View>
+          <Text
+            variant="caption"
+            style={{ color: colors.primary, fontWeight: '800' }}
+          >
+            Selected
+          </Text>
+
+          <Text
+            variant="caption"
+            color="secondary"
+            numberOfLines={1}
+            style={{ flexShrink: 1 }}
+          >
+            {selectedPlace.name ||
+              selectedPlace.formattedAddress ||
+              selectedPlace.address}
+          </Text>
         </View>
       ) : null}
 
-      <View style={styles.cardActions}>
-        <Button label="Use my location" variant="secondary" onPress={onUseCurrentLocation} style={{ flex: 1 }} />
-        <Button label="Clear" variant="secondary" onPress={onClearLocation} style={{ flex: 0, paddingHorizontal: Spacing.lg }} />
-      </View>
+      {selectedPlace ? (
+        <View style={styles.cardActions}>
+          <Button
+            label="Change"
+            variant="secondary"
+            onPress={() => {
+              const selectedName =
+                selectedPlace.name ||
+                selectedPlace.formattedAddress ||
+                selectedPlace.address;
+
+              onClearLocation();
+              setPlaceQuery(selectedName);
+            }}
+            style={{ flex: 1 }}
+          />
+
+          <Button
+            label="Remove"
+            variant="secondary"
+            onPress={onClearLocation}
+            style={{ flex: 1 }}
+          />
+        </View>
+      ) : (
+        <Button
+          label="Use my location"
+          variant="secondary"
+          onPress={onUseCurrentLocation}
+        />
+      )}
 
       <View style={[styles.mapFrame, { borderColor: colors.border, backgroundColor: colors.bgSecondary }]}>
         {previewTransaction ? (
@@ -672,8 +715,7 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
       Boolean(
         existing?.isRecurring ||
         existing?.notes ||
-        existing?.receipts.length ||
-        existing?.location.name
+        existing?.receipts.length
       )
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -730,8 +772,7 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
 
   const optionalSummary = [
     isRecurring ? 'Recurring' : null,
-    selectedPlace ? selectedPlace.name : null,
-    receipts.length
+     receipts.length
       ? `${receipts.length} ${receipts.length === 1 ? 'receipt' : 'receipts'}`
       : null,
     notes.trim() ? 'Notes added' : null,
@@ -1126,6 +1167,31 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
             />
           </Card>
 
+
+          <LocationSection
+            data={data}
+            selectedPlace={selectedPlace}
+            selectedCategory={selected}
+            type={type}
+            amount={amount}
+            merchant={merchant}
+            date={date}
+            placeQuery={placeQuery}
+            setPlaceQuery={updatePlaceSearch}
+            selectedSuggestions={
+              addressSuggestions
+            }
+            onSelectPlace={applyLocation}
+            onUseCurrentLocation={
+              useDeviceLocation
+            }
+            onClearLocation={() => {
+              setSelectedPlace(null);
+              setPlaceQuery('');
+              setRemoteLocations([]);
+            }}
+          />
+
           <Card style={styles.sectionCard}>
             <SectionHeader
               icon="category"
@@ -1192,7 +1258,7 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
                 style={{ marginTop: Spacing.xs }}
               >
                 {optionalSummary ||
-                  'Recurring status, place, receipts, and notes'}
+                  'Recurring status, receipts, and notes'}
               </Text>
             </View>
 
@@ -1251,30 +1317,6 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
                   />
                 </View>
               </Card>
-
-              <LocationSection
-                data={data}
-                selectedPlace={selectedPlace}
-                selectedCategory={selected}
-                type={type}
-                amount={amount}
-                merchant={merchant}
-                date={date}
-                placeQuery={placeQuery}
-                setPlaceQuery={updatePlaceSearch}
-                selectedSuggestions={
-                  addressSuggestions
-                }
-                onSelectPlace={applyLocation}
-                onUseCurrentLocation={
-                  useDeviceLocation
-                }
-                onClearLocation={() => {
-                  setSelectedPlace(null);
-                  setPlaceQuery('');
-                  setRemoteLocations([]);
-                }}
-              />
 
               <ReceiptsSection
                 receipts={receipts}
@@ -1513,12 +1555,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   selectedPlaceBox: {
-    borderWidth: 1,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
+    borderRadius: 999,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.md,
+    alignItems: 'center',
+    gap: Spacing.xs,
     marginBottom: Spacing.md,
   },
   cardActions: {
