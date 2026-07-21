@@ -1,0 +1,125 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(userId) {
+      return request.auth != null
+        && request.auth.uid == userId;
+    }
+
+    function isStandardEntityCollection(collectionId) {
+      return collectionId in [
+        'transactions',
+        'categories',
+        'budgets',
+        'savingsGoals',
+        'recurringExpenses',
+        'reports'
+      ];
+    }
+
+    function hasValidPlanOwnership(userId, planId) {
+      return request.resource.data.userId == userId
+        && request.resource.data.id == planId;
+    }
+
+    function validPlanStatusTransition() {
+      return request.resource.data.status == resource.data.status
+        || (
+          resource.data.status == 'draft'
+          && request.resource.data.status in [
+            'active',
+            'archived'
+          ]
+        )
+        || (
+          resource.data.status == 'active'
+          && request.resource.data.status in [
+            'completed',
+            'archived'
+          ]
+        )
+        || (
+          resource.data.status == 'completed'
+          && request.resource.data.status == 'archived'
+        );
+    }
+
+    match /users/{userId} {
+      allow read, create, update: if isOwner(userId);
+      allow delete: if false;
+
+      match /private/{documentId} {
+        allow read, write: if isOwner(userId)
+          && documentId == 'appData';
+      }
+
+      match /{collectionId}/{documentId} {
+        allow read, write: if isOwner(userId)
+          && isStandardEntityCollection(collectionId);
+      }
+
+      match /plans/{planId} {
+        allow read: if isOwner(userId);
+
+        allow create: if isOwner(userId)
+          && hasValidPlanOwnership(userId, planId)
+          && request.resource.data.status == 'draft'
+          && request.resource.data.versionCount == 1
+          && request.resource.data.replacedPlanId == null
+          && request.resource.data.activatedAt == null
+          && request.resource.data.completedAt == null
+          && request.resource.data.archivedAt == null;
+
+        allow update: if isOwner(userId)
+          && resource.data.userId == userId
+          && request.resource.data.userId == resource.data.userId
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.id == planId
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.startDate == resource.data.startDate
+          && request.resource.data.endDate == resource.data.endDate
+          && request.resource.data.currency == resource.data.currency
+          && request.resource.data.horizon == resource.data.horizon
+          && validPlanStatusTransition()
+          && request.resource.data
+            .diff(resource.data)
+            .affectedKeys()
+            .hasOnly([
+              'status',
+              'currentVersionId',
+              'versionCount',
+              'replacedPlanId',
+              'updatedAt',
+              'activatedAt',
+              'completedAt',
+              'archivedAt'
+            ]);
+
+        allow delete: if false;
+
+        match /versions/{versionId} {
+          allow read: if isOwner(userId);
+
+          allow create: if isOwner(userId)
+            && request.resource.data.userId == userId
+            && request.resource.data.planId == planId
+            && request.resource.data.id == versionId;
+
+          allow update, delete: if false;
+        }
+      }
+
+      match /planReservations/{dateKey} {
+        allow read: if isOwner(userId);
+
+        allow create, update: if isOwner(userId)
+          && request.resource.data.userId == userId
+          && request.resource.data.dateKey == dateKey;
+
+        allow delete: if isOwner(userId)
+          && resource.data.userId == userId;
+      }
+    }
+  }
+}

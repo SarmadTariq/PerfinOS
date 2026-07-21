@@ -39,6 +39,7 @@ pnpm-debug.log*
 .vercel/
 .netlify/
 .wrangler/
+/.firebase/
 workers/**/.dev.vars
 
 # Native/mobile signing material

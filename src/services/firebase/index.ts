@@ -28,6 +28,8 @@ export {
 export {
   FIRESTORE_ROOT_COLLECTIONS,
   LEGACY_APP_DATA_DOCUMENT,
+  PLAN_RESERVATIONS_COLLECTION,
+  PLAN_VERSIONS_COLLECTION,
   USER_ENTITY_COLLECTIONS,
   USER_PRIVATE_COLLECTION,
 } from './schema';
@@ -37,11 +39,28 @@ export type {
   FirestoreEntityPathParts,
   FirestoreRootCollectionKey,
   FirestoreRootCollectionName,
+  MutableUserEntityCollectionKey,
   UserEntityCollectionKey,
   UserEntityCollectionName,
   UserEntityForCollection,
   UserEntityMap,
 } from './schema';
+
+
+export {
+  getUserPlanDocumentRef,
+  userPlanReservationsCollectionPath,
+  userPlanReservationDocumentPath,
+  getUserPlanReservationsCollectionRef,
+  getUserPlanReservationDocumentRef,
+  getUserPlansCollectionRef,
+  getUserPlanVersionDocumentRef,
+  getUserPlanVersionsCollectionRef,
+  userPlanDocumentPath,
+  userPlansCollectionPath,
+  userPlanVersionDocumentPath,
+  userPlanVersionsCollectionPath,
+} from './planPaths';
 
 export {
   getUserEntityCollectionRef,
@@ -68,6 +87,36 @@ export type {
   JsonPrimitive,
   JsonValue,
 } from './serializers';
+
+
+
+export {
+  assertPlanStatusTransition,
+  isPlanStatusTransitionAllowed,
+  planDateKeys,
+  transitionPlanLifecycle,
+} from './planLifecycle';
+
+export type {
+  PlanLifecycleTargetStatus,
+} from './planLifecycle';
+
+export {
+  createPlan,
+  createPlanVersion,
+  getPlan,
+  getPlanVersion,
+  listPlans,
+  listPlanVersions,
+  updatePlanLifecycle,
+} from './planRepository';
+
+export type {
+  CreatePlanInput,
+  UpdatePlanLifecycleInput,
+  PlanDateReservation,
+  PlanVersionCreationResult,
+} from './planRepository';
 
 export {
   createUserEntity,
