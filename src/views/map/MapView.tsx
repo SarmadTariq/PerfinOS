@@ -13,7 +13,7 @@ import { RequireData } from '../../components/layout/RequireData';
 import { MapCanvas } from '../../components/map/MapCanvas';
 import { useColors } from '../../context/ThemeContext';
 import { AppData, Transaction } from '../../models/finance';
-import { Radius, Spacing } from '../../theme';
+import { ControlSize, Radius, Shadows, Spacing, Typography } from '../../theme';
 import { formatCurrencyPrecise } from '../../utils/format';
 
 type MapMode = 'pins' | 'heatmap';
@@ -102,9 +102,9 @@ const MapContent = ({ data }: MapContentProps) => {
     <SafeAreaView edges={['top']} style={[styles.mapShell, { backgroundColor: colors.bg }]}>
       <View style={styles.header}>
         <View style={styles.headerCopy}>
-          <Text variant="h2">Expense Map</Text>
+          <Text variant="h2">Spending map</Text>
           <Text variant="body" color="secondary" style={styles.headerSubtitle}>
-            Spending intensity by region
+            See where mapped expenses are concentrated.
           </Text>
         </View>
 
@@ -129,7 +129,10 @@ const MapContent = ({ data }: MapContentProps) => {
                 onPress={() => handleModeChange(option.value)}
                 style={[
                   styles.modeButton,
-                  isActive && { backgroundColor: colors.card, borderColor: colors.border },
+                  isActive && {
+                    backgroundColor: colors.primarySoft,
+                    borderColor: colors.primary,
+                  },
                 ]}
               >
                 <Text
@@ -151,7 +154,12 @@ const MapContent = ({ data }: MapContentProps) => {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoryScroller}
         >
-          <TouchableOpacity onPress={() => handleCategoryChange('all')} accessibilityRole="button">
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Show all expense categories"
+            accessibilityState={{ selected: categoryId === 'all' }}
+            onPress={() => handleCategoryChange('all')}
+          >
             <CategoryBadge
               label="All"
               icon="layers"
@@ -164,8 +172,12 @@ const MapContent = ({ data }: MapContentProps) => {
           {expenseCategories.map((category) => (
             <TouchableOpacity
               key={category.id}
-              onPress={() => handleCategoryChange(category.id)}
               accessibilityRole="button"
+              accessibilityLabel={`Show ${category.name} expenses`}
+              accessibilityState={{
+                selected: category.id === categoryId,
+              }}
+              onPress={() => handleCategoryChange(category.id)}
             >
               <CategoryBadge
                 label={category.name}
@@ -191,7 +203,6 @@ const MapContent = ({ data }: MapContentProps) => {
         />
 
         <View style={styles.zoomOverlay}>
-          <View style={styles.zoomOverlay}>
             <IconButton
               icon="remove"
               label="Zoom out"
@@ -212,7 +223,6 @@ const MapContent = ({ data }: MapContentProps) => {
                 borderColor: colors.border,
               }}
             />
-          </View>
         </View>
 
         {visibleTransactions.length === 0 ? (
@@ -331,23 +341,23 @@ const styles = StyleSheet.create({
   modeToggle: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
-    borderRadius: Radius.lg,
+    borderRadius: Radius.md,
     padding: Spacing.xs,
     gap: Spacing.xs,
     marginBottom: Spacing.sm,
   },
   modeButton: {
-    minHeight: 36,
-    minWidth: 82,
+    minHeight: ControlSize.minimumTouchTarget,
+    minWidth: 84,
     paddingHorizontal: Spacing.md,
-    borderRadius: Radius.md,
+    borderRadius: Radius.sm,
     borderWidth: 1,
     borderColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
   modeLabel: {
-    fontWeight: '700',
+    fontWeight: Typography.label.fontWeight,
   },
   categoryScroller: {
     gap: Spacing.sm,
@@ -370,11 +380,7 @@ const styles = StyleSheet.create({
   },
   zoomButton: {
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    ...Shadows.sm,
   },
   emptyOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -395,13 +401,9 @@ const styles = StyleSheet.create({
     right: Spacing.md,
     bottom: Spacing.md,
     borderWidth: 1,
-    borderRadius: Radius.xl,
-    padding: Spacing.md,
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 5,
+    borderRadius: Radius.lg,
+    padding: Spacing.lg,
+    ...Shadows.md,
   },
   selectedHeader: {
     flexDirection: 'row',
@@ -409,9 +411,9 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   placeIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: Radius.lg,
+    width: 32,
+    height: 32,
+    borderRadius: Radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -420,11 +422,11 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   selectedContext: {
-    marginTop: 2,
+    marginTop: Spacing.xs,
   },
   closeButton: {
-    width: 36,
-    height: 36,
+    width: ControlSize.iconButton,
+    height: ControlSize.iconButton,
     borderRadius: Radius.round,
     alignItems: 'center',
     justifyContent: 'center',

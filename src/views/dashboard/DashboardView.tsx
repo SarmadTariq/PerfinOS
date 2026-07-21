@@ -13,7 +13,7 @@ import { RequireData } from '../../components/layout/RequireData';
 import { useColors } from '../../context/ThemeContext';
 import { AppData, Category, Transaction } from '../../models/finance';
 import { calculateBudgetHealth, calculateCategoryBreakdown, calculateSavingsProgress, calculateMonthlySummary, sortTransactions } from '../../repositories/AnalyticsRepository';
-import { Radius, Spacing } from '../../theme';
+import { ControlSize, Radius, Spacing, Typography } from '../../theme';
 import { formatCurrency, formatCurrencyPrecise, getMonthKey, readableMonth } from '../../utils/format';
 import { mcIconName } from '../../utils/icons';
 
@@ -318,17 +318,17 @@ const DashboardFocusPanel = ({
   };
 
   return (
-    <Card shadow="sm" style={styles.focusCard}>
+    <Card style={styles.focusCard}>
       <View style={styles.focusHeader}>
         <Text variant="h4" style={styles.focusTitle}>
-          Month Focus
+          Month focus
         </Text>
         <Text variant="caption" color="tertiary" style={styles.focusSubtitle}>
-          Tap a section or swipe sideways
+          Choose a view or swipe between sections
         </Text>
       </View>
 
-      <View style={[styles.segmentedControl, { backgroundColor: colors.bgSecondary }]}>
+      <View style={[styles.segmentedControl, { backgroundColor: colors.bgTertiary }]}>
         {focusTabs.map((tab, index) => {
           const isActive = activeFocus === tab.key;
 
@@ -342,8 +342,12 @@ const DashboardFocusPanel = ({
               style={[
                 styles.segmentButton,
                 {
-                  backgroundColor: isActive ? colors.card : 'transparent',
-                  borderColor: isActive ? colors.border : 'transparent',
+                  backgroundColor: isActive
+                    ? colors.primarySoft
+                    : 'transparent',
+                  borderColor: isActive
+                    ? colors.primary
+                    : 'transparent',
                 },
               ]}
             >
@@ -352,7 +356,7 @@ const DashboardFocusPanel = ({
                 style={[
                   styles.segmentLabel,
                   {
-                    color: isActive ? colors.primary : colors.textSecondary,
+                    color: isActive ? colors.text : colors.textSecondary,
                   },
                 ]}
               >
@@ -385,19 +389,6 @@ const DashboardFocusPanel = ({
         </View>
       </ScrollView>
 
-      <View style={styles.focusDots}>
-        {focusTabs.map((tab) => (
-          <View
-            key={tab.key}
-            style={[
-              styles.focusDot,
-              {
-                backgroundColor: activeFocus === tab.key ? colors.primary : colors.border,
-              },
-            ]}
-          />
-        ))}
-      </View>
     </Card>
   );
 };
@@ -415,13 +406,36 @@ const TransactionRow = ({
 }) => {
   const category = categories.find((item) => item.id === transaction.categoryId);
   const colors = useColors();
-  const amountColor = transaction.type === 'income' ? colors.success : colors.danger;
+  const categoryColor = category?.color || colors.textTertiary;
+  const amountColor =
+    transaction.type === 'income' ? colors.success : colors.danger;
 
   return (
-    <TouchableOpacity onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : undefined}>
+    <TouchableOpacity
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={
+        onPress
+          ? `${transaction.merchant}, ${
+              transaction.type === 'income' ? 'income' : 'expense'
+            } ${formatCurrencyPrecise(transaction.amount, currency)}`
+          : undefined
+      }
+      onPress={onPress}
+      disabled={!onPress}
+      activeOpacity={0.82}
+    >
       <View style={styles.transactionRow}>
-        <View style={[styles.iconTileSmall, { backgroundColor: `${category?.color || '#64748B'}22` }]}>
-          <MaterialCommunityIcons name={mcIconName(category?.icon, 'food')} size={18} color={category?.color || '#64748B'} />
+        <View
+          style={[
+            styles.iconTileSmall,
+            { backgroundColor: `${categoryColor}22` },
+          ]}
+        >
+          <MaterialCommunityIcons
+            name={mcIconName(category?.icon, 'food')}
+            size={17}
+            color={categoryColor}
+          />
         </View>
 
         <View style={styles.transactionCopy}>
@@ -573,13 +587,24 @@ const DashboardContent = ({ data }: { data: AppData }) => {
         currency={currency}
       />
 
-      <Card shadow="sm">
+      <Card>
         <View style={styles.rowBetween}>
           <Text variant="h4" style={styles.recentTitle}>
-            Recent Transactions
+            Recent transactions
           </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Transactions')} accessibilityRole="button">
-            <Text variant="bodySmall" style={[styles.linkInline, { color: colors.primary }]}>View all</Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="View all transactions"
+            onPress={() => navigation.navigate('Transactions')}
+            activeOpacity={0.82}
+            style={styles.linkAction}
+          >
+            <Text
+              variant="bodySmall"
+              style={[styles.linkInline, { color: colors.primary }]}
+            >
+              View all
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -627,10 +652,9 @@ const styles = StyleSheet.create({
     paddingRight: Spacing.xs,
   },
   eyebrow: {
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 0.1,
     marginBottom: Spacing.xs,
-    fontWeight: '700',
+    fontWeight: Typography.label.fontWeight,
     includeFontPadding: false,
   },
   heroMainMetric: {
@@ -647,7 +671,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   statusPillText: {
-    fontWeight: '700',
+    fontWeight: Typography.label.fontWeight,
     includeFontPadding: false,
   },
   heroDivider: {
@@ -720,16 +744,16 @@ const styles = StyleSheet.create({
   },
   segmentButton: {
     flex: 1,
-    borderRadius: Radius.md,
+    borderRadius: Radius.sm,
     borderWidth: 1,
-    minHeight: 38,
+    minHeight: ControlSize.minimumTouchTarget,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.xs,
     alignItems: 'center',
     justifyContent: 'center',
   },
   segmentLabel: {
-    fontWeight: '700',
+    fontWeight: Typography.label.fontWeight,
     includeFontPadding: false,
   },
   focusPanelPageInner: {
@@ -754,9 +778,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   snapshotLabel: {
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    fontWeight: '700',
+    letterSpacing: 0.1,
+    fontWeight: Typography.label.fontWeight,
     includeFontPadding: false,
   },
   snapshotDetail: {
@@ -787,7 +810,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   attentionTitle: {
-    fontWeight: '700',
+    fontWeight: Typography.label.fontWeight,
     includeFontPadding: false,
   },
   attentionDetail: {
@@ -795,23 +818,12 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   focusIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: Radius.lg,
+    width: 32,
+    height: 32,
+    borderRadius: Radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-  },
-  focusDots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    marginTop: Spacing.sm,
-  },
-  focusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: Radius.round,
   },
   rowBetween: {
     flexDirection: 'row',
@@ -834,7 +846,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   transactionMerchant: {
-    fontWeight: '700',
+    fontWeight: Typography.label.fontWeight,
     includeFontPadding: false,
   },
   transactionMeta: {
@@ -844,20 +856,26 @@ const styles = StyleSheet.create({
   transactionAmount: {
     maxWidth: 104,
     textAlign: 'right',
-    fontWeight: '700',
+    fontWeight: Typography.label.fontWeight,
     includeFontPadding: false,
     flexShrink: 0,
   },
   iconTileSmall: {
-    width: 36,
-    height: 36,
-    borderRadius: Radius.lg,
+    width: 32,
+    height: 32,
+    borderRadius: Radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
+  linkAction: {
+    minHeight: ControlSize.minimumTouchTarget,
+    paddingHorizontal: Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   linkInline: {
-    fontWeight: '700',
+    fontWeight: Typography.label.fontWeight,
     includeFontPadding: false,
   },
 });
