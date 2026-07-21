@@ -261,6 +261,23 @@ export const createPlan = async (
     initialVersion
   );
 
+  if (
+    plan.status !== 'draft'
+    || plan.replacedPlanId !== null
+    || plan.activatedAt !== null
+    || plan.completedAt !== null
+    || plan.archivedAt !== null
+  ) {
+    throw new Error(
+      'A new Plan must begin as draft with no lifecycle history'
+    );
+  }
+
+  planDateKeys(
+    plan.startDate,
+    plan.endDate
+  );
+
   if (initialVersion.versionNumber !== 1) {
     throw new Error(
       'The initial Plan version number must be 1'
