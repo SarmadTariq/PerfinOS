@@ -14,7 +14,7 @@ import { useInsights } from '../../context/FinanceContext';
 import { useColors } from '../../context/ThemeContext';
 import { AppData, InsightSeverity, Transaction } from '../../models/finance';
 import { calculateBudgetHealth, filterTransactions, sortTransactions } from '../../repositories/AnalyticsRepository';
-import { Radius, Spacing } from '../../theme';
+import { ControlSize, Radius, Spacing, Typography } from '../../theme';
 import { formatCurrency, getMonthKey, readableMonth } from '../../utils/format';
 
 type DecisionStatus = 'good' | 'watch' | 'action';
@@ -212,7 +212,7 @@ const InsightsContent = ({ data }: { data: AppData }) => {
         action={<IconButton icon="analytics" label="Open analytics" onPress={() => navigation.navigate('Analytics')} />}
       />
 
-      <Card shadow="sm" style={styles.heroCard}>
+      <Card style={styles.heroCard}>
         <View style={styles.rowBetween}>
           <View style={styles.heroCopy}>
             <Text variant="caption" color="secondary" style={styles.overline}>
@@ -259,8 +259,17 @@ const InsightsContent = ({ data }: { data: AppData }) => {
         </Text>
 
         <View style={styles.cardActions}>
-          <Button label={focusDecision.actionLabel} onPress={() => navigation.navigate(focusDecision.route)} style={{ flex: 1 }} />
-          <Button label="Open Reports" onPress={() => navigation.navigate('Reports')} variant="secondary" style={{ flex: 1 }} />
+          <Button
+            label={focusDecision.actionLabel}
+            onPress={() => navigation.navigate(focusDecision.route)}
+            style={styles.heroAction}
+          />
+          <Button
+            label="Open reports"
+            onPress={() => navigation.navigate('Reports')}
+            variant="secondary"
+            style={styles.heroAction}
+          />
         </View>
       </Card>
 
@@ -276,10 +285,10 @@ const InsightsContent = ({ data }: { data: AppData }) => {
           const meta = statusMeta(decision.status, colors);
 
           return (
-            <Card key={decision.title} shadow="sm" style={styles.decisionCard}>
+            <Card key={decision.title} style={styles.decisionCard}>
               <View style={styles.decisionTopRow}>
                 <View style={[styles.decisionIcon, { backgroundColor: `${meta.color}1F` }]}>
-                  <MaterialIcons name={decision.icon} size={22} color={meta.color} />
+                  <MaterialIcons name={decision.icon} size={18} color={meta.color} />
                 </View>
 
                 <View style={styles.decisionCopy}>
@@ -297,7 +306,12 @@ const InsightsContent = ({ data }: { data: AppData }) => {
                     {decision.description}
                   </Text>
 
-                  <View style={styles.evidenceBox}>
+                  <View
+                      style={[
+                        styles.evidenceBox,
+                        { borderColor: colors.borderLight },
+                      ]}
+                    >
                     <Text variant="caption" color="secondary" style={styles.overline}>
                       Evidence
                     </Text>
@@ -306,7 +320,12 @@ const InsightsContent = ({ data }: { data: AppData }) => {
                     </Text>
                   </View>
 
-                  <View style={styles.evidenceBox}>
+                  <View
+                      style={[
+                        styles.evidenceBox,
+                        { borderColor: colors.borderLight },
+                      ]}
+                    >
                     <Text variant="caption" color="secondary" style={styles.overline}>
                       Next action
                     </Text>
@@ -344,10 +363,12 @@ const InsightsContent = ({ data }: { data: AppData }) => {
                 key={insight.id}
                 accessibilityRole="button"
                 accessibilityLabel={`Open evidence for ${insight.title}`}
+                accessibilityHint="Opens Analytics with supporting evidence"
                 onPress={() => navigation.navigate('Analytics')}
-                activeOpacity={0.76}
+                activeOpacity={0.82}
+                style={styles.signalAction}
               >
-                <Card shadow="sm" style={styles.signalCard}>
+                <Card style={styles.signalCard}>
                   <View style={styles.rowBetween}>
                     <View style={styles.signalCopy}>
                       <Text variant="h4">{insight.title}</Text>
@@ -393,9 +414,8 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   overline: {
-    textTransform: 'uppercase',
-    letterSpacing: 0.45,
-    fontWeight: '800',
+    letterSpacing: 0.1,
+    fontWeight: Typography.label.fontWeight,
   },
   sectionHeader: {
     marginBottom: Spacing.md,
@@ -405,17 +425,25 @@ const styles = StyleSheet.create({
   },
   summaryGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.md,
     marginTop: Spacing.lg,
   },
   summaryItem: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: 96,
+    minWidth: 96,
     gap: Spacing.xs,
   },
   cardActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.md,
     marginTop: Spacing.lg,
+  },
+  heroAction: {
+    flexGrow: 1,
+    flexBasis: 156,
   },
   decisionList: {
     gap: Spacing.md,
@@ -429,9 +457,9 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   decisionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: Radius.lg,
+    width: 32,
+    height: 32,
+    borderRadius: Radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -444,9 +472,8 @@ const styles = StyleSheet.create({
   },
   evidenceBox: {
     marginTop: Spacing.md,
-    padding: Spacing.md,
-    borderRadius: Radius.md,
-    backgroundColor: 'rgba(120,120,120,0.08)',
+    paddingTop: Spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   stepAction: {
     alignSelf: 'flex-start',
@@ -455,11 +482,16 @@ const styles = StyleSheet.create({
   signalList: {
     gap: Spacing.md,
   },
+  signalAction: {
+    minHeight: ControlSize.minimumTouchTarget,
+    borderRadius: Radius.md,
+  },
   signalCard: {
     paddingVertical: Spacing.md,
   },
   signalCopy: {
     flex: 1,
+    minWidth: 0,
     gap: Spacing.sm,
   },
   signalDescription: {
@@ -467,6 +499,6 @@ const styles = StyleSheet.create({
   },
   linkCopy: {
     marginTop: Spacing.md,
-    fontWeight: '800',
+    fontWeight: Typography.label.fontWeight,
   },
 });

@@ -1,6 +1,19 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ViewStyle, ActivityIndicator } from 'react-native';
-import { Colors, Spacing, Radius, Typography } from '../../theme';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  ViewStyle,
+} from 'react-native';
+import {
+  BrandColors,
+  Colors,
+  ControlSize,
+  Radius,
+  Spacing,
+  Typography,
+} from '../../theme';
 import { useThemeScheme } from '../../context/ThemeContext';
 
 interface ButtonProps {
@@ -25,7 +38,9 @@ export const Button: React.FC<ButtonProps> = ({
   accessibilityLabel,
 }) => {
   const scheme = useThemeScheme();
-  const colors = scheme === 'dark' ? Colors.dark : Colors.light;
+  const isDark = scheme === 'dark';
+  const colors = isDark ? Colors.dark : Colors.light;
+  const unavailable = disabled || loading;
 
   const variantColor = {
     primary: colors.primary,
@@ -34,13 +49,33 @@ export const Button: React.FC<ButtonProps> = ({
     success: colors.success,
   }[variant];
 
-  const isTextVariant = variant === 'secondary';
-  const textColor = isTextVariant ? colors.text : '#FFFFFF';
+  const enabledTextColor =
+    variant === 'secondary'
+      ? colors.text
+      : variant === 'primary' && isDark
+        ? BrandColors.ink
+        : BrandColors.paper;
+
+  const textColor = unavailable
+    ? colors.textTertiary
+    : enabledTextColor;
 
   const sizeStyles = {
-    sm: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
-    md: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-    lg: { paddingHorizontal: Spacing.xl, paddingVertical: Spacing.lg },
+    sm: {
+      minHeight: ControlSize.minimumTouchTarget,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.sm,
+    },
+    md: {
+      minHeight: ControlSize.button,
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.md,
+    },
+    lg: {
+      minHeight: ControlSize.button + Spacing.sm,
+      paddingHorizontal: Spacing.xl,
+      paddingVertical: Spacing.md,
+    },
   };
 
   const textSizes = {
@@ -50,7 +85,7 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   const handlePress = () => {
-    if (!disabled && !loading) {
+    if (!unavailable) {
       onPress();
     }
   };
@@ -59,26 +94,43 @@ export const Button: React.FC<ButtonProps> = ({
     <TouchableOpacity
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel || label}
-      accessibilityState={{ disabled: disabled || loading, busy: loading }}
+      accessibilityState={{
+        disabled: unavailable,
+        busy: loading,
+      }}
       onPress={handlePress}
-      disabled={disabled || loading}
+      disabled={unavailable}
+      activeOpacity={0.82}
       style={[
         styles.button,
+        sizeStyles[size],
         {
-          backgroundColor: disabled ? colors.textTertiary : variantColor,
-          borderColor: variant === 'secondary' ? colors.border : variantColor,
-          borderWidth: variant === 'secondary' ? 1 : 0,
-          borderRadius: Radius.md,
-          ...sizeStyles[size],
+          backgroundColor: unavailable
+            ? colors.bgTertiary
+            : variantColor,
+          borderColor: unavailable
+            ? colors.border
+            : variant === 'secondary'
+              ? colors.border
+              : variantColor,
+          borderWidth: variant === 'secondary' || unavailable ? 1 : 0,
+          opacity: unavailable ? 0.72 : 1,
         },
         style,
       ]}
-      activeOpacity={0.7}
     >
       {loading ? (
         <ActivityIndicator color={textColor} size="small" />
       ) : (
-        <Text style={[textSizes[size], { color: textColor, fontWeight: '600' }]}>
+        <Text
+          style={[
+            textSizes[size],
+            {
+              color: textColor,
+              fontWeight: Typography.label.fontWeight,
+            },
+          ]}
+        >
           {label}
         </Text>
       )}
@@ -90,6 +142,6 @@ const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 46,
+    borderRadius: Radius.sm,
   },
 });
