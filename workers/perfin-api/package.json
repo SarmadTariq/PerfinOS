@@ -8,7 +8,10 @@
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "verify:config": "node scripts/verify-config.mjs",
+    "verify:security": "node scripts/verify-security.mjs",
+    "verify:release": "npm run test && npm run typecheck && npm run verify:config && npm run verify:security && wrangler deploy --dry-run"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.18.7",

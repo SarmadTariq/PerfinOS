@@ -1,4 +1,8 @@
 export interface Env {
+  PLAN_ENV?:
+    | 'local'
+    | 'production';
+
   RECEIPTS: R2Bucket;
   GEMINI_API_KEY?: string;
 
