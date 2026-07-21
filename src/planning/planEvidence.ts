@@ -13,9 +13,11 @@ import type {
   PlanEvidenceCoverageInput,
   PlanEvidenceExpectedIncome,
   PlanEvidenceHorizonRequest,
+  PlanEvidenceInput,
   PlanEvidenceLocationResult,
   PlanEvidencePeriod,
   PlanEvidenceRecurringResult,
+  PlanEvidenceSnapshot,
   PlanEvidenceRecurringSignal,
   PlanEvidenceRecordedFinancials,
   PlanEvidenceSavingsProgress,
@@ -1426,6 +1428,36 @@ export const calculateAvailableAfterCommitments = (
     .recordedExpensesMinor -
   recurringEvidence.unmatchedMinor;
 
+const canonicalAreaLabel = (
+  value: string | undefined
+) => {
+  const normalized =
+    value
+      ?.trim()
+      .replace(/\s+/g, ' ');
+
+  if (!normalized) {
+    return null;
+  }
+
+  return normalized
+    .split(' ')
+    .map((word) =>
+      word.length === 0
+        ? word
+        : `${word
+            .slice(0, 1)
+            .toLocaleUpperCase(
+              'en-US'
+            )}${word
+            .slice(1)
+            .toLocaleLowerCase(
+              'en-US'
+            )}`
+    )
+    .join(' ');
+};
+
 export const calculateLocationEvidence = (
   transactions: Transaction[],
   period: PlanEvidencePeriod,
@@ -1455,9 +1487,10 @@ export const calculateLocationEvidence = (
     )
     .forEach((transaction) => {
       const areaLabel =
-        transaction.location
-          .neighborhood
-          ?.trim();
+        canonicalAreaLabel(
+          transaction.location
+            .neighborhood
+        );
 
       if (!areaLabel) {
         return;
@@ -1572,5 +1605,476 @@ export const finalizeEvidenceCoverage = (
           ? 'partial'
           : 'complete',
     warnings,
+  };
+};
+
+
+const stableSerialize = (
+  value: unknown
+): string => {
+  if (value === null) {
+    return 'null';
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value
+      .map(stableSerialize)
+      .join(',')}]`;
+  }
+
+  if (
+    typeof value === 'string' ||
+    typeof value === 'boolean'
+  ) {
+    return JSON.stringify(value);
+  }
+
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) {
+      throw new Error(
+        'Revision values must be finite'
+      );
+    }
+
+    return JSON.stringify(value);
+  }
+
+  if (typeof value === 'object') {
+    const record =
+      value as Record<
+        string,
+        unknown
+      >;
+
+    return `{${Object.keys(record)
+      .sort()
+      .map(
+        (key) =>
+          `${JSON.stringify(
+            key
+          )}:${stableSerialize(
+            record[key]
+          )}`
+      )
+      .join(',')}}`;
+  }
+
+  throw new Error(
+    'Unsupported revision value'
+  );
+};
+
+const revisionHash32 = (
+  value: string,
+  seed: number
+) => {
+  let hash = seed >>> 0;
+
+  for (
+    let index = 0;
+    index < value.length;
+    index += 1
+  ) {
+    hash ^=
+      value.charCodeAt(index);
+
+    hash =
+      Math.imul(
+        hash,
+        0x01000193
+      ) >>> 0;
+  }
+
+  return hash
+    .toString(16)
+    .padStart(8, '0');
+};
+
+const deterministicRevision = (
+  payload: unknown
+) => {
+  const serialized =
+    stableSerialize(payload);
+
+  const seeds = [
+    0x811c9dc5,
+    0x9e3779b9,
+    0x85ebca6b,
+    0xc2b2ae35,
+  ];
+
+  return `pe1-${seeds
+    .map((seed) =>
+      revisionHash32(
+        serialized,
+        seed
+      )
+    )
+    .join('')}`;
+};
+
+const sortRevisionRows = <
+  T extends Record<
+    string,
+    unknown
+  >
+>(
+  rows: T[]
+) =>
+  rows
+    .slice()
+    .sort((left, right) =>
+      stableSerialize(left)
+        .localeCompare(
+          stableSerialize(right)
+        )
+    );
+
+const revisionCategoryBudgets = (
+  categoryBudgets:
+    Record<string, number>,
+  currency: string
+) =>
+  Object.fromEntries(
+    Object.entries(
+      categoryBudgets
+    )
+      .sort(
+        ([left], [right]) =>
+          left.localeCompare(right)
+      )
+      .map(
+        ([categoryId, amount]) => [
+          categoryId,
+          toMinorUnits(
+            amount,
+            currency
+          ),
+        ]
+      )
+  );
+
+const createEvidenceRevision = (
+  input: PlanEvidenceInput,
+  period: PlanEvidencePeriod,
+  snapshot:
+    Omit<
+      PlanEvidenceSnapshot,
+      'baselineRevision'
+    >
+) => {
+  const currency =
+    normalizeCurrency(
+      input.user.currency
+    );
+
+  const budgetMonthKey =
+    evidenceBudgetMonthKey(
+      input.horizon
+    );
+
+  const transactionRows =
+    sortRevisionRows(
+      input.transactions
+        .filter((transaction) =>
+          transactionIsInPeriod(
+            transaction,
+            period
+          )
+        )
+        .map((transaction) => ({
+          type: transaction.type,
+          amountMinor:
+            toMinorUnits(
+              transaction.amount,
+              currency
+            ),
+          categoryId:
+            transaction.categoryId,
+          categoryName:
+            normalizeMatchValue(
+              transaction.categoryName
+            ),
+          merchant:
+            normalizeMatchValue(
+              transaction.merchant
+            ),
+          date: transaction.date,
+          neighborhood:
+            canonicalAreaLabel(
+              transaction.location
+                .neighborhood
+            ),
+        }))
+    );
+
+  const categoryRows =
+    sortRevisionRows(
+      input.categories.map(
+        (category) => ({
+          categoryId: category.id,
+          categoryName:
+            category.name.trim(),
+          type: category.type,
+          monthlyBudgetMinor:
+            toMinorUnits(
+              category.monthlyBudget,
+              currency
+            ),
+        })
+      )
+    );
+
+  const budgetRows =
+    sortRevisionRows(
+      input.budgets
+        .filter(
+          (budget) =>
+            budget.month ===
+            budgetMonthKey
+        )
+        .map((budget) => ({
+          month: budget.month,
+          totalBudgetMinor:
+            toMinorUnits(
+              budget.totalBudget,
+              currency
+            ),
+          categoryBudgetsMinor:
+            revisionCategoryBudgets(
+              budget.categoryBudgets,
+              currency
+            ),
+        }))
+    );
+
+  const savingsRows =
+    sortRevisionRows(
+      input.savingsGoals.map(
+        (goal) => ({
+          targetMinor:
+            toMinorUnits(
+              goal.targetAmount,
+              currency
+            ),
+          savedMinor:
+            toMinorUnits(
+              goal.currentAmount,
+              currency
+            ),
+          targetDate:
+            goal.targetDate,
+        })
+      )
+    );
+
+  const recurringRows =
+    sortRevisionRows(
+      input.recurringExpenses.map(
+        (recurringExpense) => ({
+          merchant:
+            normalizeMatchValue(
+              recurringExpense.merchant
+            ),
+          amountMinor:
+            toMinorUnits(
+              recurringExpense.amount,
+              currency
+            ),
+          category:
+            normalizeMatchValue(
+              recurringExpense.category
+            ),
+          frequency:
+            recurringExpense.frequency,
+          nextDate:
+            recurringExpense.nextDate,
+          status:
+            recurringExpense.status,
+        })
+      )
+    );
+
+  return deterministicRevision({
+    snapshot,
+    sourceState: {
+      transactions:
+        transactionRows,
+      categories: categoryRows,
+      budgets: budgetRows,
+      savings: savingsRows,
+      recurring: recurringRows,
+    },
+  });
+};
+
+export const buildPlanEvidenceSnapshot = (
+  input: PlanEvidenceInput
+): PlanEvidenceSnapshot => {
+  const currency =
+    normalizeCurrency(
+      input.user.currency
+    );
+
+  const period =
+    resolvePlanEvidencePeriod(
+      input.horizon
+    );
+
+  const recordedFinancials =
+    calculateRecordedFinancials(
+      input.transactions,
+      period,
+      currency
+    );
+
+  const expectedIncome =
+    resolveExpectedIncome(
+      input.horizon,
+      period,
+      input.user.monthlyIncome,
+      currency
+    );
+
+  const budgetContext =
+    resolveBudgetContext(
+      input.horizon,
+      period,
+      input.budgets,
+      input.categories,
+      currency
+    );
+
+  const categories =
+    calculateCategorySignals(
+      input.transactions,
+      input.categories,
+      period,
+      currency,
+      budgetContext
+    );
+
+  const savings =
+    calculateSavingsProgressEvidence(
+      input.savingsGoals,
+      currency
+    );
+
+  const recurringEvidence =
+    calculateRecurringEvidence(
+      input.recurringExpenses,
+      input.transactions,
+      period,
+      currency
+    );
+
+  const locations =
+    calculateLocationEvidence(
+      input.transactions,
+      period,
+      currency
+    );
+
+  const baseCoverage =
+    buildBaseEvidenceCoverage({
+      transactionCount:
+        recordedFinancials
+          .transactionCount,
+      incomeTransactionCount:
+        recordedFinancials
+          .incomeTransactionCount,
+      expenseTransactionCount:
+        recordedFinancials
+          .expenseTransactionCount,
+      locationEligibleTransactionCount:
+        locations
+          .eligibleTransactionCount,
+      expectedIncome,
+      budgetAvailable:
+        budgetContext.totalMinor !==
+        null,
+      savingsGoalCount:
+        savings.goalCount,
+    });
+
+  const coverage =
+    finalizeEvidenceCoverage(
+      baseCoverage,
+      recurringEvidence
+        .occurrenceCount,
+      locations.signals.length
+    );
+
+  const snapshot:
+    Omit<
+      PlanEvidenceSnapshot,
+      'baselineRevision'
+    > = {
+    schemaVersion: 1,
+    period,
+    currency,
+    currencyFractionDigits:
+      currencyFractionDigits(
+        currency
+      ),
+    totals: {
+      recordedIncomeMinor:
+        recordedFinancials
+          .recordedIncomeMinor,
+      expectedIncome,
+      recordedExpensesMinor:
+        recordedFinancials
+          .recordedExpensesMinor,
+      netCashFlowMinor:
+        recordedFinancials
+          .netCashFlowMinor,
+      projectedRecurringCommitmentsMinor:
+        recurringEvidence
+          .projectedMinor,
+      unmatchedRecurringCommitmentsMinor:
+        recurringEvidence
+          .unmatchedMinor,
+      availableAfterCommitmentsMinor:
+        calculateAvailableAfterCommitments(
+          recordedFinancials,
+          recurringEvidence
+        ),
+      budgetTotalMinor:
+        budgetContext.totalMinor,
+      horizonBudgetSpendMinor:
+        recordedFinancials
+          .horizonBudgetSpendMinor,
+    },
+    categories,
+    recurring:
+      recurringEvidence.signals,
+    savings,
+    locations:
+      locations.signals,
+    coverage,
+  };
+
+  return {
+    schemaVersion:
+      snapshot.schemaVersion,
+    baselineRevision:
+      createEvidenceRevision(
+        input,
+        period,
+        snapshot
+      ),
+    period: snapshot.period,
+    currency: snapshot.currency,
+    currencyFractionDigits:
+      snapshot.currencyFractionDigits,
+    totals: snapshot.totals,
+    categories:
+      snapshot.categories,
+    recurring:
+      snapshot.recurring,
+    savings: snapshot.savings,
+    locations:
+      snapshot.locations,
+    coverage: snapshot.coverage,
   };
 };

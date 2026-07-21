@@ -1,5 +1,11 @@
 import type {
+  Budget,
+  Category,
+  RecurringExpense,
   RecurringFrequency,
+  SavingsGoal,
+  Transaction,
+  User,
 } from '../models/finance';
 
 export type PlanEvidenceHorizonKind =
@@ -163,4 +169,15 @@ export interface PlanEvidenceRecurringResult {
 export interface PlanEvidenceLocationResult {
   eligibleTransactionCount: number;
   signals: PlanEvidenceLocationSignal[];
+}
+
+
+export interface PlanEvidenceInput {
+  user: User;
+  horizon: PlanEvidenceHorizonRequest;
+  transactions: Transaction[];
+  categories: Category[];
+  budgets: Budget[];
+  savingsGoals: SavingsGoal[];
+  recurringExpenses: RecurringExpense[];
 }

@@ -1554,3 +1554,412 @@ describe('Plan recurring and location coverage', () => {
     ).toBe('insufficient');
   });
 });
+
+import type {
+  User,
+} from '../../src/models/finance';
+import type {
+  PlanEvidenceInput,
+} from '../../src/planning/planEvidence.types';
+import {
+  buildPlanEvidenceSnapshot,
+} from '../../src/planning/planEvidence';
+
+const evidenceUser = (
+  overrides: Partial<User> = {}
+): User => ({
+  id: 'alice',
+  name: 'Private User',
+  email: 'private@example.com',
+  phone: '+1 416 555 0100',
+  currency: 'CAD',
+  monthlyIncome: 4200.1,
+  monthlyBudget: 1200,
+  createdAt: '2026-07-01T12:00:00.000Z',
+  ...overrides,
+});
+
+const fullEvidenceInput = (
+  overrides:
+    Partial<PlanEvidenceInput> = {}
+): PlanEvidenceInput => ({
+  user: evidenceUser(),
+  horizon: {
+    kind: 'current_month',
+    anchorDate: '2026-07-21',
+  },
+  transactions: [
+    transaction({
+      id: 'income',
+      type: 'income',
+      amount: 2000,
+      categoryId: 'salary',
+      categoryName: 'Salary',
+      merchant: 'Private Employer',
+      date: '2026-07-15',
+    }),
+    transaction({
+      id: 'recorded-commitment',
+      amount: 50,
+      merchant: 'Private Merchant',
+      categoryId: 'food',
+      categoryName: 'Food',
+      date: '2026-07-15',
+      location: {
+        ...location,
+        neighborhood: 'Downtown',
+      },
+    }),
+    transaction({
+      id: 'midtown-1',
+      amount: 10,
+      date: '2026-07-18',
+      location: {
+        ...location,
+        neighborhood: 'Midtown',
+      },
+    }),
+    transaction({
+      id: 'midtown-2',
+      amount: 20,
+      date: '2026-07-19',
+      location: {
+        ...location,
+        neighborhood: ' midtown ',
+      },
+    }),
+    transaction({
+      id: 'midtown-3',
+      amount: 30,
+      date: '2026-07-20',
+      location: {
+        ...location,
+        neighborhood: 'MIDTOWN',
+      },
+    }),
+  ],
+  categories: [
+    category(),
+    category({
+      id: 'transport',
+      name: 'Transport',
+      monthlyBudget: 200,
+    }),
+  ],
+  budgets: [
+    budget(),
+  ],
+  savingsGoals: [
+    savingsGoal(),
+  ],
+  recurringExpenses: [
+    recurringExpense(),
+    recurringExpense({
+      id: 'recurring-rent',
+      merchant: 'Private Rent',
+      amount: 100,
+      category: 'Housing',
+      frequency: 'monthly',
+      nextDate: '2026-07-18',
+    }),
+  ],
+  ...overrides,
+});
+
+describe('Complete Plan evidence snapshot', () => {
+  it('assembles all authoritative evidence before AI use', () => {
+    const snapshot =
+      buildPlanEvidenceSnapshot(
+        fullEvidenceInput()
+      );
+
+    expect(snapshot).toMatchObject({
+      schemaVersion: 1,
+      period: {
+        kind: 'current_month',
+        startDate: '2026-07-01',
+        endDate: '2026-07-21',
+        monthKey: '2026-07',
+        dayCount: 21,
+        isCompleteCalendarMonth: false,
+      },
+      currency: 'CAD',
+      currencyFractionDigits: 2,
+      totals: {
+        recordedIncomeMinor: 200000,
+        expectedIncome: {
+          amountMinor: 420010,
+          basis:
+            'profile_monthly_income',
+        },
+        recordedExpensesMinor: 11000,
+        netCashFlowMinor: 189000,
+        projectedRecurringCommitmentsMinor:
+          15000,
+        unmatchedRecurringCommitmentsMinor:
+          10000,
+        availableAfterCommitmentsMinor:
+          179000,
+        budgetTotalMinor: 120000,
+        horizonBudgetSpendMinor: 11000,
+      },
+      savings: {
+        goalCount: 1,
+        targetMinor: 100000,
+        savedMinor: 25000,
+        remainingMinor: 75000,
+        completionPercent: 25,
+      },
+      locations: [
+        {
+          areaLabel: 'Midtown',
+          transactionCount: 3,
+          totalSpendMinor: 6000,
+        },
+      ],
+      coverage: {
+        status: 'complete',
+        transactionCount: 5,
+        incomeTransactionCount: 1,
+        expenseTransactionCount: 4,
+        locationEligibleTransactionCount: 4,
+        warnings: [],
+      },
+    });
+
+    expect(
+      snapshot.baselineRevision
+    ).toMatch(
+      /^pe1-[0-9a-f]{32}$/
+    );
+  });
+
+  it('returns the same revision for equivalent input ordering', () => {
+    const original =
+      fullEvidenceInput();
+
+    const reordered:
+      PlanEvidenceInput = {
+        ...original,
+        transactions:
+          original.transactions
+            .slice()
+            .reverse(),
+        categories:
+          original.categories
+            .slice()
+            .reverse(),
+        budgets:
+          original.budgets
+            .slice()
+            .reverse(),
+        savingsGoals:
+          original.savingsGoals
+            .slice()
+            .reverse(),
+        recurringExpenses:
+          original.recurringExpenses
+            .slice()
+            .reverse(),
+      };
+
+    const first =
+      buildPlanEvidenceSnapshot(
+        original
+      );
+
+    const second =
+      buildPlanEvidenceSnapshot(
+        reordered
+      );
+
+    expect(
+      second.baselineRevision
+    ).toBe(
+      first.baselineRevision
+    );
+
+    expect(second).toEqual(first);
+  });
+
+  it('changes the revision when relevant financial evidence changes', () => {
+    const original =
+      fullEvidenceInput();
+
+    const changed:
+      PlanEvidenceInput = {
+        ...original,
+        transactions:
+          original.transactions.map(
+            (item) =>
+              item.id ===
+              'midtown-1'
+                ? {
+                    ...item,
+                    amount: 11,
+                  }
+                : item
+          ),
+      };
+
+    expect(
+      buildPlanEvidenceSnapshot(
+        changed
+      ).baselineRevision
+    ).not.toBe(
+      buildPlanEvidenceSnapshot(
+        original
+      ).baselineRevision
+    );
+  });
+
+  it('does not change the revision for excluded sensitive-only edits', () => {
+    const original =
+      fullEvidenceInput();
+
+    const changed:
+      PlanEvidenceInput = {
+        ...original,
+        user: {
+          ...original.user,
+          name:
+            'Different Private User',
+          email:
+            'different@example.com',
+          phone:
+            '+1 647 555 9999',
+        },
+        transactions:
+          original.transactions.map(
+            (item) =>
+              item.id ===
+              'midtown-1'
+                ? {
+                    ...item,
+                    notes:
+                      'Different private note',
+                    paymentMethod:
+                      'Different Private Card',
+                    receipts: [
+                      {
+                        id: 'receipt-private',
+                        objectKey:
+                          'private/object',
+                        fileName:
+                          'private.jpg',
+                        mimeType:
+                          'image/jpeg',
+                        sizeBytes: 100,
+                        uploadedAt:
+                          '2026-07-21T12:00:00.000Z',
+                        status: 'local',
+                        uri:
+                          'file://private',
+                      },
+                    ],
+                    location: {
+                      ...item.location,
+                      placeId:
+                        'private-place-id',
+                      name:
+                        'Different Private Place',
+                      formattedAddress:
+                        '999 Private Street',
+                      address:
+                        '999 Private Street',
+                      latitude: 1,
+                      longitude: 2,
+                      source:
+                        'imported',
+                    },
+                  }
+                : item
+          ),
+        savingsGoals:
+          original.savingsGoals.map(
+            (goal) => ({
+              ...goal,
+              name:
+                'Different Private Goal',
+            })
+          ),
+      };
+
+    expect(
+      buildPlanEvidenceSnapshot(
+        changed
+      ).baselineRevision
+    ).toBe(
+      buildPlanEvidenceSnapshot(
+        original
+      ).baselineRevision
+    );
+  });
+
+  it('does not expose prohibited source values in the snapshot', () => {
+    const serialized =
+      JSON.stringify(
+        buildPlanEvidenceSnapshot(
+          fullEvidenceInput()
+        )
+      );
+
+    [
+      'Private User',
+      'private@example.com',
+      '+1 416 555 0100',
+      'Private Employer',
+      'Private Merchant',
+      'Private Rent',
+      'Private note',
+      'Private Card',
+      '100 Private Street',
+      'Emergency fund',
+    ].forEach((value) => {
+      expect(serialized)
+        .not.toContain(value);
+    });
+  });
+
+  it('returns an insufficient but usable empty snapshot', () => {
+    const snapshot =
+      buildPlanEvidenceSnapshot(
+        fullEvidenceInput({
+          transactions: [],
+          categories: [],
+          budgets: [],
+          savingsGoals: [],
+          recurringExpenses: [],
+        })
+      );
+
+    expect(snapshot).toMatchObject({
+      totals: {
+        recordedIncomeMinor: 0,
+        recordedExpensesMinor: 0,
+        netCashFlowMinor: 0,
+        projectedRecurringCommitmentsMinor:
+          0,
+        unmatchedRecurringCommitmentsMinor:
+          0,
+        availableAfterCommitmentsMinor:
+          0,
+        budgetTotalMinor: null,
+        horizonBudgetSpendMinor: 0,
+      },
+      categories: [],
+      recurring: [],
+      locations: [],
+      savings: {
+        goalCount: 0,
+        targetMinor: 0,
+        savedMinor: 0,
+        remainingMinor: 0,
+        completionPercent: 0,
+      },
+      coverage: {
+        status: 'insufficient',
+      },
+    });
+  });
+});
