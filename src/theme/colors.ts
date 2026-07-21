@@ -10,6 +10,17 @@
 
 export type ThemeScheme = 'light' | 'dark';
 
+export const BrandColors = {
+  ink: '#111827',
+  blue: '#6C74E6',
+  blueLight: '#AEB4FF',
+  paper: '#F8FAFC',
+  budgetMint: '#58B87B',
+  reportViolet: '#8D63D5',
+  insightTeal: '#2AA6A4',
+  goalOrange: '#E9823C',
+} as const;
+
 export type ThemeColors = {
   bg: string;
   bgSecondary: string;
@@ -33,15 +44,15 @@ export type ThemeColorToken = keyof ThemeColors;
 
 export const Colors: Record<ThemeScheme, ThemeColors> = {
   light: {
-    bg: '#F7F7F7',
+    bg: BrandColors.paper,
     bgSecondary: '#FFFFFF',
     bgTertiary: '#ECECEC',
-    text: '#111111',
+    text: BrandColors.ink,
     textSecondary: '#4A4A4A',
     textTertiary: '#777777',
     border: '#D6D6D6',
     borderLight: '#EEEEEE',
-    primary: '#007AFF',
+    primary: BrandColors.blue,
     primarySoft: '#E8F2FF',
     success: '#34C759',
     danger: '#FF3B30',
@@ -51,15 +62,15 @@ export const Colors: Record<ThemeScheme, ThemeColors> = {
     surfaceBlue: '#E8F2FF',
   },
   dark: {
-    bg: '#0F0F0F',
+    bg: BrandColors.ink,
     bgSecondary: '#171717',
     bgTertiary: '#242424',
-    text: '#F5F5F5',
+    text: BrandColors.paper,
     textSecondary: '#C9C9C9',
     textTertiary: '#929292',
     border: '#363636',
     borderLight: '#282828',
-    primary: '#0A84FF',
+    primary: BrandColors.blueLight,
     primarySoft: '#1A2E44',
     success: '#32D74B',
     danger: '#FF453A',

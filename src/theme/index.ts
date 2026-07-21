@@ -8,6 +8,6 @@
  * @example
  * import { Colors, Spacing, Typography, Radius, Shadows } from '../../theme';
  */
-export { Colors, getThemeColor } from './colors';
+export { BrandColors, Colors, getThemeColor } from './colors';
 export { Typography } from './typography';
-export { Spacing, Radius, Shadows, Container } from './spacing';
+export { Spacing, Radius, Shadows, Container, ControlSize } from './spacing';

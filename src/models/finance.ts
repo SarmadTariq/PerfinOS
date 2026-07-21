@@ -156,6 +156,13 @@ export interface TransactionFilters {
   recurringOnly?: boolean;
 }
 
-export type TransactionDatePreset = 'this-month' | 'last-month' | 'last-30-days' | 'this-year' | 'all' | 'custom';
+export type TransactionDatePreset =
+  | 'this-week'
+  | 'last-2-weeks'
+  | 'this-month'
+  | 'last-3-months'
+  | 'last-6-months'
+  | 'last-12-months'
+  | 'custom';
 export type TransactionFrequencyFilter = 'all' | 'recurring' | 'one-time';
 export type TransactionSortKey = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc' | 'merchant-asc';

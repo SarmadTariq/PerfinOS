@@ -2,13 +2,25 @@
  * TransactionFormView - shared add/edit form for transactions.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { Image, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialIcons } from '@expo/vector-icons';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Card, Text } from '../../components/base';
-import { CategoryBadge, ErrorState, IconButton, ScreenHeader } from '../../components/finance';
+import { CategoryBadge, IconButton, ScreenHeader } from '../../components/finance';
 import { Field } from '../../components/form/Field';
 import { SelectField } from '../../components/form/SelectField';
 import { Segmented } from '../../components/form/Segmented';
@@ -18,7 +30,7 @@ import { MapCanvas } from '../../components/map/MapCanvas';
 import { useFinance } from '../../context/FinanceContext';
 import { useColors } from '../../context/ThemeContext';
 import { AppData, Category, ReceiptAttachment, Transaction } from '../../models/finance';
-import { Colors, Radius, Spacing } from '../../theme';
+import { BrandColors, Colors, Radius, Spacing, Typography } from '../../theme';
 import { todayIso } from '../../utils/format';
 import { MAX_RECEIPTS_PER_TRANSACTION, MAX_RECEIPT_BYTES, parseMoney, sanitizeMoneyInput, SUPPORTED_RECEIPT_MIME_TYPES } from '../../utils/validation';
 import { getCurrentLocation, getLocationSuggestions } from '../../services/locationService';
@@ -177,13 +189,20 @@ const SectionHeader = ({
 
   return (
     <View style={styles.sectionHeader}>
-      <View style={[styles.sectionIcon, { backgroundColor: colors.primarySoft }]}>
-        <MaterialIcons name={icon} size={18} color={colors.primary} />
-      </View>
+      <MaterialIcons
+        name={icon}
+        size={20}
+        color={colors.textSecondary}
+      />
 
-      <View style={{ flex: 1 }}>
+      <View style={styles.sectionHeaderCopy}>
         <Text variant="h4">{title}</Text>
-        <Text variant="bodySmall" color="secondary" style={{ marginTop: Spacing.xs }}>
+
+        <Text
+          variant="bodySmall"
+          color="secondary"
+          style={{ marginTop: Spacing.xs }}
+        >
           {subtitle}
         </Text>
       </View>
@@ -364,11 +383,11 @@ const LocationSection = ({
     : null;
 
   return (
-    <Card shadow="sm" style={styles.sectionCard}>
+    <Card style={styles.sectionCard}>
       <SectionHeader
         icon="place"
-        title="Location"
-        subtitle="Search first, then use the map to confirm the selected place."
+        title="Place"
+        subtitle="Optional. Add a place only when it helps explain the transaction."
       />
 
       <Field
@@ -405,26 +424,69 @@ const LocationSection = ({
       ) : null}
 
       {selectedPlace ? (
-        <View style={[styles.selectedPlaceBox, { borderColor: colors.border, backgroundColor: colors.bgSecondary }]}>
-          <View style={[styles.suggestionIcon, { backgroundColor: colors.primarySoft }]}>
-            <MaterialIcons name="check-circle" size={18} color={colors.primary} />
-          </View>
+        <View
+          style={[
+            styles.selectedPlaceBox,
+            { backgroundColor: colors.primarySoft },
+          ]}
+        >
+          <MaterialIcons
+            name="check-circle"
+            size={16}
+            color={colors.primary}
+          />
 
-          <View style={{ flex: 1 }}>
-            <Text variant="body" style={{ fontWeight: '800' }} numberOfLines={1}>
-              {selectedPlace.name}
-            </Text>
-            <Text variant="bodySmall" color="secondary" numberOfLines={2} style={{ marginTop: Spacing.xs }}>
-              {selectedPlace.formattedAddress || selectedPlace.address}
-            </Text>
-          </View>
+          <Text
+            variant="caption"
+            style={{ color: colors.primary, fontWeight: '800' }}
+          >
+            Selected
+          </Text>
+
+          <Text
+            variant="caption"
+            color="secondary"
+            numberOfLines={1}
+            style={{ flexShrink: 1 }}
+          >
+            {selectedPlace.name ||
+              selectedPlace.formattedAddress ||
+              selectedPlace.address}
+          </Text>
         </View>
       ) : null}
 
-      <View style={styles.cardActions}>
-        <Button label="Use Current Location" variant="secondary" onPress={onUseCurrentLocation} style={{ flex: 1 }} />
-        <Button label="Clear" variant="secondary" onPress={onClearLocation} style={{ flex: 0, paddingHorizontal: Spacing.lg }} />
-      </View>
+      {selectedPlace ? (
+        <View style={styles.cardActions}>
+          <Button
+            label="Change"
+            variant="secondary"
+            onPress={() => {
+              const selectedName =
+                selectedPlace.name ||
+                selectedPlace.formattedAddress ||
+                selectedPlace.address;
+
+              onClearLocation();
+              setPlaceQuery(selectedName);
+            }}
+            style={{ flex: 1 }}
+          />
+
+          <Button
+            label="Remove"
+            variant="secondary"
+            onPress={onClearLocation}
+            style={{ flex: 1 }}
+          />
+        </View>
+      ) : (
+        <Button
+          label="Use my location"
+          variant="secondary"
+          onPress={onUseCurrentLocation}
+        />
+      )}
 
       <View style={[styles.mapFrame, { borderColor: colors.border, backgroundColor: colors.bgSecondary }]}>
         {previewTransaction ? (
@@ -466,7 +528,7 @@ const ReceiptsSection = ({
   const colors = useColors();
 
   return (
-    <Card shadow="sm" style={styles.sectionCard}>
+    <Card style={styles.sectionCard}>
       <SectionHeader
         icon="receipt-long"
         title="Receipts"
@@ -518,7 +580,7 @@ const ReceiptsSection = ({
                 onPress={() => onRemoveReceipt(receipt.id)}
                 style={styles.receiptRemove}
               >
-                <MaterialIcons name="close" size={16} color="#FFFFFF" />
+                <MaterialIcons name="close" size={16} color={BrandColors.paper} />
               </TouchableOpacity>
             </View>
           ))}
@@ -542,6 +604,8 @@ const SavePanel = ({
   editLocked,
   formValid,
   error,
+  isSubmitting,
+  bottomInset,
   onSubmit,
 }: {
   mode: TransactionFormMode;
@@ -549,48 +613,79 @@ const SavePanel = ({
   editLocked: boolean;
   formValid: boolean;
   error: string | null;
+  isSubmitting: boolean;
+  bottomInset: number;
   onSubmit: () => void;
 }) => {
   const colors = useColors();
+  const { width } = useWindowDimensions();
+  const isNarrow = width < 600;
+  const remainingEdits = Math.max(0, 2 - existingUpdateCount);
 
   return (
-    <Card shadow="sm" style={styles.savePanel}>
-      <View style={styles.rowBetween}>
-        <View style={{ flex: 1 }}>
-          <Text variant="h4">{mode === 'edit' ? 'Save changes' : 'Add transaction'}</Text>
-          <Text variant="bodySmall" color="secondary" style={{ marginTop: Spacing.xs }}>
-            Edits used: {existingUpdateCount}/2
+    <View
+      style={[
+        styles.savePanel,
+        {
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
+          paddingBottom: Math.max(bottomInset, Spacing.md),
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.savePanelContent,
+          isNarrow && {
+            flexDirection: 'column',
+            alignItems: 'stretch',
+            gap: Spacing.sm,
+          },
+        ]}
+      >
+        <View style={styles.savePanelCopy}>
+          <Text variant="bodySmall" style={styles.savePanelTitle}>
+            {editLocked
+              ? 'Editing unavailable'
+              : mode === 'edit'
+                ? 'Save changes'
+                : 'Add transaction'}
+          </Text>
+
+          <Text
+            variant="caption"
+            color={editLocked ? 'danger' : 'secondary'}
+            numberOfLines={2}
+            style={{ marginTop: 2 }}
+          >
+            {editLocked
+              ? 'This transaction has reached its edit limit.'
+              : error
+                ? error
+                : mode === 'edit'
+                  ? `${remainingEdits} ${remainingEdits === 1 ? 'edit' : 'edits'} remaining after this save`
+                  : 'Amount, merchant or source, date, and category are required.'}
           </Text>
         </View>
 
-        <View style={[styles.editCountPill, { backgroundColor: colors.primarySoft }]}>
-          <Text variant="caption" style={{ color: colors.primary, fontWeight: '800' }}>
-            {existingUpdateCount}/2
-          </Text>
-        </View>
-      </View>
-
-      {editLocked ? (
-        <ErrorState
-          title="Edit limit reached"
-          message="PerFin OS allows each expense to be edited at most 2 times to preserve financial history."
+        <Button
+          label={mode === 'edit' ? 'Save Changes' : 'Add Transaction'}
+          onPress={onSubmit}
+          disabled={!formValid}
+          loading={isSubmitting}
+          size="lg"
+          style={
+            isNarrow
+              ? {
+                  ...styles.saveButton,
+                  width: '100%',
+                  minWidth: 0,
+                }
+              : styles.saveButton
+          }
         />
-      ) : null}
-
-      {error ? (
-        <Text color="danger" style={{ marginTop: Spacing.md }}>
-          {error}
-        </Text>
-      ) : null}
-
-      <Button
-        label={mode === 'edit' ? 'Save Changes' : 'Add Transaction'}
-        onPress={onSubmit}
-        disabled={!formValid}
-        size="lg"
-        style={{ marginTop: Spacing.lg }}
-      />
-    </Card>
+      </View>
+    </View>
   );
 };
 
@@ -598,6 +693,7 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
   const colors = useColors()
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<Record<string, { transactionId?: string }>, string>>();
+  const insets = useSafeAreaInsets();
   const { addTransaction, updateTransaction, canUseFeature, isGuest } = useFinance();
 
   const existing = data.transactions.find((item) => item.id === route.params?.transactionId);
@@ -634,6 +730,15 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
   const [error, setError] = useState<string | null>(null);
   const [remoteLocations, setRemoteLocations] = useState<PlaceOption[]>([]);
   const [receipts, setReceipts] = useState<ReceiptAttachment[]>(existing?.receipts || []);
+  const [showOptionalDetails, setShowOptionalDetails] = useState(
+    mode === 'edit' &&
+      Boolean(
+        existing?.isRecurring ||
+        existing?.notes ||
+        existing?.receipts.length
+      )
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const receiptsEnabled = canUseFeature('receiptUploads') && !isGuest;
   const receiptBackendReady = receiptUploadConfigured();
@@ -641,7 +746,82 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
   const selected = data.categories.find((category) => category.id === categoryId) || categories[0];
   const editLocked = mode === 'edit' && !!existing && existing.updateCount >= 2;
   const amountError = amount && !/^\d+(\.\d{0,2})?$/.test(amount) ? 'Use numbers with up to 2 decimals' : undefined;
-  const formValid = !!amount && !amountError && !!selected && !!merchant.trim() && isValidDateInput(date) && !!selectedPlace && !editLocked;
+  const formValid =
+    !!amount &&
+    !amountError &&
+    !!selected &&
+    !!merchant.trim() &&
+    isValidDateInput(date) &&
+    !editLocked &&
+    !isSubmitting;
+
+  const existingPlaceKey = existing
+    ? existing.location.placeId ||
+      existing.location.formattedAddress ||
+      existing.location.name
+    : '';
+
+  const selectedPlaceKey = selectedPlace
+    ? selectedPlace.placeId ||
+      selectedPlace.formattedAddress ||
+      selectedPlace.name
+    : '';
+
+  const isDirty = existing
+    ? type !== existing.type ||
+      amount !== String(existing.amount) ||
+      categoryId !== existing.categoryId ||
+      merchant !== existing.merchant ||
+      date !== existing.date ||
+      notes !== existing.notes ||
+      paymentMethod !== existing.paymentMethod ||
+      isRecurring !== existing.isRecurring ||
+      receipts.length !== existing.receipts.length ||
+      selectedPlaceKey !== existingPlaceKey
+    : Boolean(
+      amount ||
+      merchant.trim() ||
+      notes.trim() ||
+      selectedPlace ||
+      receipts.length ||
+      isRecurring ||
+      type !== 'expense' ||
+      paymentMethod !== 'Debit card' ||
+      date !== todayIso()
+    );
+
+  const optionalSummary = [
+    isRecurring ? 'Recurring' : null,
+     receipts.length
+      ? `${receipts.length} ${receipts.length === 1 ? 'receipt' : 'receipts'}`
+      : null,
+    notes.trim() ? 'Notes added' : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  const handleExit = () => {
+    if (!isDirty) {
+      navigation.goBack();
+      return;
+    }
+
+    Alert.alert(
+      'Discard changes?',
+      'Your unsaved transaction changes will be lost.',
+      [
+        {
+          text: 'Keep editing',
+          style: 'cancel',
+        },
+        {
+          text: 'Discard',
+          style: 'destructive',
+          onPress: () => navigation.goBack(),
+        },
+      ]
+    );
+  };
 
   const addressSuggestions = useMemo(() => remoteLocations.slice(0, 5), [remoteLocations]);
 
@@ -660,15 +840,12 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
       setSelectedPlace(current);
       setPlaceQuery(current.name);
     } catch (err: any) {
-      setError(err.message || 'Location permission is required or search for a place before saving');
+      setError(
+        err.message ||
+        'Could not access your location. Search manually or save without a place.'
+      );
     }
   };
-
-  useEffect(() => {
-    if (!existing && !selectedPlace) {
-      useDeviceLocation();
-    }
-  }, []);
 
   useEffect(() => {
     const query = placeQuery.trim();
@@ -759,12 +936,45 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
   };
 
   const submit = async () => {
+    if (!formValid || isSubmitting) {
+      return;
+    }
+
+    setError(null);
+    setIsSubmitting(true);
+
     try {
       const parsedAmount = parseMoney(amount);
 
-      if (!selectedPlace) {
-        throw new Error('Select a location before saving');
-      }
+      const locationPayload = selectedPlace
+        ? {
+          placeId: selectedPlace.placeId,
+          name: selectedPlace.name,
+          formattedAddress:
+            selectedPlace.formattedAddress ||
+            selectedPlace.address,
+          latitude: selectedPlace.latitude,
+          longitude: selectedPlace.longitude,
+          address:
+            selectedPlace.formattedAddress ||
+            selectedPlace.address,
+          neighborhood:
+            selectedPlace.neighborhood ||
+            selectedPlace.name,
+          source: selectedPlace.placeId
+            ? 'google_place' as const
+            : 'current_location' as const,
+          placeType: selectedPlace.placeType,
+        }
+        : {
+          name: 'No place',
+          formattedAddress: '',
+          latitude: 0,
+          longitude: 0,
+          address: '',
+          neighborhood: undefined,
+          source: 'imported' as const,
+        };
 
       const payload = {
         type,
@@ -773,18 +983,8 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
         categoryName: selected?.name || '',
         merchant: merchant.trim(),
         date,
-        notes,
-        location: {
-          placeId: selectedPlace.placeId,
-          name: selectedPlace.name,
-          formattedAddress: selectedPlace.formattedAddress || selectedPlace.address,
-          latitude: selectedPlace.latitude,
-          longitude: selectedPlace.longitude,
-          address: selectedPlace.formattedAddress || selectedPlace.address,
-          neighborhood: selectedPlace.neighborhood || selectedPlace.name,
-          source: selectedPlace.placeId ? 'google_place' as const : 'current_location' as const,
-          placeType: selectedPlace.placeType,
-        },
+        notes: notes.trim(),
+        location: locationPayload,
         paymentMethod,
         isRecurring,
         receipts,
@@ -796,163 +996,426 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
         await addTransaction(payload);
       }
 
-      const pendingReceipts = receipts.filter((receipt) => receipt.status === 'local' && receipt.uri);
+      const pendingReceipts = receipts.filter(
+        (receipt) =>
+          receipt.status === 'local' &&
+          receipt.uri
+      );
 
-      if (pendingReceipts.length && receiptsEnabled && receiptBackendReady) {
-        Promise.all(pendingReceipts.map(uploadReceiptToWorker)).then((uploaded) => {
-          const patched = receipts.map((receipt) => uploaded.find((item) => item.id === receipt.id) || receipt);
+      if (
+        pendingReceipts.length &&
+        receiptsEnabled &&
+        receiptBackendReady
+      ) {
+        Promise.all(
+          pendingReceipts.map(uploadReceiptToWorker)
+        ).then((uploaded) => {
+          const patched = receipts.map(
+            (receipt) =>
+              uploaded.find(
+                (item) => item.id === receipt.id
+              ) || receipt
+          );
 
           if (mode === 'edit' && existing) {
-            updateTransaction(existing.id, { receipts: patched });
+            updateTransaction(existing.id, {
+              receipts: patched,
+            });
           }
         });
       }
 
-      navigation.navigate('MainTabs', { screen: 'Dashboard' });
+      if (mode === 'edit' && existing) {
+        navigation.goBack();
+      } else {
+        navigation.navigate('MainTabs', {
+          screen: 'Transactions',
+        });
+      }
     } catch (err: any) {
-      setError(err.message || 'Could not save transaction');
+      setError(
+        err.message ||
+        'Could not save transaction'
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <AppScroll>
-      <ScreenHeader
-        title={mode === 'edit' ? 'Edit Transaction' : 'Add Transaction'}
-        subtitle={mode === 'edit' ? 'Update the transaction record without changing its history.' : 'Capture the amount, category, place, and proof.'}
-        action={<IconButton icon="arrow-back" label="Go back" onPress={() => navigation.goBack()} />}
-      />
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={styles.screen}
+    >
+      <View style={styles.screen}>
+        <AppScroll>
+          <View style={styles.leadingHeader}>
+            <IconButton
+              icon="arrow-back"
+              label={
+                mode === 'edit'
+                  ? 'Return to transaction details'
+                  : 'Return to Activity'
+              }
+              onPress={handleExit}
+            />
 
-      <Card shadow="sm" style={styles.sectionCard}>
-        <SectionHeader
-          icon="edit-note"
-          title="Transaction Basics"
-          subtitle="Start with the financial event and when it happened."
-        />
-
-        <Segmented
-          options={['expense', 'income']}
-          value={type}
-          onChange={(value) => {
-            const nextType = value as 'income' | 'expense';
-            const nextCategories = getVisibleCategories(data.categories, nextType);
-
-            setType(nextType);
-            setCategoryId(nextCategories[0]?.id || '');
-            setMerchant('');
-          }}
-        />
-
-        <Field
-          label="Amount"
-          value={amount}
-          onChangeText={updateAmount}
-          placeholder="0.00"
-          keyboardType="decimal-pad"
-          error={amountError}
-        />
-
-        <Field
-          label={type === 'income' ? 'Income Source' : 'Merchant / Payee'}
-          value={merchant}
-          onChangeText={setMerchant}
-          placeholder={type === 'income' ? 'Employer, client, account, or source' : 'Business, person, vendor, or payee'}
-        />
-
-        <DateField
-          date={date}
-          setDate={setDate}
-          showDatePicker={showDatePicker}
-          setShowDatePicker={setShowDatePicker}
-        />
-      </Card>
-
-      <Card shadow="sm" style={styles.sectionCard}>
-        <SectionHeader
-          icon="category"
-          title="Classification"
-          subtitle="Use standard finance categories or create your own."
-        />
-
-        <CategorySelector
-          categories={categories}
-          selectedCategoryId={categoryId}
-          onSelect={setCategoryId}
-          onCreateCategory={() => navigation.navigate('Categories')}
-        />
-
-        <SelectField
-          label="Payment Method"
-          value={paymentMethod}
-          options={PAYMENT_METHOD_OPTIONS}
-          onChange={setPaymentMethod}
-        />
-
-        <View style={[{ borderColor: colors.border, backgroundColor: colors.bgSecondary }, styles.recurringBox]}>
-          <View style={{ flex: 1 }}>
-            <Text variant="body" style={{ fontWeight: '800' }}>
-              Recurring transaction
-            </Text>
-            <Text variant="bodySmall" color="secondary" style={{ marginTop: Spacing.xs }}>
-              Mark this if it repeats on a predictable schedule.
+            <Text variant="bodySmall" color="secondary">
+              {mode === 'edit'
+                ? 'Transaction details'
+                : 'Activity'}
             </Text>
           </View>
 
-          <Switch value={isRecurring} onValueChange={setRecurring} />
-        </View>
-      </Card>
+          <ScreenHeader
+            title={
+              mode === 'edit'
+                ? 'Edit transaction'
+                : 'Add transaction'
+            }
+            subtitle={
+              mode === 'edit'
+                ? 'Update the financial record while preserving its history.'
+                : 'Record the money movement first. Add supporting details only when useful.'
+            }
+          />
 
-      <LocationSection
-        data={data}
-        selectedPlace={selectedPlace}
-        selectedCategory={selected}
-        type={type}
-        amount={amount}
-        merchant={merchant}
-        date={date}
-        placeQuery={placeQuery}
-        setPlaceQuery={updatePlaceSearch}
-        selectedSuggestions={addressSuggestions}
-        onSelectPlace={applyLocation}
-        onUseCurrentLocation={useDeviceLocation}
-        onClearLocation={() => {
-          setSelectedPlace(null);
-          setPlaceQuery('');
-          setRemoteLocations([]);
-        }}
-      />
+          {mode === 'edit' && existing ? (
+            <View
+              style={[
+                styles.editContext,
+                {
+                  backgroundColor: colors.bgSecondary,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <MaterialIcons
+                name="history"
+                size={18}
+                color={colors.textSecondary}
+              />
 
-      <ReceiptsSection
-        receipts={receipts}
-        receiptsEnabled={receiptsEnabled}
-        receiptBackendReady={receiptBackendReady}
-        onPickReceipts={pickReceipts}
-        onRemoveReceipt={removeReceipt}
-      />
+              <View style={styles.sectionHeaderCopy}>
+                <Text variant="bodySmall" style={styles.savePanelTitle}>
+                  Financial history protected
+                </Text>
 
-      <Card shadow="sm" style={styles.sectionCard}>
-        <SectionHeader
-          icon="notes"
-          title="Notes"
-          subtitle="Optional context for future review."
+                <Text
+                  variant="caption"
+                  color="secondary"
+                  style={{ marginTop: 2 }}
+                >
+                  {existing.updateCount}/2 edits used
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
+          <Card style={styles.amountSectionCard}>
+            <Text
+              variant="caption"
+              color="secondary"
+              style={styles.eyebrow}
+            >
+              AMOUNT
+            </Text>
+
+            <Field
+              label={`Amount (${data.user.currency})`}
+              value={amount}
+              onChangeText={updateAmount}
+              placeholder="0.00"
+              keyboardType="decimal-pad"
+              error={amountError}
+            />
+
+            <Text
+              variant="bodySmall"
+              style={styles.fieldGroupLabel}
+            >
+              Transaction type
+            </Text>
+
+            <Segmented
+              options={['expense', 'income']}
+              value={type}
+              onChange={(value) => {
+                const nextType =
+                  value as 'income' | 'expense';
+                const nextCategories =
+                  getVisibleCategories(
+                    data.categories,
+                    nextType
+                  );
+
+                setType(nextType);
+                setCategoryId(
+                  nextCategories[0]?.id || ''
+                );
+              }}
+            />
+          </Card>
+
+          <Card style={styles.sectionCard}>
+            <SectionHeader
+              icon="subject"
+              title="Transaction details"
+              subtitle="Identify the money movement and when it happened."
+            />
+
+            <Field
+              label={
+                type === 'income'
+                  ? 'Income source'
+                  : 'Merchant or payee'
+              }
+              value={merchant}
+              onChangeText={setMerchant}
+              placeholder={
+                type === 'income'
+                  ? 'Employer, client, account, or source'
+                  : 'Business, person, vendor, or payee'
+              }
+            />
+
+            <DateField
+              date={date}
+              setDate={setDate}
+              showDatePicker={showDatePicker}
+              setShowDatePicker={setShowDatePicker}
+            />
+          </Card>
+
+
+          <LocationSection
+            data={data}
+            selectedPlace={selectedPlace}
+            selectedCategory={selected}
+            type={type}
+            amount={amount}
+            merchant={merchant}
+            date={date}
+            placeQuery={placeQuery}
+            setPlaceQuery={updatePlaceSearch}
+            selectedSuggestions={
+              addressSuggestions
+            }
+            onSelectPlace={applyLocation}
+            onUseCurrentLocation={
+              useDeviceLocation
+            }
+            onClearLocation={() => {
+              setSelectedPlace(null);
+              setPlaceQuery('');
+              setRemoteLocations([]);
+            }}
+          />
+
+          <Card style={styles.sectionCard}>
+            <SectionHeader
+              icon="category"
+              title="Classification"
+              subtitle="Organize the transaction for later review and reporting."
+            />
+
+            <CategorySelector
+              categories={categories}
+              selectedCategoryId={categoryId}
+              onSelect={setCategoryId}
+              onCreateCategory={() =>
+                navigation.navigate('Categories')
+              }
+            />
+
+            <SelectField
+              label="Payment method"
+              value={paymentMethod}
+              options={PAYMENT_METHOD_OPTIONS}
+              onChange={setPaymentMethod}
+            />
+          </Card>
+
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={
+              showOptionalDetails
+                ? 'Hide optional transaction details'
+                : 'Show optional transaction details'
+            }
+            accessibilityState={{
+              expanded: showOptionalDetails,
+            }}
+            activeOpacity={0.76}
+            onPress={() =>
+              setShowOptionalDetails(
+                (current) => !current
+              )
+            }
+            style={[
+              styles.optionalDisclosure,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <View style={styles.optionalDisclosureIcon}>
+              <MaterialIcons
+                name="tune"
+                size={20}
+                color={colors.textSecondary}
+              />
+            </View>
+
+            <View style={styles.optionalDisclosureCopy}>
+              <Text variant="h4">Optional details</Text>
+
+              <Text
+                variant="bodySmall"
+                color="secondary"
+                numberOfLines={2}
+                style={{ marginTop: Spacing.xs }}
+              >
+                {optionalSummary ||
+                  'Recurring status, receipts, and notes'}
+              </Text>
+            </View>
+
+            <MaterialIcons
+              name={
+                showOptionalDetails
+                  ? 'expand-less'
+                  : 'expand-more'
+              }
+              size={24}
+              color={colors.textSecondary}
+            />
+          </TouchableOpacity>
+
+          {showOptionalDetails ? (
+            <View style={styles.optionalSection}>
+              <Card style={styles.sectionCard}>
+                <SectionHeader
+                  icon="repeat"
+                  title="Recurring"
+                  subtitle="Use this only when the transaction follows a predictable schedule."
+                />
+
+                <View
+                  style={[
+                    styles.recurringBox,
+                    {
+                      borderColor: colors.border,
+                      backgroundColor:
+                        colors.bgSecondary,
+                    },
+                  ]}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      variant="body"
+                      style={styles.savePanelTitle}
+                    >
+                      Repeats regularly
+                    </Text>
+
+                    <Text
+                      variant="bodySmall"
+                      color="secondary"
+                      style={{
+                        marginTop: Spacing.xs,
+                      }}
+                    >
+                      This marks the activity as recurring.
+                    </Text>
+                  </View>
+
+                  <Switch
+                    value={isRecurring}
+                    onValueChange={setRecurring}
+                  />
+                </View>
+              </Card>
+
+              <ReceiptsSection
+                receipts={receipts}
+                receiptsEnabled={receiptsEnabled}
+                receiptBackendReady={
+                  receiptBackendReady
+                }
+                onPickReceipts={pickReceipts}
+                onRemoveReceipt={removeReceipt}
+              />
+
+              <Card style={styles.sectionCard}>
+                <SectionHeader
+                  icon="notes"
+                  title="Notes"
+                  subtitle="Add context that will help during a future review."
+                />
+
+                <Field
+                  label="Notes"
+                  value={notes}
+                  onChangeText={setNotes}
+                  placeholder="Optional context"
+                />
+              </Card>
+            </View>
+          ) : null}
+
+          {editLocked ? (
+            <View
+              style={[
+                styles.warningBox,
+                {
+                  backgroundColor: colors.bgSecondary,
+                  borderColor: colors.danger,
+                },
+              ]}
+            >
+              <MaterialIcons
+                name="lock-outline"
+                size={20}
+                color={colors.danger}
+              />
+
+              <View style={styles.sectionHeaderCopy}>
+                <Text
+                  variant="bodySmall"
+                  color="danger"
+                  style={styles.savePanelTitle}
+                >
+                  Edit limit reached
+                </Text>
+
+                <Text
+                  variant="caption"
+                  color="danger"
+                  style={{ marginTop: 2 }}
+                >
+                  This record can still be reviewed, but it can no longer be changed.
+                </Text>
+              </View>
+            </View>
+          ) : null}
+        </AppScroll>
+
+        <SavePanel
+          mode={mode}
+          existingUpdateCount={
+            existing?.updateCount || 0
+          }
+          editLocked={editLocked}
+          formValid={formValid}
+          error={error}
+          isSubmitting={isSubmitting}
+          bottomInset={insets.bottom}
+          onSubmit={submit}
         />
-
-        <Field
-          label="Notes"
-          value={notes}
-          onChangeText={setNotes}
-          placeholder="Optional context"
-        />
-      </Card>
-
-      <SavePanel
-        mode={mode}
-        existingUpdateCount={existing?.updateCount || 0}
-        editLocked={editLocked}
-        formValid={formValid}
-        error={error}
-        onSubmit={submit}
-      />
-    </AppScroll>
+      </View>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -966,14 +1429,81 @@ export const AddTransactionScreen = () => <TransactionForm mode="add" />;
 export const EditTransactionScreen = () => <TransactionForm mode="edit" />;
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
+  leadingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  editContext: {
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  amountSectionCard: {
+    marginBottom: Spacing.lg,
+    paddingTop: Spacing.xl,
+  },
+  eyebrow: {
+    fontWeight: Typography.label.fontWeight,
+    letterSpacing: 0.8,
+    marginBottom: Spacing.sm,
+  },
+  fieldGroupLabel: {
+    fontWeight: Typography.label.fontWeight,
+    marginBottom: Spacing.sm,
+  },
+  optionalDisclosure: {
+    minHeight: 76,
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    padding: Spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  optionalDisclosureIcon: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  optionalDisclosureCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  optionalSection: {
+    marginBottom: Spacing.md,
+  },
+  warningBox: {
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.md,
+    marginBottom: Spacing.xl,
+  },
   sectionCard: {
     marginBottom: Spacing.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: Spacing.md,
+    gap: Spacing.sm,
     marginBottom: Spacing.lg,
+  },
+  sectionHeaderCopy: {
+    flex: 1,
+    minWidth: 0,
   },
   sectionIcon: {
     width: 38,
@@ -1045,12 +1575,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   selectedPlaceBox: {
-    borderWidth: 1,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
+    borderRadius: 999,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.md,
+    alignItems: 'center',
+    gap: Spacing.xs,
     marginBottom: Spacing.md,
   },
   cardActions: {
@@ -1113,15 +1645,27 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.danger,
   },
   savePanel: {
-    marginBottom: Spacing.xxxl,
+    borderTopWidth: 1,
+    paddingTop: Spacing.md,
+    paddingHorizontal: Spacing.lg,
   },
-  editCountPill: {
-    minWidth: 44,
-    height: 34,
-    borderRadius: Radius.round,
+  savePanelContent: {
+    width: '100%',
+    maxWidth: 1180,
+    alignSelf: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.sm,
+    gap: Spacing.md,
+  },
+  savePanelCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  savePanelTitle: {
+    fontWeight: Typography.label.fontWeight,
+  },
+  saveButton: {
+    minWidth: 152,
   },
   rowBetween: {
     flexDirection: 'row',
