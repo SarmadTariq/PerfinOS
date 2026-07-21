@@ -15,6 +15,7 @@ export const FIRESTORE_ROOT_COLLECTIONS = {
 export const USER_PRIVATE_COLLECTION = 'private' as const;
 export const LEGACY_APP_DATA_DOCUMENT = 'appData' as const;
 export const PLAN_VERSIONS_COLLECTION = 'versions' as const;
+export const PLAN_RESERVATIONS_COLLECTION = 'planReservations' as const;
 
 export const USER_ENTITY_COLLECTIONS = {
   transactions: 'transactions',

@@ -28,6 +28,7 @@ export {
 export {
   FIRESTORE_ROOT_COLLECTIONS,
   LEGACY_APP_DATA_DOCUMENT,
+  PLAN_RESERVATIONS_COLLECTION,
   PLAN_VERSIONS_COLLECTION,
   USER_ENTITY_COLLECTIONS,
   USER_PRIVATE_COLLECTION,
@@ -48,6 +49,10 @@ export type {
 
 export {
   getUserPlanDocumentRef,
+  userPlanReservationsCollectionPath,
+  userPlanReservationDocumentPath,
+  getUserPlanReservationsCollectionRef,
+  getUserPlanReservationDocumentRef,
   getUserPlansCollectionRef,
   getUserPlanVersionDocumentRef,
   getUserPlanVersionsCollectionRef,
@@ -84,6 +89,18 @@ export type {
 } from './serializers';
 
 
+
+export {
+  assertPlanStatusTransition,
+  isPlanStatusTransitionAllowed,
+  planDateKeys,
+  transitionPlanLifecycle,
+} from './planLifecycle';
+
+export type {
+  PlanLifecycleTargetStatus,
+} from './planLifecycle';
+
 export {
   createPlan,
   createPlanVersion,
@@ -91,10 +108,13 @@ export {
   getPlanVersion,
   listPlans,
   listPlanVersions,
+  updatePlanLifecycle,
 } from './planRepository';
 
 export type {
   CreatePlanInput,
+  UpdatePlanLifecycleInput,
+  PlanDateReservation,
   PlanVersionCreationResult,
 } from './planRepository';
 

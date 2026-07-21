@@ -5,13 +5,27 @@ import {
   type DocumentData,
   type DocumentReference,
 } from 'firebase/firestore';
+import { db } from './client';
 import {
   getUserEntityCollectionRef,
   getUserEntityDocumentRef,
   userEntityCollectionPath,
   userEntityDocumentPath,
 } from './entityPaths';
-import { PLAN_VERSIONS_COLLECTION } from './schema';
+import {
+  FIRESTORE_ROOT_COLLECTIONS,
+  PLAN_RESERVATIONS_COLLECTION,
+  PLAN_VERSIONS_COLLECTION,
+} from './schema';
+
+
+const requireFirestore = () => {
+  if (!db) {
+    throw new Error('Firestore is not configured');
+  }
+
+  return db;
+};
 
 export const userPlansCollectionPath = (userId: string) =>
   userEntityCollectionPath(userId, 'plans');
@@ -61,3 +75,34 @@ export const getUserPlanVersionDocumentRef = (
     getUserPlanVersionsCollectionRef(userId, planId),
     versionId
   );
+
+export const userPlanReservationsCollectionPath = (
+  userId: string
+) =>
+  `${FIRESTORE_ROOT_COLLECTIONS.users}/${userId}/${PLAN_RESERVATIONS_COLLECTION}`;
+
+export const userPlanReservationDocumentPath = (
+  userId: string,
+  dateKey: string
+) =>
+  `${userPlanReservationsCollectionPath(userId)}/${dateKey}`;
+
+export const getUserPlanReservationsCollectionRef = (
+  userId: string
+): CollectionReference<DocumentData> =>
+  collection(
+    requireFirestore(),
+    FIRESTORE_ROOT_COLLECTIONS.users,
+    userId,
+    PLAN_RESERVATIONS_COLLECTION
+  );
+
+export const getUserPlanReservationDocumentRef = (
+  userId: string,
+  dateKey: string
+): DocumentReference<DocumentData> =>
+  doc(
+    getUserPlanReservationsCollectionRef(userId),
+    dateKey
+  );
+

@@ -6,11 +6,13 @@ import {
 } from 'firebase/firestore';
 import type {
   FinancialPlan,
+  PlanStatus,
   PlanVersion,
 } from '../../models/planning';
 import { db } from './client';
 import {
   getUserPlanDocumentRef,
+  getUserPlanReservationDocumentRef,
   getUserPlansCollectionRef,
   getUserPlanVersionDocumentRef,
   getUserPlanVersionsCollectionRef,
@@ -19,6 +21,11 @@ import {
   fromJsonSafeValue,
   toJsonSafeValue,
 } from './serializers';
+import {
+  planDateKeys,
+  transitionPlanLifecycle,
+  type PlanLifecycleTargetStatus,
+} from './planLifecycle';
 
 export interface CreatePlanInput {
   plan: FinancialPlan;
@@ -28,6 +35,22 @@ export interface CreatePlanInput {
 export interface PlanVersionCreationResult {
   plan: FinancialPlan;
   version: PlanVersion;
+}
+
+
+export interface UpdatePlanLifecycleInput {
+  status: PlanLifecycleTargetStatus;
+  occurredAt: string;
+  replacedPlanId: string | null;
+}
+
+export interface PlanDateReservation {
+  dateKey: string;
+  userId: string;
+  planId: string;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
 }
 
 const requireFirestore = () => {
@@ -100,6 +123,41 @@ const versionFromDocument = (
     ...value,
     id,
   });
+
+
+const lifecycleDocumentUpdate = (
+  plan: FinancialPlan
+): DocumentData =>
+  toJsonSafeValue({
+    status: plan.status,
+    replacedPlanId: plan.replacedPlanId,
+    updatedAt: plan.updatedAt,
+    activatedAt: plan.activatedAt,
+    completedAt: plan.completedAt,
+    archivedAt: plan.archivedAt,
+  }) as DocumentData;
+
+const reservationFromDocument = (
+  id: string,
+  value: DocumentData
+): PlanDateReservation =>
+  fromJsonSafeValue<PlanDateReservation>({
+    ...value,
+    dateKey: id,
+  });
+
+const createReservation = (
+  plan: FinancialPlan,
+  dateKey: string,
+  occurredAt: string
+): PlanDateReservation => ({
+  dateKey,
+  userId: plan.userId,
+  planId: plan.id,
+  startDate: plan.startDate,
+  endDate: plan.endDate,
+  createdAt: occurredAt,
+});
 
 export const listPlans = async (
   userId: string
@@ -374,3 +432,301 @@ export const createPlanVersion = async (
     }
   );
 };
+
+export const updatePlanLifecycle = async (
+  userId: string,
+  planId: string,
+  input: UpdatePlanLifecycleInput
+): Promise<FinancialPlan> => {
+  requireId(userId, 'User id');
+  requireId(planId, 'Plan id');
+
+  const planRef = getUserPlanDocumentRef(
+    userId,
+    planId
+  );
+
+  return runTransaction(
+    requireFirestore(),
+    async (transaction) => {
+      const planSnapshot = await transaction.get(
+        planRef
+      );
+
+      if (!planSnapshot.exists()) {
+        throw new Error(
+          'Cannot update a missing Plan'
+        );
+      }
+
+      const currentPlan = planFromDocument(
+        planSnapshot.id,
+        planSnapshot.data()
+      );
+
+      assertPlanOwnership(
+        userId,
+        currentPlan
+      );
+
+      const currentDateKeys = planDateKeys(
+        currentPlan.startDate,
+        currentPlan.endDate
+      );
+
+      const currentReservationRefs =
+        currentDateKeys.map((dateKey) =>
+          getUserPlanReservationDocumentRef(
+            userId,
+            dateKey
+          )
+        );
+
+      const currentReservationSnapshots =
+        await Promise.all(
+          currentReservationRefs.map(
+            (reservationRef) =>
+              transaction.get(reservationRef)
+          )
+        );
+
+      if (input.status === 'active') {
+        const conflictingPlanIds = new Set(
+          currentReservationSnapshots
+            .filter(
+              (snapshot) =>
+                snapshot.exists()
+            )
+            .map((snapshot) =>
+              reservationFromDocument(
+                snapshot.id,
+                snapshot.data()
+              )
+            )
+            .map(
+              (reservation) =>
+                reservation.planId
+            )
+            .filter(
+              (reservedPlanId) =>
+                reservedPlanId !== planId
+            )
+        );
+
+        let replacedPlan:
+          | FinancialPlan
+          | null = null;
+
+        let replacedReservationRefs:
+          typeof currentReservationRefs = [];
+
+        let replacedReservationSnapshots:
+          typeof currentReservationSnapshots = [];
+
+        if (conflictingPlanIds.size > 0) {
+          if (!input.replacedPlanId) {
+            throw new Error(
+              'An active Plan already overlaps this date range'
+            );
+          }
+
+          if (
+            conflictingPlanIds.size !== 1 ||
+            !conflictingPlanIds.has(
+              input.replacedPlanId
+            )
+          ) {
+            throw new Error(
+              'The supplied replacement Plan does not own every overlap'
+            );
+          }
+
+          const replacedPlanRef =
+            getUserPlanDocumentRef(
+              userId,
+              input.replacedPlanId
+            );
+
+          const replacedPlanSnapshot =
+            await transaction.get(
+              replacedPlanRef
+            );
+
+          if (
+            !replacedPlanSnapshot.exists()
+          ) {
+            throw new Error(
+              'The replacement Plan does not exist'
+            );
+          }
+
+          replacedPlan = planFromDocument(
+            replacedPlanSnapshot.id,
+            replacedPlanSnapshot.data()
+          );
+
+          assertPlanOwnership(
+            userId,
+            replacedPlan
+          );
+
+          if (
+            replacedPlan.status !== 'active'
+          ) {
+            throw new Error(
+              'Only an active Plan can be replaced'
+            );
+          }
+
+          const replacedDateKeys =
+            planDateKeys(
+              replacedPlan.startDate,
+              replacedPlan.endDate
+            );
+
+          replacedReservationRefs =
+            replacedDateKeys.map(
+              (dateKey) =>
+                getUserPlanReservationDocumentRef(
+                  userId,
+                  dateKey
+                )
+            );
+
+          replacedReservationSnapshots =
+            await Promise.all(
+              replacedReservationRefs.map(
+                (reservationRef) =>
+                  transaction.get(
+                    reservationRef
+                  )
+              )
+            );
+        } else if (
+          input.replacedPlanId !== null
+        ) {
+          throw new Error(
+            'No overlapping active Plan exists to replace'
+          );
+        }
+
+        const activatedPlan =
+          transitionPlanLifecycle(
+            currentPlan,
+            'active',
+            input.occurredAt,
+            input.replacedPlanId
+          );
+
+        if (replacedPlan) {
+          const archivedReplacement =
+            transitionPlanLifecycle(
+              replacedPlan,
+              'archived',
+              input.occurredAt,
+              null
+            );
+
+          transaction.update(
+            getUserPlanDocumentRef(
+              userId,
+              replacedPlan.id
+            ),
+            lifecycleDocumentUpdate(
+              archivedReplacement
+            )
+          );
+
+          replacedReservationSnapshots.forEach(
+            (snapshot, index) => {
+              if (!snapshot.exists()) {
+                return;
+              }
+
+              const reservation =
+                reservationFromDocument(
+                  snapshot.id,
+                  snapshot.data()
+                );
+
+              if (
+                reservation.planId ===
+                replacedPlan?.id
+              ) {
+                transaction.delete(
+                  replacedReservationRefs[
+                    index
+                  ]
+                );
+              }
+            }
+          );
+        }
+
+        currentDateKeys.forEach(
+          (dateKey, index) => {
+            transaction.set(
+              currentReservationRefs[index],
+              toJsonSafeValue(
+                createReservation(
+                  activatedPlan,
+                  dateKey,
+                  input.occurredAt
+                )
+              ) as DocumentData
+            );
+          }
+        );
+
+        transaction.update(
+          planRef,
+          lifecycleDocumentUpdate(
+            activatedPlan
+          )
+        );
+
+        return activatedPlan;
+      }
+
+      const updatedPlan =
+        transitionPlanLifecycle(
+          currentPlan,
+          input.status,
+          input.occurredAt,
+          input.replacedPlanId
+        );
+
+      currentReservationSnapshots.forEach(
+        (snapshot, index) => {
+          if (!snapshot.exists()) {
+            return;
+          }
+
+          const reservation =
+            reservationFromDocument(
+              snapshot.id,
+              snapshot.data()
+            );
+
+          if (
+            reservation.planId === planId
+          ) {
+            transaction.delete(
+              currentReservationRefs[index]
+            );
+          }
+        }
+      );
+
+      transaction.update(
+        planRef,
+        lifecycleDocumentUpdate(
+          updatedPlan
+        )
+      );
+
+      return updatedPlan;
+    }
+  );
+};
+
