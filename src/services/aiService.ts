@@ -4,14 +4,14 @@ import { appConfig } from './configService';
 import { getMonthKey } from '../utils/format';
 import { auth } from './firebase';
 
-export interface AiPlannerResult {
+export interface PlanGenerationResult {
   title: string;
   summary: string;
   recommendations: string[];
   source: 'ai' | 'rules';
 }
 
-const ruleBasedPlanner = (data: AppData): AiPlannerResult => {
+const buildRuleBasedPlan = (data: AppData): PlanGenerationResult => {
   const month = getMonthKey();
   const budget = data.budgets.find((item) => item.month === month);
   const summary = calculateMonthlySummary(data.transactions, month);
@@ -28,11 +28,11 @@ const ruleBasedPlanner = (data: AppData): AiPlannerResult => {
       : 'Add a few transactions to unlock more specific category recommendations.',
     savings.target > 0
       ? 'Compare upcoming spending with your savings goal progress before increasing non-essential purchases.'
-      : 'Create a savings goal to make future planner recommendations more goal-aware.',
+      : 'Create a savings goal to make future planning recommendations more goal-aware.',
   ];
 
   return {
-    title: 'Planner Summary',
+    title: 'Plan Summary',
     summary: `This educational summary is based on aggregate totals only. Current month cash flow is ${summary.netCashFlow.toFixed(
       0
     )}, and budget usage is ${budgetHealth.usedPercent}%.`,
@@ -41,8 +41,8 @@ const ruleBasedPlanner = (data: AppData): AiPlannerResult => {
   };
 };
 
-export const generatePlannerResult = async (data: AppData): Promise<AiPlannerResult> => {
-  if (!appConfig.apiBaseUrl) return ruleBasedPlanner(data);
+export const generatePlanResult = async (data: AppData): Promise<PlanGenerationResult> => {
+  if (!appConfig.apiBaseUrl) return buildRuleBasedPlan(data);
 
   const month = getMonthKey();
   const payload = {
@@ -82,8 +82,8 @@ export const generatePlannerResult = async (data: AppData): Promise<AiPlannerRes
       throw new Error('AI service unavailable');
     }
 
-    return { ...(await response.json()), source: 'ai' } as AiPlannerResult;
+    return { ...(await response.json()), source: 'ai' } as PlanGenerationResult;
   } catch {
-    return ruleBasedPlanner(data);
+    return buildRuleBasedPlan(data);
   }
 };

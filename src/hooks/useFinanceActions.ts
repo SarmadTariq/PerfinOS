@@ -51,7 +51,7 @@ const normalizeForUser = (data: AppData, userId: string, name?: string, email?: 
         cloudSync: true,
         receiptUploads: true,
         aiReports: true,
-        plannerChat: true,
+        aiPlanning: true,
         accountRecovery: true,
       },
       createdAt: data.entitlement?.createdAt || now,
