@@ -23,8 +23,7 @@ import { ExpenseDetailScreen } from '../views/transactions/TransactionDetailView
 import { MapScreen } from '../views/map/MapView';
 // Insights
 import { InsightsScreen } from '../views/insights/InsightsView';
-// More
-import { MoreScreen } from '../views/more/MoreView';
+// Utility screens
 import { BudgetsScreen } from '../views/more/BudgetsView';
 import { CategoriesScreen } from '../views/more/CategoriesView';
 import { SavingsGoalsScreen } from '../views/more/SavingsGoalsView';
@@ -56,11 +55,16 @@ const AuthStack = () => (
   // const scheme = useThemeScheme();
   // const { data, isAuthenticated } = useFinance();
 
+const PlanTabScreen = () => (
+  <GuidedPlanningScreen showBackButton={false} showProfileButton />
+);
+
 const Tabs = () => {
   const colors = useColors();
 
   return (
     <Tab.Navigator
+      initialRouteName="Map"
       // theme={scheme === 'dark' ? DarkTheme : DefaultTheme}
       screenOptions={({ route }) => ({
         headerShown: false,
@@ -89,17 +93,17 @@ const Tabs = () => {
             Transactions: focused ? 'receipt' : 'receipt-outline',
             Map: focused ? 'map' : 'map-outline',
             Insights: focused ? 'bulb' : 'bulb-outline',
-            More: focused ? 'ellipsis-horizontal-circle' : 'ellipsis-horizontal-circle-outline',
+            Plan: focused ? 'flag' : 'flag-outline',
           };
           return <Ionicons name={map[route.name] || 'ellipse-outline'} size={focused ? size + 1 : size} color={color} />;
         },
       })}
     >
-      <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ tabBarLabel: 'Home' }} />
-      <Tab.Screen name="Transactions" component={TransactionsScreen} options={{ tabBarLabel: 'Activity' }} />
       <Tab.Screen name="Map" component={MapScreen} options={{ tabBarLabel: 'Map' }} />
+      <Tab.Screen name="Transactions" component={TransactionsScreen} options={{ tabBarLabel: 'Activity' }} />
+      <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ tabBarLabel: 'Dashboard' }} />
       <Tab.Screen name="Insights" component={InsightsScreen} options={{ tabBarLabel: 'Insights' }} />
-      <Tab.Screen name="More" component={MoreScreen} options={{ tabBarLabel: 'More' }} />
+      <Tab.Screen name="Plan" component={PlanTabScreen} options={{ tabBarLabel: 'Plan' }} />
     </Tab.Navigator>
   )
 };
