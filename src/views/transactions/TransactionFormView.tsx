@@ -11,6 +11,7 @@ import {
   StyleSheet,
   Switch,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -617,6 +618,8 @@ const SavePanel = ({
   onSubmit: () => void;
 }) => {
   const colors = useColors();
+  const { width } = useWindowDimensions();
+  const isNarrow = width < 600;
   const remainingEdits = Math.max(0, 2 - existingUpdateCount);
 
   return (
@@ -630,7 +633,16 @@ const SavePanel = ({
         },
       ]}
     >
-      <View style={styles.savePanelContent}>
+      <View
+        style={[
+          styles.savePanelContent,
+          isNarrow && {
+            flexDirection: 'column',
+            alignItems: 'stretch',
+            gap: Spacing.sm,
+          },
+        ]}
+      >
         <View style={styles.savePanelCopy}>
           <Text variant="bodySmall" style={styles.savePanelTitle}>
             {editLocked
@@ -662,7 +674,15 @@ const SavePanel = ({
           disabled={!formValid}
           loading={isSubmitting}
           size="lg"
-          style={styles.saveButton}
+          style={
+            isNarrow
+              ? {
+                  ...styles.saveButton,
+                  width: '100%',
+                  minWidth: 0,
+                }
+              : styles.saveButton
+          }
         />
       </View>
     </View>
