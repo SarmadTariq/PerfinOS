@@ -51,21 +51,35 @@ export const currencyFractionDigits = (
   const normalized =
     normalizeCurrency(currency);
 
+  let fractionDigits:
+    number | undefined;
+
   try {
-    return new Intl.NumberFormat(
-      'en-US',
-      {
-        style: 'currency',
-        currency: normalized,
-        currencyDisplay: 'code',
-      }
-    ).resolvedOptions()
-      .maximumFractionDigits;
+    fractionDigits =
+      new Intl.NumberFormat(
+        'en-US',
+        {
+          style: 'currency',
+          currency: normalized,
+          currencyDisplay: 'code',
+        }
+      ).resolvedOptions()
+        .maximumFractionDigits;
   } catch {
     throw new Error(
       `Unsupported currency code: ${normalized}`
     );
   }
+
+  if (
+    fractionDigits === undefined
+  ) {
+    throw new Error(
+      `Currency fraction digits are unavailable: ${normalized}`
+    );
+  }
+
+  return fractionDigits;
 };
 
 const assertFiniteMoneyValue = (
