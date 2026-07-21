@@ -2,12 +2,21 @@
  * DashboardView - monthly command center for cash flow, budget pace,
  * focus panels, and recent activity.
  */
-import React, { useRef, useState } from 'react';
-import { NativeScrollEvent, NativeSyntheticEvent, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import React, { useState } from 'react';
+import {
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Card, Text } from '../../components/base';
-import { BarListChart, EmptyState, IconButton, ProgressBar, ScreenHeader } from '../../components/finance';
+import {
+  BarListChart,
+  EmptyState,
+  ProgressBar,
+  ScreenHeader,
+} from '../../components/finance';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';
 import { useColors } from '../../context/ThemeContext';
@@ -19,7 +28,7 @@ import { mcIconName } from '../../utils/icons';
 
 type Tone = 'primary' | 'success' | 'warning' | 'danger';
 type MaterialIconName = React.ComponentProps<typeof MaterialIcons>['name'];
-type FocusKey = 'snapshot' | 'attention' | 'categories';
+type FocusKey = 'overview' | 'attention' | 'categories';
 
 interface AttentionItem {
   title: string;
@@ -43,10 +52,19 @@ interface CategoryFocusItem {
   color: string;
 }
 
-const focusTabs: { key: FocusKey; label: string }[] = [
-  { key: 'snapshot', label: 'Snapshot' },
-  { key: 'attention', label: 'Attention' },
-  { key: 'categories', label: 'Categories' },
+const focusTabs: {
+  key: FocusKey;
+  label: string;
+}[] = [
+  { key: 'overview', label: 'Overview' },
+  {
+    key: 'attention',
+    label: 'Needs attention',
+  },
+  {
+    key: 'categories',
+    label: 'Categories',
+  },
 ];
 
 const HERO_TEXT_PROPS = {
@@ -60,6 +78,21 @@ const VALUE_TEXT_PROPS = {
   adjustsFontSizeToFit: true,
   minimumFontScale: 0.86,
 } as const;
+
+const formatActivityDate = (
+  value: string
+) => {
+  const date = new Date(`${value}T12:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat('en-CA', {
+    month: 'short',
+    day: 'numeric',
+  }).format(date);
+};
 
 const getBudgetStatus = (usedPercent: number): { label: string; tone: Tone } => {
   if (usedPercent >= 100) {
@@ -89,13 +122,6 @@ const getToneColor = (tone: Tone, colors: ReturnType<typeof useColors>) => {
   return colors.primary;
 };
 
-const getPanelContentWidth = (windowWidth: number) => {
-  const horizontalPadding = windowWidth >= 900 ? Spacing.xxxl : Spacing.lg;
-  const frameWidth = Math.min(windowWidth - horizontalPadding * 2, 1180);
-
-  return Math.max(frameWidth - 36, 280);
-};
-
 const DashboardHero = ({
   month,
   netCashFlow,
@@ -104,6 +130,7 @@ const DashboardHero = ({
   totalBudget,
   topCategoryName,
   currency,
+  onReviewPress,
 }: {
   month: string;
   netCashFlow: number;
@@ -112,6 +139,7 @@ const DashboardHero = ({
   totalBudget: number;
   topCategoryName?: string;
   currency: string;
+  onReviewPress: () => void;
 }) => {
   const colors = useColors();
   const status = getBudgetStatus(budgetUsed);
@@ -167,12 +195,34 @@ const DashboardHero = ({
 
       <ProgressBar value={budgetUsed} color={statusColor} height={8} />
 
-      <View style={styles.heroInsightRow}>
-        <MaterialIcons name="insights" size={18} color={colors.primary} />
-        <Text variant="bodySmall" color="secondary" style={styles.heroInsightText}>
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={`${statusInsight} Review activity`}
+        accessibilityHint="Opens Activity"
+        activeOpacity={0.76}
+        onPress={onReviewPress}
+        style={styles.heroInsightRow}
+      >
+        <MaterialIcons
+          name="insights"
+          size={18}
+          color={colors.primary}
+        />
+
+        <Text
+          variant="bodySmall"
+          color="secondary"
+          style={styles.heroInsightText}
+        >
           {statusInsight}
         </Text>
-      </View>
+
+        <MaterialIcons
+          name="chevron-right"
+          size={20}
+          color={colors.primary}
+        />
+      </TouchableOpacity>
     </View>
   );
 };
@@ -301,44 +351,86 @@ const DashboardFocusPanel = ({
   currency: string;
 }) => {
   const colors = useColors();
-  const { width } = useWindowDimensions();
-  const pageWidth = getPanelContentWidth(width);
-  const scrollRef = useRef<ScrollView>(null);
-  const [activeFocus, setActiveFocus] = useState<FocusKey>('snapshot');
+  const [activeFocus, setActiveFocus] =
+    useState<FocusKey>('overview');
 
-  const setFocus = (key: FocusKey, index: number) => {
-    setActiveFocus(key);
-    scrollRef.current?.scrollTo({ x: pageWidth * index, animated: true });
-  };
+  const visibleTabs =
+    attentionItems.length > 0
+      ? focusTabs
+      : focusTabs.filter(
+          (tab) => tab.key !== 'attention'
+        );
 
-  const handleMomentumEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const index = Math.round(event.nativeEvent.contentOffset.x / pageWidth);
-    const safeIndex = Math.max(0, Math.min(index, focusTabs.length - 1));
-    setActiveFocus(focusTabs[safeIndex].key);
+  const renderActivePanel = () => {
+    if (
+      activeFocus === 'attention' &&
+      attentionItems.length > 0
+    ) {
+      return (
+        <AttentionPanel
+          items={attentionItems}
+        />
+      );
+    }
+
+    if (activeFocus === 'categories') {
+      return (
+        <CategoriesPanel
+          items={categoryItems}
+          currency={currency}
+        />
+      );
+    }
+
+    return (
+      <SnapshotPanel items={snapshotItems} />
+    );
   };
 
   return (
     <Card style={styles.focusCard}>
       <View style={styles.focusHeader}>
-        <Text variant="h4" style={styles.focusTitle}>
-          Month focus
+        <Text
+          variant="h4"
+          style={styles.focusTitle}
+        >
+          Month overview
         </Text>
-        <Text variant="caption" color="tertiary" style={styles.focusSubtitle}>
-          Choose a view or swipe between sections
+
+        <Text
+          variant="caption"
+          color="tertiary"
+          style={styles.focusSubtitle}
+        >
+          Choose the view that helps you review this month.
         </Text>
       </View>
 
-      <View style={[styles.segmentedControl, { backgroundColor: colors.bgTertiary }]}>
-        {focusTabs.map((tab, index) => {
-          const isActive = activeFocus === tab.key;
+      <View
+        style={[
+          styles.segmentedControl,
+          {
+            backgroundColor:
+              colors.bgTertiary,
+          },
+        ]}
+      >
+        {visibleTabs.map((tab) => {
+          const isActive =
+            activeFocus === tab.key;
 
           return (
             <TouchableOpacity
               key={tab.key}
               accessibilityRole="button"
-              accessibilityState={{ selected: isActive }}
+              accessibilityState={{
+                selected: isActive,
+              }}
               accessibilityLabel={`Show ${tab.label}`}
-              onPress={() => setFocus(tab.key, index)}
+              onPress={() =>
+                setActiveFocus(tab.key)
+              }
+              activeOpacity={0.76}
               style={[
                 styles.segmentButton,
                 {
@@ -353,10 +445,13 @@ const DashboardFocusPanel = ({
             >
               <Text
                 variant="bodySmall"
+                numberOfLines={2}
                 style={[
                   styles.segmentLabel,
                   {
-                    color: isActive ? colors.text : colors.textSecondary,
+                    color: isActive
+                      ? colors.text
+                      : colors.textSecondary,
                   },
                 ]}
               >
@@ -367,28 +462,9 @@ const DashboardFocusPanel = ({
         })}
       </View>
 
-      <ScrollView
-        ref={scrollRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={handleMomentumEnd}
-        scrollEventThrottle={16}
-        nestedScrollEnabled
-      >
-        <View style={{ width: pageWidth }}>
-          <SnapshotPanel items={snapshotItems} />
-        </View>
-
-        <View style={{ width: pageWidth }}>
-          <AttentionPanel items={attentionItems} />
-        </View>
-
-        <View style={{ width: pageWidth }}>
-          <CategoriesPanel items={categoryItems} currency={currency} />
-        </View>
-      </ScrollView>
-
+      <View style={styles.focusContent}>
+        {renderActivePanel()}
+      </View>
     </Card>
   );
 };
@@ -443,7 +519,15 @@ const TransactionRow = ({
             {transaction.merchant}
           </Text>
           <Text variant="caption" color="secondary" style={styles.transactionMeta} numberOfLines={1}>
-            {transaction.categoryName} · {transaction.location.neighborhood || transaction.location.address} · {transaction.date}
+            {[
+              transaction.categoryName,
+              transaction.location.neighborhood ||
+                transaction.location.name ||
+                'No place',
+              formatActivityDate(
+                transaction.date
+              ),
+            ].join(' · ')}
           </Text>
         </View>
 
@@ -514,17 +598,6 @@ const DashboardContent = ({ data }: { data: AppData }) => {
       : null,
   ].filter(Boolean).slice(0, 3) as AttentionItem[];
 
-  const resolvedAttentionItems: AttentionItem[] = attentionItems.length > 0
-    ? attentionItems
-    : [
-        {
-          title: 'No urgent issues',
-          detail: 'The month looks stable based on the current transactions and budget.',
-          icon: 'check-circle',
-          tone: 'success',
-        },
-      ];
-
   const snapshotItems: SnapshotItem[] = [
     {
       label: 'Income',
@@ -557,18 +630,17 @@ const DashboardContent = ({ data }: { data: AppData }) => {
   ];
 
   return (
-    <AppScroll>
-      <ScreenHeader
-        title="Dashboard"
-        subtitle={`${readableMonth(month)} command center for ${data.user.name}`}
-        action={
-          <IconButton
-            icon="add"
-            label="Add transaction"
-            onPress={() => navigation.navigate('AddTransaction')}
-          />
-        }
-      />
+    <View
+      style={[
+        styles.screen,
+        { backgroundColor: colors.bg },
+      ]}
+    >
+      <AppScroll>
+        <ScreenHeader
+          title="Dashboard"
+          subtitle={`Your money in ${readableMonth(month)}`}
+        />
 
       <DashboardHero
         month={month}
@@ -576,13 +648,18 @@ const DashboardContent = ({ data }: { data: AppData }) => {
         budgetUsed={health.usedPercent}
         budgetRemaining={budgetRemaining}
         totalBudget={health.totalBudget}
-        topCategoryName={topCategory?.categoryName}
+        topCategoryName={
+          topCategory?.categoryName
+        }
         currency={currency}
+        onReviewPress={() =>
+          navigation.navigate('Transactions')
+        }
       />
 
       <DashboardFocusPanel
         snapshotItems={snapshotItems}
-        attentionItems={resolvedAttentionItems}
+        attentionItems={attentionItems}
         categoryItems={topCategories}
         currency={currency}
       />
@@ -590,11 +667,11 @@ const DashboardContent = ({ data }: { data: AppData }) => {
       <Card>
         <View style={styles.rowBetween}>
           <Text variant="h4" style={styles.recentTitle}>
-            Recent transactions
+            Recent activity
           </Text>
           <TouchableOpacity
             accessibilityRole="button"
-            accessibilityLabel="View all transactions"
+            accessibilityLabel="View all activity"
             onPress={() => navigation.navigate('Transactions')}
             activeOpacity={0.82}
             style={styles.linkAction}
@@ -621,8 +698,49 @@ const DashboardContent = ({ data }: { data: AppData }) => {
             />
           ))
         )}
-      </Card>
-    </AppScroll>
+        </Card>
+      </AppScroll>
+
+      <View
+        pointerEvents="box-none"
+        style={styles.addActionLayer}
+      >
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate(
+              'AddTransaction'
+            )
+          }
+          activeOpacity={0.82}
+          accessibilityRole="button"
+          accessibilityLabel="Add transaction"
+          accessibilityHint="Opens the new transaction form"
+          style={[
+            styles.addActionButton,
+            {
+              backgroundColor:
+                colors.primary,
+            },
+          ]}
+        >
+          <MaterialIcons
+            name="add"
+            size={22}
+            color={colors.text}
+          />
+
+          <Text
+            variant="bodySmall"
+            style={[
+              styles.addActionLabel,
+              { color: colors.text },
+            ]}
+          >
+            Add transaction
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 };
 
@@ -633,6 +751,30 @@ export const DashboardScreen = () => (
 );
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
+  addActionLayer: {
+    position: 'absolute',
+    left: Spacing.lg,
+    right: Spacing.lg,
+    bottom: Spacing.lg,
+    alignItems: 'flex-end',
+  },
+  addActionButton: {
+    minHeight:
+      ControlSize.minimumTouchTarget,
+    borderRadius: Radius.round,
+    paddingHorizontal: Spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+  },
+  addActionLabel: {
+    fontWeight:
+      Typography.label.fontWeight,
+  },
   dashboardHero: {
     borderWidth: 1,
     borderRadius: Radius.lg,
@@ -712,10 +854,13 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   heroInsightRow: {
+    minHeight:
+      ControlSize.minimumTouchTarget,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     marginTop: Spacing.xs,
+    borderRadius: Radius.sm,
   },
   heroInsightText: {
     flex: 1,
@@ -753,8 +898,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   segmentLabel: {
-    fontWeight: Typography.label.fontWeight,
+    textAlign: 'center',
+    fontWeight:
+      Typography.label.fontWeight,
     includeFontPadding: false,
+  },
+  focusContent: {
+    minHeight: 180,
   },
   focusPanelPageInner: {
     paddingBottom: Spacing.sm,
