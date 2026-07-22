@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "verify:config": "node scripts/verify-config.mjs",
     "verify:security": "node scripts/verify-security.mjs",
-    "verify:release": "npm run test && npm run typecheck && npm run verify:config && npm run verify:security && wrangler deploy --dry-run"
+    "verify:release": "npm run test && npm run typecheck && npm run verify:config && npm run verify:security && wrangler deploy --dry-run",
+    "verify:pf209": "vitest run tests/plan-output-schema.test.ts tests/plan-prompt.test.ts tests/plan-provider.test.ts tests/plan-output-validation.test.ts tests/plan-request-safety.test.ts tests/plan-action-handler-validation.test.ts tests/plan-synthetic-evaluation.test.ts"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.18.7",

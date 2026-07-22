@@ -83,6 +83,10 @@ const PROHIBITED_OUTPUT_PATTERNS = [
 
   /\b(?:i|we|perfin(?:\s+os)?)\s+(?:(?:have|has)\s+)?(?:executed|applied|saved|transferred|paid|scheduled|updated|changed|created|deleted)\b/i,
 
+  /\b(?:legal|tax|investment|securities|credit|banking)\s+advice\b/i,
+
+  /\b(?:buy|sell|short|trade)\s+(?:a\s+|the\s+|this\s+)?(?:stock|shares?|crypto|cryptocurrency|bond|security)\b/i,
+
   /\b(?:guaranteed|risk[- ]free)\s+(?:return|investment|profit)\b/i,
 
   /\b(?:evade|hide)\s+(?:tax|taxes|income|assets?)\b/i,
