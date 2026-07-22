@@ -33,7 +33,6 @@ export {
 } from './schema';
 
 export type {
-  FirestoreEntityDocument,
   FirestoreEntityPathParts,
   FirestoreRootCollectionKey,
   FirestoreRootCollectionName,

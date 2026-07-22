@@ -4,6 +4,7 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  onSnapshot,
   type DocumentData,
 } from 'firebase/firestore';
 import {
@@ -115,3 +116,23 @@ export const replaceUserEntityCollection = async <TCollection extends UserEntity
     entities.map((entity) => createUserEntity(userId, collectionKey, entity))
   );
 };
+
+export const subscribeUserEntities = <TCollection extends UserEntityCollectionKey>(
+  userId: string,
+  collectionKey: TCollection,
+  onData: (entities: UserEntityForCollection<TCollection>[]) => void,
+  onError?: (error: Error) => void
+) => onSnapshot(
+  getUserEntityCollectionRef(userId, collectionKey),
+  (snapshot) => {
+    onData(
+      snapshot.docs.map((doc) =>
+        deserializeUserEntity<TCollection>({
+          ...doc.data(),
+          id: doc.id,
+        })
+      )
+    );
+  },
+  onError
+);

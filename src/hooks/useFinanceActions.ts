@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { AppData, Budget, Category, RecurringExpense, Report, SavingsGoal, Transaction, User } from '../models/finance';
+import { AppData, Budget, Category, RecurringExpense, Report, SavingsGoal, Transaction, Profile } from '../models/finance';
 import { detectRecurringExpenses, generateMonthlyReport } from '../services/financeAnalytics';
 import { saveRemoteAppData } from '../services/firebaseService';
 import { createEmptyAppData } from '../services/initialData';
@@ -14,16 +14,16 @@ export interface FinanceActions {
   signupWithEmail: (name: string, email: string, password: string, options?: AuthOptions) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   logout: () => void;
-  updateUser: (updates: Partial<User>) => Promise<void>;
-  completeOnboarding: (updates: Partial<User>) => Promise<void>;
-  addTransaction: (input: Omit<Transaction, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'updateCount'>) => Promise<string>;
+  updateProfile: (updates: Partial<Profile>) => Promise<void>;
+  completeOnboarding: (updates: Partial<Profile>) => Promise<void>;
+  addTransaction: (input: Omit<Transaction, 'id'| 'createdAt' | 'updatedAt' | 'updateCount'>) => Promise<string>;
   updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   addCategory: (input: Omit<Category, 'id' | 'isDefault'>) => Promise<void>;
   updateCategory: (id: string, updates: Partial<Category>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
   upsertBudget: (input: Partial<Budget>) => Promise<void>;
-  addSavingsGoal: (input: Omit<SavingsGoal, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  addSavingsGoal: (input: Omit<SavingsGoal, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   updateSavingsGoal: (id: string, updates: Partial<SavingsGoal>) => Promise<void>;
   deleteSavingsGoal: (id: string) => Promise<void>;
   updateRecurringExpense: (id: string, updates: Partial<RecurringExpense>) => Promise<void>;
@@ -33,14 +33,13 @@ export interface FinanceActions {
 
 const uid = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-const normalizeForUser = (data: AppData, userId: string, name?: string, email?: string): AppData => {
+const normalizeForUser = (data: AppData, name?: string, email?: string): AppData => {
   const now = new Date().toISOString();
 
   return {
     ...data,
     user: {
       ...data.user,
-      id: userId,
       name: name?.trim() || data.user.name || 'PerFin OS User',
       email: email?.trim() || data.user.email,
     },
@@ -57,16 +56,16 @@ const normalizeForUser = (data: AppData, userId: string, name?: string, email?: 
       createdAt: data.entitlement?.createdAt || now,
       updatedAt: now,
     },
-    transactions: data.transactions.map((transaction) => ({ ...transaction, userId })),
-    budgets: data.budgets.map((budget) => ({ ...budget, userId })),
-    savingsGoals: data.savingsGoals.map((goal) => ({ ...goal, userId })),
-    recurringExpenses: data.recurringExpenses.map((expense) => ({ ...expense, userId })),
-    reports: data.reports.map((report) => ({ ...report, userId })),
+    transactions: data.transactions.map((transaction) => ({ ...transaction})),
+    budgets: data.budgets.map((budget) => ({ ...budget})),
+    savingsGoals: data.savingsGoals.map((goal) => ({ ...goal})),
+    recurringExpenses: data.recurringExpenses.map((expense) => ({ ...expense})),
+    reports: data.reports.map((report) => ({ ...report})),
   };
 };
 
 const refreshDerivedData = (current: AppData): AppData => {
-  const detected = detectRecurringExpenses(current.user.id, current.transactions);
+  const detected = detectRecurringExpenses(current.transactions);
   const mergedRecurring = [
     ...current.recurringExpenses.map((existing) => detected.find((item) => item.id === existing.id) || existing),
     ...detected.filter((item) => !current.recurringExpenses.some((existing) => existing.id === item.id)),
@@ -98,7 +97,7 @@ export const useFinanceActions = (): FinanceActions => {
         const user = await loginRemote(email, password);
 
         if (options.importGuestData && guestSnapshot) {
-          const imported = normalizeForUser(guestSnapshot, user.uid, guestSnapshot.user.name, email);
+          const imported = normalizeForUser(guestSnapshot, guestSnapshot.user.name, email);
           await saveRemoteAppData(user.uid, imported);
           setData(imported);
         }
@@ -107,8 +106,8 @@ export const useFinanceActions = (): FinanceActions => {
         const guestSnapshot = data?.entitlement?.isGuest ? data : null;
         const user = await signupRemote(name, email, password);
         const base = options.importGuestData && guestSnapshot
-          ? normalizeForUser(guestSnapshot, user.uid, name, email)
-          : createEmptyAppData({ userId: user.uid, name, email, isGuest: false });
+          ? normalizeForUser(guestSnapshot, name, email)
+          : createEmptyAppData({ name, email, isGuest: false });
 
         setData(base);
         await saveRemoteAppData(user.uid, base);
@@ -120,14 +119,13 @@ export const useFinanceActions = (): FinanceActions => {
         logoutSession((message) => setError(message));
         clearWorkspace();
       },
-      updateUser: async (updates) => {
+      updateProfile: async (updates) => {
         await persist((current) => ({ ...current, user: { ...current.user, ...updates } }));
       },
       completeOnboarding: async (updates) => {
         await persist((current) => ({
           ...current,
-          user: { ...current.user, ...updates },
-          onboarded: true,
+          user: { ...current.user, ...updates, onboarded: true }
         }));
       },
       addTransaction: async (input) => {
@@ -246,7 +244,6 @@ export const useFinanceActions = (): FinanceActions => {
 
           const budget: Budget = {
             id: existing?.id || uid('budget'),
-            userId: current.user.id,
             month,
             totalBudget: input.totalBudget ?? existing?.totalBudget ?? current.user.monthlyBudget,
             categoryBudgets: input.categoryBudgets || existing?.categoryBudgets || {},
@@ -275,7 +272,7 @@ export const useFinanceActions = (): FinanceActions => {
           return {
             ...current,
             savingsGoals: [
-              { ...input, id: uid('goal'), userId: current.user.id, createdAt: now, updatedAt: now },
+              { ...input, id: uid('goal'), createdAt: now, updatedAt: now },
               ...current.savingsGoals,
             ],
           };
@@ -318,7 +315,6 @@ export const useFinanceActions = (): FinanceActions => {
 
         const budget = data.budgets.find((item) => item.month === month);
         const report = generateMonthlyReport(
-          data.user.id,
           data.transactions,
           data.categories,
           data.savingsGoals,

@@ -1,6 +1,8 @@
 import type {
   UserEntityCollectionKey,
   UserEntityForCollection,
+  UserSingletonForKey,
+  UserSingletonKey,
 } from './schema';
 
 export type JsonPrimitive = string | number | boolean | null;
@@ -33,3 +35,11 @@ export const deserializeUserEntities = <TCollection extends UserEntityCollection
   values: unknown[]
 ): UserEntityForCollection<TCollection>[] =>
   values.map((value) => deserializeUserEntity<TCollection>(value));
+
+export const serializeUserDocument = <T extends UserSingletonKey>(
+  document: UserSingletonForKey<T>
+) => toJsonSafeValue(document);
+
+export const deserializeUserDocument = <T extends UserSingletonKey>(
+  document: unknown
+) => document as UserSingletonForKey<T>;

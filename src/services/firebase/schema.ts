@@ -1,4 +1,6 @@
 import type {
+  Profile,
+  Entitlement,
   Budget,
   Category,
   RecurringExpense,
@@ -23,6 +25,15 @@ export const USER_ENTITY_COLLECTIONS = {
   reports: 'reports',
 } as const;
 
+export const USER_SINGLETON_DOCUMENTS = {
+    profile: "profile",
+    entitlement: "entitlement",
+} as const;
+
+export type UserSingletonKey = keyof typeof USER_SINGLETON_DOCUMENTS;
+export type UserSingletonDocumentName =
+  (typeof USER_SINGLETON_DOCUMENTS)[UserSingletonKey];
+
 export type FirestoreRootCollectionKey = keyof typeof FIRESTORE_ROOT_COLLECTIONS;
 export type FirestoreRootCollectionName =
   (typeof FIRESTORE_ROOT_COLLECTIONS)[FirestoreRootCollectionKey];
@@ -40,13 +51,14 @@ export interface UserEntityMap {
   reports: Report;
 }
 
-export type UserEntityForCollection<TCollection extends UserEntityCollectionKey> =
-  UserEntityMap[TCollection];
-
-export interface FirestoreEntityDocument<TPayload> {
-  id: string;
-  data: TPayload;
+export interface UserSingletonMap {
+    profile: Profile;
+    entitlement: Entitlement;
 }
+
+export type UserSingletonForKey< T extends UserSingletonKey > = UserSingletonMap[T];
+
+export type UserEntityForCollection<TCollection extends UserEntityCollectionKey> = UserEntityMap[TCollection];
 
 export interface FirestoreEntityPathParts<TCollection extends UserEntityCollectionKey> {
   userId: string;
@@ -54,3 +66,4 @@ export interface FirestoreEntityPathParts<TCollection extends UserEntityCollecti
   collectionName: UserEntityCollectionName;
   entityId?: string;
 }
+

@@ -32,7 +32,7 @@ export const loadGuestAppData = async (): Promise<AppData> => {
       ...parsed,
       entitlement:
         parsed.entitlement ||
-        createEmptyAppData({ userId: parsed.user.id, isGuest: true }).entitlement,
+        createEmptyAppData({ isGuest: true }).entitlement,
       transactions: parsed.transactions.map((t) => ({
         ...t,
         receipts: t.receipts || [],

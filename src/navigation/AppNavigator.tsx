@@ -186,7 +186,7 @@ const AppNavigator = () => {
   return (
     <NavigationContainer theme={scheme === 'dark' ? DarkTheme : DefaultTheme}>
       <SplashGate>
-        {!isAuthenticated ? <AuthStack /> : data?.onboarded ? <MainStack /> : data ? <OnboardingScreen /> : <AuthStack />}
+        {!isAuthenticated ? <AuthStack /> : data?.user.onboarded ? <MainStack /> : data ? <OnboardingScreen /> : <AuthStack />}
       </SplashGate>
     </NavigationContainer>
   );

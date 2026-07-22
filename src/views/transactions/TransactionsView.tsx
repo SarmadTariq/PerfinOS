@@ -411,7 +411,7 @@ const TransactionCard = ({
             </View>
 
             <Text variant="caption" color="secondary" numberOfLines={1} style={{ marginTop: Spacing.xs }}>
-              {transaction.categoryName} · {transaction.paymentMethod} · {transaction.location.neighborhood || transaction.location.name || transaction.location.address}
+              {category?.name ?? 'Uncategorized'} · {transaction.paymentMethod} · {transaction.location.neighborhood || transaction.location.name || transaction.location.address}
             </Text>
           </View>
 

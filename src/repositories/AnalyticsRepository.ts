@@ -181,7 +181,6 @@ export const generateSpendingInsights = (
   if (budgetHealth.totalBudget > 0 && budgetHealth.usedPercent >= 85) {
     insights.push({
       id: uid(),
-      userId,
       type: 'budget-risk',
       title: budgetHealth.usedPercent >= 100 ? 'Monthly budget exceeded' : 'Budget pace is high',
       description: `You have used ${budgetHealth.usedPercent}% of this month's budget. Remaining budget is ${Math.max(budgetHealth.remaining, 0).toFixed(0)} before the month ends.`,
@@ -193,7 +192,6 @@ export const generateSpendingInsights = (
   if (breakdown[0] && summary.expenses > 0) {
     insights.push({
       id: uid(),
-      userId,
       type: 'top-category',
       title: `${breakdown[0].categoryName} leads spending`,
       description: `${breakdown[0].categoryName} accounts for ${breakdown[0].percentage}% of tracked expenses this month.`,
@@ -205,7 +203,6 @@ export const generateSpendingInsights = (
   if (locations[0]) {
     insights.push({
       id: uid(),
-      userId,
       type: 'location-hotspot',
       title: `${locations[0].label} is your top spend area`,
       description: `You spent ${locations[0].amount.toFixed(0)} across ${locations[0].count} tracked expense${locations[0].count === 1 ? '' : 's'} there this month.`,
@@ -217,7 +214,6 @@ export const generateSpendingInsights = (
   if (summary.netCashFlow > 0) {
     insights.push({
       id: uid(),
-      userId,
       type: 'cash-flow',
       title: 'Positive monthly cash flow',
       description: `Income is ahead of expenses by ${summary.netCashFlow.toFixed(0)} this month.`,
@@ -229,7 +225,6 @@ export const generateSpendingInsights = (
   if (recurringTotal > summary.expenses * 0.25 && summary.expenses > 0) {
     insights.push({
       id: uid(),
-      userId,
       type: 'recurring-load',
       title: 'Recurring costs deserve a review',
       description: `Recurring charges represent ${Math.round((recurringTotal / summary.expenses) * 100)}% of monthly expenses.`,
@@ -273,7 +268,7 @@ export const detectRecurringExpenses = (
         userId,
         merchant: latest.merchant,
         amount: Math.round((group.reduce((sum, item) => sum + item.amount, 0) / group.length) * 100) / 100,
-        category: latest.categoryName,
+        categoryId: latest.categoryId,
         frequency: 'monthly',
         nextDate: next.toISOString().slice(0, 10),
         status: 'active',
@@ -307,11 +302,10 @@ export const generateMonthlyReport = (
 
   return {
     id: `report-${month}`,
-    userId,
     month,
     totalIncome: summary.income,
     totalExpense: summary.expenses,
-    topCategory: breakdown[0]?.categoryName || 'None yet',
+    topCategoryId: breakdown[0]?.categoryId || 'None yet',
     budgetStatus: health.status,
     savingsProgress: savings.percentage,
     generatedAt: new Date().toISOString(),
@@ -339,7 +333,7 @@ export const filterTransactions = (
     if (filters.frequency === 'one-time' && t.isRecurring) return false;
     if (filters.recurringOnly && !t.isRecurring) return false;
     if (!query) return true;
-    return [t.merchant, t.categoryName, t.notes, t.paymentMethod].join(' ').toLowerCase().includes(query);
+    return [t.merchant, t.categoryId, t.notes, t.paymentMethod].join(' ').toLowerCase().includes(query);
   });
 };
 

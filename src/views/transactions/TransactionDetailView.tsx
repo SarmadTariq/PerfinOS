@@ -13,7 +13,7 @@ import { RequireData } from '../../components/layout/RequireData';
 import { MapCanvas } from '../../components/map/MapCanvas';
 import { useFinance } from '../../context/FinanceContext';
 import { useColors } from '../../context/ThemeContext';
-import { AppData, ReceiptAttachment, Transaction } from '../../models/finance';
+import { AppData, Category, ReceiptAttachment, Transaction } from '../../models/finance';
 import { Radius, Spacing } from '../../theme';
 import { formatCurrencyPrecise } from '../../utils/format';
 
@@ -163,13 +163,11 @@ const ReceiptsSection = ({
 
 const TransactionHero = ({
   transaction,
-  categoryColor,
-  categoryIcon,
+  category,
   currency,
 }: {
   transaction: Transaction;
-  categoryColor: string;
-  categoryIcon?: string;
+  category: Category | undefined;
   currency: string;
 }) => {
   const colors = useColors();
@@ -179,9 +177,9 @@ const TransactionHero = ({
     <Card shadow="sm" style={{ marginBottom: Spacing.lg }}>
       <View style={styles.rowBetween}>
         <CategoryBadge
-          label={transaction.categoryId}
-          icon={categoryIcon}
-          color={categoryColor}
+          label={category?.name ?? 'Uncategorized'}
+          icon={category?.icon ?? 'category'}
+          color={category?.color ?? colors.primary}
         />
 
         <View style={[styles.typePill, { backgroundColor: `${amountColor}1F` }]}>
@@ -259,8 +257,7 @@ const TransactionDetailContent = ({ data }: { data: AppData }) => {
 
       <TransactionHero
         transaction={transaction}
-        categoryColor={category?.color || colors.primary}
-        categoryIcon={category?.icon}
+        category={category}
         currency={data.user.currency}
       />
 

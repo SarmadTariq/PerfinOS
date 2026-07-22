@@ -1,4 +1,4 @@
-import { AppData, Budget, Category, ExpenseLocation, FeatureKey, SavingsGoal, Transaction, UserPlan } from '../models/finance';
+import { AppData, Budget, Category, ExpenseLocation, FeatureKey, SavingsGoal, Transaction, Entitlement } from '../models/finance';
 import { getMonthKey } from '../utils/format';
 
 export const defaultCategories: Category[] = [
@@ -20,7 +20,7 @@ const featureDefaults = (isGuest: boolean): Record<FeatureKey, boolean> => ({
   accountRecovery: !isGuest,
 });
 
-export const createEntitlement = (isGuest: boolean, now = new Date().toISOString()): UserPlan => ({
+export const createEntitlement = (isGuest: boolean, now = new Date().toISOString()): Entitlement => ({
   plan: isGuest ? 'guest' : 'free',
   isGuest,
   features: featureDefaults(isGuest),
@@ -29,12 +29,10 @@ export const createEntitlement = (isGuest: boolean, now = new Date().toISOString
 });
 
 export const createEmptyAppData = ({
-  userId,
   name,
   email,
   isGuest,
 }: {
-  userId: string;
   name?: string;
   email?: string;
   isGuest: boolean;
@@ -44,23 +42,21 @@ export const createEmptyAppData = ({
 
   return {
     user: {
-      id: userId,
       name: name?.trim() || (isGuest ? 'Guest User' : 'PerFin OS User'),
       email: email?.trim() || '',
       phone: '',
       currency: 'USD',
       monthlyIncome: 0,
       monthlyBudget: 0,
+      onboarded: false,
       createdAt: now,
     },
     entitlement: createEntitlement(isGuest, now),
-    onboarded: false,
     categories: defaultCategories,
     transactions: [],
     budgets: [
       {
         id: `budget-${month}`,
-        userId,
         month,
         totalBudget: 0,
         categoryBudgets: {},
@@ -75,7 +71,7 @@ export const createEmptyAppData = ({
 };
 
 export const createDemoAppData = (): AppData => {
-  const userId = 'guest-local';
+  
   const now = new Date().toISOString();
 
   const lastMonthDate = new Date();
@@ -117,11 +113,9 @@ export const createDemoAppData = (): AppData => {
     isRecurring = false
   ): Transaction => ({
     id,
-    userId,
     type,
     amount,
     categoryId,
-    categoryName,
     merchant,
     date,
     notes,
@@ -190,19 +184,18 @@ export const createDemoAppData = (): AppData => {
   };
 
   const budgets: Budget[] = [
-    { id: 'seed-budget-this', userId, month: thisMonth, totalBudget: 3200, categoryBudgets, createdAt: now, updatedAt: now },
-    { id: 'seed-budget-last', userId, month: lastMonth, totalBudget: 3200, categoryBudgets, createdAt: now, updatedAt: now },
+    { id: 'seed-budget-this', month: thisMonth, totalBudget: 3200, categoryBudgets, createdAt: now, updatedAt: now },
+    { id: 'seed-budget-last', month: lastMonth, totalBudget: 3200, categoryBudgets, createdAt: now, updatedAt: now },
   ];
 
   const savingsGoals: SavingsGoal[] = [
-    { id: 'seed-goal-001', userId, name: 'Emergency Fund', targetAmount: 10000, currentAmount: 4200, targetDate: '2026-12-31', createdAt: now, updatedAt: now },
-    { id: 'seed-goal-002', userId, name: 'MacBook Pro M4', targetAmount: 2800, currentAmount: 840, targetDate: '2026-08-15', createdAt: now, updatedAt: now },
+    { id: 'seed-goal-001', name: 'Emergency Fund', targetAmount: 10000, currentAmount: 4200, targetDate: '2026-12-31', createdAt: now, updatedAt: now },
+    { id: 'seed-goal-002', name: 'MacBook Pro M4', targetAmount: 2800, currentAmount: 840, targetDate: '2026-08-15', createdAt: now, updatedAt: now },
   ];
 
   return {
-    user: { id: userId, name: 'Alex Johnson', email: '', phone: '', currency: 'CAD', monthlyIncome: 5200, monthlyBudget: 3200, createdAt: now },
+    user: { name: 'Alex Johnson', email: '', phone: '', currency: 'CAD', monthlyIncome: 5200, monthlyBudget: 3200, onboarded: true, createdAt: now },
     entitlement: createEntitlement(true, now),
-    onboarded: true,
     categories: defaultCategories,
     transactions,
     budgets,

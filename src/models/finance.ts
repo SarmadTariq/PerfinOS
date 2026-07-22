@@ -7,18 +7,18 @@ export type FeatureKey = 'cloudSync' | 'receiptUploads' | 'aiReports' | 'planner
 export type LocationSource = 'current_location' | 'google_place' | 'imported';
 export type ReceiptStatus = 'local' | 'uploading' | 'uploaded' | 'error';
 
-export interface User {
-  id: string;
+export interface Profile {
   name: string;
   email: string;
   phone: string;
   currency: string;
   monthlyIncome: number;
   monthlyBudget: number;
+  onboarded: boolean;
   createdAt: string;
 }
 
-export interface UserPlan {
+export interface Entitlement {
   plan: UserPlanName;
   isGuest: boolean;
   features: Record<FeatureKey, boolean>;
@@ -79,7 +79,6 @@ export interface Category {
 
 export interface Budget {
   id: string;
-  userId: string;
   month: string;
   totalBudget: number;
   categoryBudgets: Record<string, number>;
@@ -99,7 +98,6 @@ export interface SavingsGoal {
 
 export interface Insight {
   id: string;
-  userId: string;
   type: string;
   title: string;
   description: string;
@@ -129,15 +127,14 @@ export interface Report {
 }
 
 export interface AppData {
-  user: User;
-  entitlement: UserPlan;
+  user: Profile;
+  entitlement: Entitlement;
   transactions: Transaction[];
   categories: Category[];
   budgets: Budget[];
   savingsGoals: SavingsGoal[];
   recurringExpenses: RecurringExpense[];
   reports: Report[];
-  onboarded: boolean;
 }
 
 export interface TransactionFilters {

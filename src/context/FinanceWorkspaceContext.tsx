@@ -100,18 +100,11 @@ export const FinanceWorkspaceProvider = ({ children }: { children: React.ReactNo
           setData(remote);
           setStatus('ready');
         }
-      },
-      (err) => {
-        if (active) {
-          setError(err.message || 'Firestore sync failed');
-          setStatus('error');
-        }
       }
     );
 
     return () => {
       active = false;
-      unsubscribe();
     };
   }, [remoteUserId, isGuest]);
 

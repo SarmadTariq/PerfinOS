@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo } from 'react';
-import { AppData, Budget, Category, RecurringExpense, Report, SavingsGoal, Transaction, User } from '../models/finance';
+import { AppData, Budget, Category, RecurringExpense, Report, SavingsGoal, Transaction, Profile } from '../models/finance';
 import { generateSpendingInsights } from '../services/financeAnalytics';
 import { getMonthKey } from '../utils/format';
 import { useFinanceWorkspace } from '../hooks/useFinanceWorkspace';
@@ -18,16 +18,16 @@ interface FinanceContextValue {
   signupWithEmail: (name: string, email: string, password: string, options?: AuthOptions) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   logout: () => void;
-  updateUser: (updates: Partial<User>) => Promise<void>;
-  completeOnboarding: (updates: Partial<User>) => Promise<void>;
-  addTransaction: (input: Omit<Transaction, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'updateCount'>) => Promise<void>;
+  updateProfile: (updates: Partial<Profile>) => Promise<void>;
+  completeOnboarding: (updates: Partial<Profile>) => Promise<void>;
+  addTransaction: (input: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt' | 'updateCount'>) => Promise<string>;
   updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   addCategory: (input: Omit<Category, 'id' | 'isDefault'>) => Promise<void>;
   updateCategory: (id: string, updates: Partial<Category>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
   upsertBudget: (input: Partial<Budget>) => Promise<void>;
-  addSavingsGoal: (input: Omit<SavingsGoal, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  addSavingsGoal: (input: Omit<SavingsGoal, 'id'| 'createdAt' | 'updatedAt'>) => Promise<void>;
   updateSavingsGoal: (id: string, updates: Partial<SavingsGoal>) => Promise<void>;
   deleteSavingsGoal: (id: string) => Promise<void>;
   updateRecurringExpense: (id: string, updates: Partial<RecurringExpense>) => Promise<void>;
@@ -72,5 +72,5 @@ export const useInsights = () => {
 
   const budget = data.budgets.find((item) => item.month === getMonthKey());
 
-  return generateSpendingInsights(data.user.id, data.transactions, data.categories, budget);
+  return generateSpendingInsights(data.transactions, data.categories, budget);
 };

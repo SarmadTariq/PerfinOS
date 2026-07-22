@@ -5,6 +5,8 @@ import {
   LEGACY_APP_DATA_DOCUMENT,
   USER_ENTITY_COLLECTIONS,
   USER_PRIVATE_COLLECTION,
+  USER_SINGLETON_DOCUMENTS,
+  UserSingletonKey,
   type UserEntityCollectionKey,
   type UserEntityCollectionName,
 } from './schema';
@@ -62,3 +64,24 @@ export const getUserEntityDocumentRef = <TCollection extends UserEntityCollectio
     userEntityCollectionName(collectionKey),
     entityId
   );
+
+  export const getUserSingletonDocumentRef = <TSingleton extends UserSingletonKey>(
+    userId: string,
+    singletonKey: TSingleton
+  ): DocumentReference<DocumentData> =>
+  doc(
+    requireFirestore(),
+    FIRESTORE_ROOT_COLLECTIONS.users,
+    userId,
+    USER_PRIVATE_COLLECTION,
+    USER_SINGLETON_DOCUMENTS[singletonKey]
+  );
+
+export const userSingletonDocumentName = <TSingleton extends UserSingletonKey>(
+  singletonKey: TSingleton
+) => USER_SINGLETON_DOCUMENTS[singletonKey];
+
+export const userSingletonDocumentPath = <TSingleton extends UserSingletonKey>(
+  userId: string,
+  singletonKey: TSingleton
+) => `${userRootPath(userId)}/${USER_PRIVATE_COLLECTION}/${userSingletonDocumentName(singletonKey)}`;
