@@ -22,6 +22,9 @@ import {
   baselineRevision,
   sessionId,
   validPlanEvidence,
+  validPlanGenerationMetadata,
+  validPlanProviderResult,
+  validPlanStructuredOutput,
 } from './plan-fixtures';
 
 const env = {} as Env;
@@ -30,40 +33,8 @@ const successProvider =
   (): PlanProvider => ({
     generate:
       vi.fn(
-        async () => ({
-          text:
-            JSON.stringify({
-              summary:
-                'Planning guidance',
-            }),
-
-          candidate: {
-            summary:
-              'Planning guidance',
-          },
-
-          attemptCount: 1,
-
-          metadata: {
-            modelId:
-              'gemini-test-model',
-
-            promptVersion:
-              'plan-prompt-v1',
-
-            responseSchemaVersion:
-              'plan-response-v1',
-
-            outputSchemaVersion:
-              1,
-
-            attemptCount:
-              1,
-
-            generatedAt:
-              '2026-07-21T20:00:00.000Z',
-          },
-        })
+        async () =>
+          validPlanProviderResult
       ),
   });
 
@@ -162,13 +133,14 @@ describe(
             'generate',
           sessionId,
           baselineRevision,
-          result: {
-            text:
-              JSON.stringify({
-                summary:
-                  'Planning guidance',
-              }),
-          },
+          result:
+            validPlanStructuredOutput,
+
+          generation:
+            validPlanGenerationMetadata,
+
+          validationState:
+            'valid',
         });
       }
     );

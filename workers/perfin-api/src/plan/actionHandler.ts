@@ -11,6 +11,16 @@ import {
   type PlanProvider,
 } from './provider';
 
+import {
+  PlanOutputValidationError,
+  validatePlanProviderResult,
+} from './outputValidation';
+
+import {
+  assertPlanProviderRequestSafe,
+  PlanRequestSafetyError,
+} from './requestSafety';
+
 export interface PlanActionHandlerOptions {
   readonly provider:
     PlanProvider;
@@ -128,19 +138,36 @@ export const createPlanActionHandler =
     }
 
     try {
+      const providerRequest = {
+        action:
+          context.action,
+
+        request:
+          context.body,
+      } as const;
+
+      assertPlanProviderRequestSafe(
+        providerRequest
+      );
+
       const result =
         await options
           .provider
           .generate(
-            {
-              action:
-                context.action,
-
-              request:
-                context.body,
-            },
+            providerRequest,
             env
           );
+
+      const validated =
+        validatePlanProviderResult({
+          action:
+            context.action,
+
+          request:
+            context.body,
+
+          result,
+        });
 
       return jsonResponse(
         {
@@ -158,14 +185,55 @@ export const createPlanActionHandler =
               .evidence
               .baselineRevision,
 
-          result: {
-            text:
-              result.text,
-          },
+          result:
+            validated.output,
+
+          generation:
+            validated.metadata,
+
+          validationState:
+            validated
+              .validationState,
         },
         200
       );
     } catch (error) {
+      if (
+        error instanceof
+        PlanRequestSafetyError
+      ) {
+        return jsonResponse(
+          {
+            error: {
+              code:
+                'REQUEST_UNSUPPORTED',
+
+              message:
+                'This planning request is not supported.',
+            },
+          },
+          400
+        );
+      }
+
+      if (
+        error instanceof
+        PlanOutputValidationError
+      ) {
+        return jsonResponse(
+          {
+            error: {
+              code:
+                'PROVIDER_RESPONSE_INVALID',
+
+              message:
+                'Plan guidance could not be validated.',
+            },
+          },
+          502
+        );
+      }
+
       if (
         error instanceof
         PlanProviderError
