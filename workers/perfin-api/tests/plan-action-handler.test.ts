@@ -32,8 +32,37 @@ const successProvider =
       vi.fn(
         async () => ({
           text:
-            'Planning guidance',
+            JSON.stringify({
+              summary:
+                'Planning guidance',
+            }),
+
+          candidate: {
+            summary:
+              'Planning guidance',
+          },
+
           attemptCount: 1,
+
+          metadata: {
+            modelId:
+              'gemini-test-model',
+
+            promptVersion:
+              'plan-prompt-v1',
+
+            responseSchemaVersion:
+              'plan-response-v1',
+
+            outputSchemaVersion:
+              1,
+
+            attemptCount:
+              1,
+
+            generatedAt:
+              '2026-07-21T20:00:00.000Z',
+          },
         })
       ),
   });
@@ -135,7 +164,10 @@ describe(
           baselineRevision,
           result: {
             text:
-              'Planning guidance',
+              JSON.stringify({
+                summary:
+                  'Planning guidance',
+              }),
           },
         });
       }

@@ -45,6 +45,34 @@ const request = {
   },
 };
 
+const structuredCandidate = {
+  schemaVersion: 1,
+  action: 'generate',
+  baselineRevision,
+  currency: 'CAD',
+  periodKind:
+    'current_month',
+  summary:
+    'Planning guidance',
+  observations: [
+    {
+      id:
+        'observation-1',
+      statement:
+        'Recorded expenses are below recorded income.',
+      evidenceRefs: [
+        'totals.recordedExpensesMinor',
+        'totals.recordedIncomeMinor',
+      ],
+    },
+  ],
+  allocations: [],
+  commitments: [],
+  recommendations: [],
+  actionProposals: [],
+  warnings: [],
+};
+
 const successResponse = () =>
   new Response(
     JSON.stringify({
@@ -54,7 +82,9 @@ const successResponse = () =>
             parts: [
               {
                 text:
-                  'Planning guidance',
+                  JSON.stringify(
+                    structuredCandidate
+                  ),
               },
             ],
           },
@@ -85,8 +115,15 @@ describe(
         const result =
           await createGeminiPlanProvider({
             fetcher,
+
             sleep:
               async () => {},
+
+            now:
+              () =>
+                new Date(
+                  '2026-07-21T20:00:00.000Z'
+                ),
           }).generate(
             request,
             env
@@ -95,8 +132,34 @@ describe(
         expect(result)
           .toEqual({
             text:
-              'Planning guidance',
+              JSON.stringify(
+                structuredCandidate
+              ),
+
+            candidate:
+              structuredCandidate,
+
             attemptCount: 1,
+
+            metadata: {
+              modelId:
+                'gemini-test-model',
+
+              promptVersion:
+                'plan-prompt-v1',
+
+              responseSchemaVersion:
+                'plan-response-v1',
+
+              outputSchemaVersion:
+                1,
+
+              attemptCount:
+                1,
+
+              generatedAt:
+                '2026-07-21T20:00:00.000Z',
+            },
           });
 
         expect(fetcher)
@@ -274,6 +337,47 @@ describe(
               new Response(
                 JSON.stringify({
                   candidates: [],
+                }),
+                {
+                  status: 200,
+                }
+              )
+          );
+
+        await expect(
+          createGeminiPlanProvider({
+            fetcher,
+          }).generate(
+            request,
+            env
+          )
+        ).rejects.toMatchObject({
+          code:
+            'PROVIDER_RESPONSE_INVALID',
+        });
+      }
+    );
+
+    it(
+      'rejects syntactically invalid structured JSON',
+      async () => {
+        const fetcher =
+          vi.fn(
+            async () =>
+              new Response(
+                JSON.stringify({
+                  candidates: [
+                    {
+                      content: {
+                        parts: [
+                          {
+                            text:
+                              '{invalid-json',
+                          },
+                        ],
+                      },
+                    },
+                  ],
                 }),
                 {
                   status: 200,
