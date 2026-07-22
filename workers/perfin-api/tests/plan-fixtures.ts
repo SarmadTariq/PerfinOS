@@ -137,3 +137,190 @@ export const validPlanEvidence:
       warnings: [],
     },
   };
+
+import type {
+  PlanGenerationMetadata,
+  PlanStructuredOutput,
+} from '../src/plan/outputContracts';
+
+import type {
+  PlanProviderResult,
+} from '../src/plan/provider';
+
+export const validPlanStructuredOutput:
+  PlanStructuredOutput = {
+    schemaVersion: 1,
+
+    action:
+      'generate',
+
+    baselineRevision,
+
+    currency:
+      'CAD',
+
+    periodKind:
+      'current_month',
+
+    summary:
+      'Recorded income currently exceeds recorded expenses after known commitments.',
+
+    observations: [
+      {
+        id:
+          'observation-1',
+
+        statement:
+          'Recorded income is greater than recorded expenses.',
+
+        evidenceRefs: [
+          'totals.recordedIncomeMinor',
+          'totals.recordedExpensesMinor',
+        ],
+      },
+    ],
+
+    allocations: [
+      {
+        id:
+          'allocation-1',
+
+        label:
+          'Housing allocation',
+
+        categoryId:
+          'housing',
+
+        amountMinor:
+          100_000,
+
+        period:
+          'plan',
+
+        evidenceRefs: [
+          'categories[0].spendMinor',
+          'totals.availableAfterCommitmentsMinor',
+        ],
+      },
+    ],
+
+    commitments: [
+      {
+        id:
+          'commitment-1',
+
+        title:
+          'Review known housing commitment',
+
+        description:
+          'Keep the known recurring housing commitment visible during this period.',
+
+        amountMinor:
+          50_000,
+
+        dueDate:
+          '2026-07-21',
+
+        evidenceRefs: [
+          'recurring[0].projectedMinor',
+        ],
+      },
+    ],
+
+    recommendations: [
+      {
+        id:
+          'recommendation-1',
+
+        title:
+          'Review housing pace',
+
+        description:
+          'Compare current housing spending with the available category budget.',
+
+        priority:
+          'medium',
+
+        evidenceRefs: [
+          'categories[0].spendMinor',
+          'categories[0].budgetMinor',
+        ],
+      },
+    ],
+
+    actionProposals: [
+      {
+        id:
+          'proposal-1',
+
+        type:
+          'budget_adjustment',
+
+        title:
+          'Review the housing budget',
+
+        description:
+          'Consider a confirmed housing budget adjustment based on the current period evidence.',
+
+        targetEntityId:
+          'housing',
+
+        proposedAmountMinor:
+          50_000,
+
+        effectiveDate:
+          '2026-07-21',
+
+        requiresConfirmation:
+          true,
+
+        executionState:
+          'proposal_only',
+
+        evidenceRefs: [
+          'categories[0].budgetMinor',
+          'categories[0].spendMinor',
+        ],
+      },
+    ],
+
+    warnings: [],
+  };
+
+export const validPlanGenerationMetadata:
+  PlanGenerationMetadata = {
+    modelId:
+      'gemini-test-model',
+
+    promptVersion:
+      'plan-prompt-v1',
+
+    responseSchemaVersion:
+      'plan-response-v1',
+
+    outputSchemaVersion:
+      1,
+
+    attemptCount:
+      1,
+
+    generatedAt:
+      '2026-07-21T20:00:00.000Z',
+  };
+
+export const validPlanProviderResult:
+  PlanProviderResult = {
+    text:
+      JSON.stringify(
+        validPlanStructuredOutput
+      ),
+
+    candidate:
+      validPlanStructuredOutput,
+
+    attemptCount:
+      1,
+
+    metadata:
+      validPlanGenerationMetadata,
+  };

@@ -22,6 +22,9 @@ import {
   baselineRevision,
   sessionId,
   validPlanEvidence,
+  validPlanGenerationMetadata,
+  validPlanProviderResult,
+  validPlanStructuredOutput,
 } from './plan-fixtures';
 
 const env = {} as Env;
@@ -30,11 +33,8 @@ const successProvider =
   (): PlanProvider => ({
     generate:
       vi.fn(
-        async () => ({
-          text:
-            'Planning guidance',
-          attemptCount: 1,
-        })
+        async () =>
+          validPlanProviderResult
       ),
   });
 
@@ -133,10 +133,14 @@ describe(
             'generate',
           sessionId,
           baselineRevision,
-          result: {
-            text:
-              'Planning guidance',
-          },
+          result:
+            validPlanStructuredOutput,
+
+          generation:
+            validPlanGenerationMetadata,
+
+          validationState:
+            'valid',
         });
       }
     );

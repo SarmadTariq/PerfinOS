@@ -31,6 +31,7 @@ import {
   baselineRevision,
   sessionId,
   validPlanEvidence,
+  validPlanProviderResult,
 } from './plan-fixtures';
 
 const allowedOrigin =
@@ -196,11 +197,8 @@ describe(
           PlanProvider = {
           generate:
             vi.fn(
-              async () => ({
-                text:
-                  'Planning guidance',
-                attemptCount: 1,
-              })
+              async () =>
+                validPlanProviderResult
             ),
         };
 
