@@ -29,6 +29,7 @@ const requiredSnippets = [
   '[env.production.vars]',
   'PLAN_ENV = "production"',
   'GEMINI_MODEL = "gemini-3.5-flash"',
+  'head_sampling_rate = 0.1',
   '[env.production.secrets]',
   '"GEMINI_API_KEY"',
   '"FIREBASE_PROJECT_NUMBER"',

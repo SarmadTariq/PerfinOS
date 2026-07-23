@@ -19,6 +19,9 @@ export const PLAN_PROVIDER_TIMEOUT_MS =
 export const PLAN_PROVIDER_MAX_RETRIES =
   1;
 
+export const PLAN_PROVIDER_MAX_OUTPUT_TOKENS =
+  1_200;
+
 export const PLAN_RATE_LIMIT_WINDOW_SECONDS =
   60;
 

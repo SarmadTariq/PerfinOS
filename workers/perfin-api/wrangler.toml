@@ -14,18 +14,18 @@ GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 
 [observability]
 enabled = true
-head_sampling_rate = 1
+head_sampling_rate = 0.1
 
 [observability.logs]
 enabled = true
-head_sampling_rate = 1
+head_sampling_rate = 0.1
 persist = true
 invocation_logs = true
 
 [observability.traces]
 enabled = true
 persist = true
-head_sampling_rate = 1
+head_sampling_rate = 0.1
 
 [[ratelimits]]
 name = "PLAN_SESSION_RATE_LIMITER"
@@ -110,4 +110,3 @@ namespace_id = "20804"
   [env.production.ratelimits.simple]
   limit = 6
   period = 60
-

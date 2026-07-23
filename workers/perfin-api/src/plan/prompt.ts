@@ -1,4 +1,8 @@
 import {
+  PLAN_PROVIDER_MAX_OUTPUT_TOKENS,
+} from './contracts';
+
+import {
   PLAN_OUTPUT_SCHEMA_VERSION,
   PLAN_PROMPT_VERSION,
   PLAN_RESPONSE_SCHEMA_VERSION,
@@ -129,7 +133,7 @@ export const createPlanProviderBody =
 
       generationConfig: {
         maxOutputTokens:
-          1_200,
+          PLAN_PROVIDER_MAX_OUTPUT_TOKENS,
 
         responseFormat:
           PLAN_GEMINI_RESPONSE_FORMAT,

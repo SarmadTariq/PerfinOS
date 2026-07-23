@@ -2,9 +2,14 @@ import type {
   PlanProviderRequest,
 } from './provider';
 
+import {
+  detectSensitiveText,
+} from './privacy';
+
 export type PlanRequestSafetyErrorCode =
   | 'PROMPT_INJECTION_DETECTED'
-  | 'REQUEST_UNSUPPORTED';
+  | 'REQUEST_UNSUPPORTED'
+  | 'SENSITIVE_TEXT_DETECTED';
 
 export class PlanRequestSafetyError
   extends Error {
@@ -116,6 +121,16 @@ export const assertPlanProviderRequestSafe =
     ) {
       throw new PlanRequestSafetyError(
         'REQUEST_UNSUPPORTED'
+      );
+    }
+
+    if (
+      detectSensitiveText(
+        normalized
+      ) !== null
+    ) {
+      throw new PlanRequestSafetyError(
+        'SENSITIVE_TEXT_DETECTED'
       );
     }
   };
