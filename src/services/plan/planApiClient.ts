@@ -2,11 +2,6 @@ import type {
   PlanEvidenceSnapshot,
 } from '../../planning/planEvidence.types';
 
-import {
-  getRemoteAppCheckToken,
-  getRemoteIdToken,
-} from '../firebaseService';
-
 const SESSION_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -268,6 +263,33 @@ export interface PlanApiCredentialProvider {
   readonly getAppCheckToken:
     () => Promise<string>;
 }
+
+const defaultPlanApiCredentials:
+  PlanApiCredentialProvider = {
+    getIdToken:
+      async () => {
+        const {
+          getRemoteIdToken,
+        } =
+          await import(
+            '../firebase/auth'
+          );
+
+        return getRemoteIdToken();
+      },
+
+    getAppCheckToken:
+      async () => {
+        const {
+          getRemoteAppCheckToken,
+        } =
+          await import(
+            '../firebase/appCheck'
+          );
+
+        return getRemoteAppCheckToken();
+      },
+  };
 
 export interface PlanApiClientOptions {
   readonly baseUrl?:
@@ -720,15 +742,8 @@ export const createPlanApiClient =
       fetch;
 
     const credentials =
-      options.credentials ?? {
-        getIdToken:
-          () =>
-            getRemoteIdToken(),
-
-        getAppCheckToken:
-          () =>
-            getRemoteAppCheckToken(),
-      };
+      options.credentials ??
+      defaultPlanApiCredentials;
 
     const timeoutMs =
       options.timeoutMs ??
