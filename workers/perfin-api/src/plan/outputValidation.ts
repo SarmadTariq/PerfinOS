@@ -989,9 +989,11 @@ const validateActionProposal = (
       'budget_adjustment'
   ) {
     if (
-      targetEntityId === null ||
-      !categoryIds.has(
-        targetEntityId
+      (
+        targetEntityId !== null &&
+        !categoryIds.has(
+          targetEntityId
+        )
       ) ||
       proposedAmountMinor ===
         null ||

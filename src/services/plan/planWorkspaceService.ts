@@ -184,7 +184,8 @@ const requireSummary = (
 };
 
 const cloneVersionContent = (
-  source: PlanVersion
+  source: PlanVersion,
+  fallbackEffectiveMonth: string
 ): Pick<
   PlanVersion,
   | 'assumptions'
@@ -192,6 +193,8 @@ const cloneVersionContent = (
   | 'commitments'
   | 'recommendations'
   | 'actionProposals'
+  | 'actionProposalIds'
+  | 'actionProposalApplications'
   | 'validation'
 > => ({
   assumptions: source.assumptions.map(
@@ -216,6 +219,48 @@ const cloneVersionContent = (
     source.actionProposals.map(
       (proposal) => ({ ...proposal })
     ),
+  actionProposalIds:
+    source.actionProposalIds
+      ? [...source.actionProposalIds]
+      : source.actionProposals
+          .filter(
+            (proposal) =>
+              proposal.schemaVersion === 2
+          )
+          .map((proposal) => proposal.id),
+  actionProposalApplications:
+    source.actionProposalApplications
+      ? Object.fromEntries(
+          Object.entries(
+            source.actionProposalApplications
+          ).map(([id, binding]) => [
+            id,
+            { ...binding },
+          ])
+        )
+      : Object.fromEntries(
+          source.actionProposals
+            .filter(
+              (proposal) =>
+                proposal.schemaVersion === 2
+            )
+            .map((proposal) => [
+              proposal.id,
+              {
+                schemaVersion: 2 as const,
+                type: proposal.type,
+                targetEntityId:
+                  proposal.targetEntityId,
+                proposedAmount:
+                  proposal.proposedAmount,
+                effectiveMonth:
+                  (
+                    proposal.effectiveDate ||
+                    `${fallbackEffectiveMonth}-01`
+                  ).slice(0, 7),
+              },
+            ])
+        ),
   validation: {
     ...source.validation,
     errors: [...source.validation.errors],
@@ -362,7 +407,8 @@ export const createManualPlanRevision =
         input.summary
       ),
       ...cloneVersionContent(
-        input.currentVersion
+        input.currentVersion,
+        input.plan.startDate.slice(0, 7)
       ),
       validation: {
         schemaVersion: 1,
@@ -443,7 +489,8 @@ export const duplicatePlan = async (
 
   const initialVersion: PlanVersion = {
     ...cloneVersionContent(
-      input.sourceVersion
+      input.sourceVersion,
+      input.sourcePlan.startDate.slice(0, 7)
     ),
     id: versionId,
     userId,

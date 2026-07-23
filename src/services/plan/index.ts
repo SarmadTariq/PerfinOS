@@ -38,6 +38,18 @@ export {
   loadSavedPlans,
 } from './planWorkspaceService';
 
+export {
+  applyPlanAction,
+  getPlanActionState,
+  listPlanActionResults,
+  recordPlanActionOutcome,
+} from '../firebase/planActionRepository';
+
+export type {
+  ApplyPlanActionInput,
+  RecordPlanActionOutcomeInput,
+} from '../firebase/planActionRepository';
+
 export type {
   ApplyPlanLifecycleChangeInput,
   CreateManualPlanRevisionInput,

@@ -121,6 +121,14 @@ export {
   listPlanVersions,
   updatePlanLifecycle,
 } from './planRepository';
+export {
+  applyPlanAction,
+  getPlanActionState,
+  listPlanActionResults,
+  recordPlanActionOutcome,
+  type ApplyPlanActionInput,
+  type RecordPlanActionOutcomeInput,
+} from './planActionRepository';
 
 export type {
   CreatePlanInput,

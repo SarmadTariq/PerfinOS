@@ -45,6 +45,233 @@ service cloud.firestore {
         );
     }
 
+    function actionVersion(userId, planId, versionId) {
+      return get(
+        /databases/$(database)/documents/users/$(userId)/plans/$(planId)/versions/$(versionId)
+      ).data;
+    }
+
+    function actionBinding(userId, planId, versionId, proposalId) {
+      return actionVersion(
+        userId,
+        planId,
+        versionId
+      ).actionProposalApplications[proposalId];
+    }
+
+    function hasValidActionBinding(userId, planId) {
+      let result = request.resource.data;
+      let version = actionVersion(
+        userId,
+        planId,
+        result.sourceVersionId
+      );
+      let binding =
+        version.actionProposalApplications[result.proposalId];
+      return version.actionProposalApplications is map
+        && result.proposalId in version.actionProposalApplications
+        && binding.keys().hasOnly([
+          'schemaVersion',
+          'type',
+          'targetEntityId',
+          'proposedAmount',
+          'effectiveMonth'
+        ])
+        && binding.schemaVersion == 2
+        && binding.effectiveMonth is string;
+    }
+
+    function actionProposalHasNotSucceeded(userId, planId) {
+      let result = request.resource.data;
+      let statePath = /databases/$(database)/documents/users/$(userId)/plans/$(planId)/actionState/current;
+      return !exists(statePath)
+        || get(statePath).data.sourceVersionId != result.sourceVersionId
+        || !get(statePath).data.appliedProposalIds.hasAny([
+          result.proposalId
+        ]);
+    }
+
+    function validTotalBudgetSuccess(userId) {
+      let result = request.resource.data;
+      let binding = actionBinding(
+        userId,
+        result.planId,
+        result.sourceVersionId,
+        result.proposalId
+      );
+      let budgetPath = /databases/$(database)/documents/users/$(userId)/budgets/$(result.financeDocumentId);
+      let appDataPath = /databases/$(database)/documents/users/$(userId)/private/appData;
+      let beforeBudget = get(budgetPath).data;
+      let afterBudget = getAfter(budgetPath).data;
+      let beforeData = get(appDataPath).data;
+      let afterData = getAfter(appDataPath).data;
+      return binding.type == 'budget_adjustment'
+        && binding.targetEntityId == null
+        && binding.proposedAmount == result.proposedValueMajor
+        && binding.effectiveMonth == result.targetMonth
+        && result.targetKind == 'budget'
+        && result.targetId == result.financeDocumentId
+        && result.targetMonth == beforeBudget.month
+        && beforeBudget.userId == userId
+        && beforeBudget.totalBudget == result.beforeValueMajor
+        && afterBudget.totalBudget == result.proposedValueMajor
+        && beforeBudget.totalBudget != afterBudget.totalBudget
+        && result.legacyEntityIndex < beforeData.budgets.size()
+        && result.legacyEntityIndex < afterData.budgets.size()
+        && beforeData.budgets[result.legacyEntityIndex].id
+          == result.financeDocumentId
+        && afterData.budgets[result.legacyEntityIndex].id
+          == result.financeDocumentId
+        && beforeData.budgets[result.legacyEntityIndex].totalBudget
+          == result.beforeValueMajor
+        && afterData.budgets[result.legacyEntityIndex].totalBudget
+          == result.proposedValueMajor;
+    }
+
+    function validCategoryBudgetSuccess(userId) {
+      let result = request.resource.data;
+      let binding = actionBinding(
+        userId,
+        result.planId,
+        result.sourceVersionId,
+        result.proposalId
+      );
+      let budgetPath = /databases/$(database)/documents/users/$(userId)/budgets/$(result.financeDocumentId);
+      let categoryPath = /databases/$(database)/documents/users/$(userId)/categories/$(result.targetId);
+      let appDataPath = /databases/$(database)/documents/users/$(userId)/private/appData;
+      let beforeBudget = get(budgetPath).data;
+      let afterBudget = getAfter(budgetPath).data;
+      let category = get(categoryPath).data;
+      let beforeData = get(appDataPath).data;
+      let afterData = getAfter(appDataPath).data;
+      let beforeValue = beforeBudget.categoryBudgets.get(
+        result.targetId,
+        category.monthlyBudget
+      );
+      return binding.type == 'budget_adjustment'
+        && binding.targetEntityId == result.targetId
+        && binding.proposedAmount == result.proposedValueMajor
+        && binding.effectiveMonth == result.targetMonth
+        && result.targetKind == 'category_budget'
+        && result.targetMonth == beforeBudget.month
+        && beforeBudget.userId == userId
+        && category.id == result.targetId
+        && beforeValue == result.beforeValueMajor
+        && afterBudget.categoryBudgets[result.targetId]
+          == result.proposedValueMajor
+        && beforeValue != afterBudget.categoryBudgets[result.targetId]
+        && result.legacyEntityIndex < beforeData.budgets.size()
+        && result.legacyEntityIndex < afterData.budgets.size()
+        && beforeData.budgets[result.legacyEntityIndex].id
+          == result.financeDocumentId
+        && afterData.budgets[result.legacyEntityIndex].id
+          == result.financeDocumentId
+        && beforeData.budgets[result.legacyEntityIndex].categoryBudgets.get(
+          result.targetId,
+          category.monthlyBudget
+        ) == result.beforeValueMajor
+        && afterData.budgets[result.legacyEntityIndex]
+          .categoryBudgets[result.targetId] == result.proposedValueMajor;
+    }
+
+    function validSavingsUpdateSuccess(userId) {
+      let result = request.resource.data;
+      let binding = actionBinding(
+        userId,
+        result.planId,
+        result.sourceVersionId,
+        result.proposalId
+      );
+      let goalPath = /databases/$(database)/documents/users/$(userId)/savingsGoals/$(result.financeDocumentId);
+      let appDataPath = /databases/$(database)/documents/users/$(userId)/private/appData;
+      let beforeGoal = get(goalPath).data;
+      let afterGoal = getAfter(goalPath).data;
+      let beforeData = get(appDataPath).data;
+      let afterData = getAfter(appDataPath).data;
+      return binding.type == 'savings_contribution'
+        && (
+          binding.targetEntityId == null
+          || binding.targetEntityId == result.targetId
+        )
+        && binding.proposedAmount == result.changeValueMajor
+        && result.targetKind == 'savings_goal'
+        && result.targetId == result.financeDocumentId
+        && result.targetMonth == null
+        && beforeGoal.userId == userId
+        && beforeGoal.currentAmount == result.beforeValueMajor
+        && afterGoal.currentAmount == result.proposedValueMajor
+        && beforeGoal.currentAmount != afterGoal.currentAmount
+        && result.legacyEntityIndex < beforeData.savingsGoals.size()
+        && result.legacyEntityIndex < afterData.savingsGoals.size()
+        && beforeData.savingsGoals[result.legacyEntityIndex].id
+          == result.financeDocumentId
+        && afterData.savingsGoals[result.legacyEntityIndex].id
+          == result.financeDocumentId
+        && beforeData.savingsGoals[result.legacyEntityIndex].currentAmount
+          == result.beforeValueMajor
+        && afterData.savingsGoals[result.legacyEntityIndex].currentAmount
+          == result.proposedValueMajor;
+    }
+
+    function validSavingsCreateSuccess(userId) {
+      let result = request.resource.data;
+      let binding = actionBinding(
+        userId,
+        result.planId,
+        result.sourceVersionId,
+        result.proposalId
+      );
+      let goalPath = /databases/$(database)/documents/users/$(userId)/savingsGoals/$(result.financeDocumentId);
+      let appDataPath = /databases/$(database)/documents/users/$(userId)/private/appData;
+      let beforeData = get(appDataPath).data;
+      let afterData = getAfter(appDataPath).data;
+      return binding.type == 'savings_contribution'
+        && binding.targetEntityId == null
+        && binding.proposedAmount == result.changeValueMajor
+        && result.targetKind == 'savings_goal'
+        && result.targetId == result.financeDocumentId
+        && result.targetMonth == null
+        && result.beforeValueMajor == null
+        && result.changeValueMajor == result.proposedValueMajor
+        && !exists(goalPath)
+        && existsAfter(goalPath)
+        && getAfter(goalPath).data.userId == userId
+        && getAfter(goalPath).data.currentAmount
+          == result.proposedValueMajor
+        && beforeData.savingsGoals.size() == result.legacyEntityIndex
+        && afterData.savingsGoals.size()
+          == result.legacyEntityIndex + 1
+        && afterData.savingsGoals[result.legacyEntityIndex].id
+          == result.financeDocumentId
+        && afterData.savingsGoals[result.legacyEntityIndex].currentAmount
+          == result.proposedValueMajor;
+    }
+
+    function validSuccessfulActionWrite(userId) {
+      let result = request.resource.data;
+      return result.beforeValueMajor != null
+        && result.beforeValueMajor + result.changeValueMajor
+          == result.proposedValueMajor
+        && (
+          (
+            result.actionType == 'total_budget_update'
+            && validTotalBudgetSuccess(userId)
+          )
+          || (
+            result.actionType == 'category_budget_update'
+            && validCategoryBudgetSuccess(userId)
+          )
+          || (
+            result.actionType == 'savings_goal_update'
+            && validSavingsUpdateSuccess(userId)
+          )
+        )
+        || (
+          result.actionType == 'savings_goal_create'
+          && validSavingsCreateSuccess(userId)
+        );
+    }
+
     match /users/{userId} {
       allow read, create, update: if isOwner(userId);
       allow delete: if false;
@@ -107,6 +334,303 @@ service cloud.firestore {
             && request.resource.data.id == versionId;
 
           allow update, delete: if false;
+        }
+
+        match /actionResults/{applicationId} {
+          allow read: if isOwner(userId);
+
+          allow create: if isOwner(userId)
+            && request.resource.data.status in ['blocked', 'canceled']
+            && request.resource.data.keys().hasOnly([
+              'schemaVersion',
+              'id',
+              'userId',
+              'planId',
+              'sourceVersionId',
+              'proposalId',
+              'previewFingerprint',
+              'selectionDigest',
+              'actionType',
+              'targetKind',
+              'targetId',
+              'financeDocumentId',
+              'targetMonth',
+              'legacyEntityIndex',
+              'status',
+              'failureCode',
+              'retryable',
+              'currency',
+              'beforeValueMinor',
+              'beforeValueMajor',
+              'changeValueMinor',
+              'changeValueMajor',
+              'proposedValueMinor',
+              'proposedValueMajor',
+              'confirmedEvidenceRevision',
+              'postEvidenceRevision',
+              'previewRevision',
+              'appliedAt'
+            ])
+            && request.resource.data.schemaVersion == 1
+            && request.resource.data.id == applicationId
+            && request.resource.data.userId == userId
+            && request.resource.data.planId == planId
+            && request.resource.data.sourceVersionId
+              == get(
+                /databases/$(database)/documents/users/$(userId)/plans/$(planId)
+              ).data.currentVersionId
+            && request.resource.data.proposalId is string
+            && hasValidActionBinding(userId, planId)
+            && actionProposalHasNotSucceeded(userId, planId)
+            && request.resource.data.previewFingerprint is string
+            && request.resource.data.selectionDigest is string
+            && request.resource.data.retryable == false
+            && (
+              (
+                request.resource.data.status == 'canceled'
+                && request.resource.data.failureCode == null
+              )
+              || (
+                request.resource.data.status == 'blocked'
+                && request.resource.data.failureCode in [
+                  'authentication_required',
+                  'unsupported_action',
+                  'confirmation_required',
+                  'inactive_plan',
+                  'historical_version',
+                  'stale_evidence',
+                  'currency_mismatch',
+                  'target_missing',
+                  'target_unauthorized',
+                  'current_value_changed',
+                  'amount_out_of_bounds',
+                  'invalid_request',
+                  'idempotency_conflict',
+                  'write_failed'
+                ]
+              )
+            )
+            && request.resource.data.appliedAt == request.time;
+
+          allow create: if isOwner(userId)
+            && request.resource.data.status == 'success'
+            && request.resource.data.keys().hasOnly([
+              'schemaVersion',
+              'id',
+              'userId',
+              'planId',
+              'sourceVersionId',
+              'proposalId',
+              'previewFingerprint',
+              'selectionDigest',
+              'actionType',
+              'targetKind',
+              'targetId',
+              'financeDocumentId',
+              'targetMonth',
+              'legacyEntityIndex',
+              'status',
+              'failureCode',
+              'retryable',
+              'currency',
+              'beforeValueMinor',
+              'beforeValueMajor',
+              'changeValueMinor',
+              'changeValueMajor',
+              'proposedValueMinor',
+              'proposedValueMajor',
+              'confirmedEvidenceRevision',
+              'postEvidenceRevision',
+              'previewRevision',
+              'appliedAt'
+            ])
+            && request.resource.data.schemaVersion == 1
+            && request.resource.data.id == applicationId
+            && request.resource.data.userId == userId
+            && request.resource.data.planId == planId
+            && request.resource.data.sourceVersionId is string
+            && request.resource.data.sourceVersionId
+              == get(
+                /databases/$(database)/documents/users/$(userId)/plans/$(planId)
+              ).data.currentVersionId
+            && request.resource.data.proposalId is string
+            && hasValidActionBinding(userId, planId)
+            && request.resource.data.previewFingerprint is string
+            && request.resource.data.selectionDigest is string
+            && request.resource.data.financeDocumentId is string
+            && request.resource.data.financeDocumentId.size() > 0
+            && request.resource.data.legacyEntityIndex is int
+            && request.resource.data.legacyEntityIndex >= 0
+            && request.resource.data.actionType in [
+              'total_budget_update',
+              'category_budget_update',
+              'savings_goal_create',
+              'savings_goal_update'
+            ]
+            && request.resource.data.targetKind in [
+              'budget',
+              'category_budget',
+              'savings_goal'
+            ]
+            && request.resource.data.status in ['success', 'blocked', 'canceled']
+            && (
+              (
+                request.resource.data.status in ['success', 'canceled']
+                && request.resource.data.failureCode == null
+              )
+              || (
+                request.resource.data.status == 'blocked'
+                && request.resource.data.failureCode in [
+                  'authentication_required',
+                  'unsupported_action',
+                  'confirmation_required',
+                  'inactive_plan',
+                  'historical_version',
+                  'stale_evidence',
+                  'currency_mismatch',
+                  'target_missing',
+                  'target_unauthorized',
+                  'current_value_changed',
+                  'amount_out_of_bounds',
+                  'invalid_request',
+                  'idempotency_conflict',
+                  'write_failed'
+                ]
+              )
+            )
+            && request.resource.data.retryable == false
+            && request.resource.data.currency is string
+            && (
+              request.resource.data.beforeValueMinor == null
+              || request.resource.data.beforeValueMinor is int
+            )
+            && (
+              request.resource.data.beforeValueMajor == null
+              || request.resource.data.beforeValueMajor is number
+            )
+            && request.resource.data.changeValueMinor is int
+            && request.resource.data.changeValueMajor is number
+            && request.resource.data.proposedValueMinor is int
+            && request.resource.data.proposedValueMinor >= 0
+            && request.resource.data.proposedValueMinor <= 1000000000000
+            && request.resource.data.proposedValueMajor is number
+            && request.resource.data.proposedValueMajor >= 0
+            && request.resource.data.confirmedEvidenceRevision is string
+            && request.resource.data.postEvidenceRevision is string
+            && request.resource.data.previewRevision is string
+            && request.resource.data.appliedAt == request.time
+            && (
+              (
+                request.resource.data.actionType == 'total_budget_update'
+                && request.resource.data.targetKind == 'budget'
+              )
+              || (
+                request.resource.data.actionType == 'category_budget_update'
+                && request.resource.data.targetKind == 'category_budget'
+              )
+              || (
+                request.resource.data.actionType in [
+                  'savings_goal_create',
+                  'savings_goal_update'
+                ]
+                && request.resource.data.targetKind == 'savings_goal'
+              )
+            )
+            && exists(
+              /databases/$(database)/documents/users/$(userId)/plans/$(planId)/versions/$(request.resource.data.sourceVersionId)
+            )
+            && (
+              request.resource.data.status != 'success'
+              || (
+                validSuccessfulActionWrite(userId)
+                &&
+                getAfter(
+                  /databases/$(database)/documents/users/$(userId)/plans/$(planId)/actionState/current
+                ).data.lastApplicationId == applicationId
+                && getAfter(
+                  /databases/$(database)/documents/users/$(userId)/plans/$(planId)/actionState/current
+                ).data.acceptedEvidenceRevision
+                  == request.resource.data.postEvidenceRevision
+              )
+            );
+
+          allow update, delete: if false;
+        }
+
+        match /actionState/{stateId} {
+          allow read: if isOwner(userId)
+            && stateId == 'current';
+
+          allow create, update: if isOwner(userId)
+            && stateId == 'current'
+            && request.resource.data.keys().hasOnly([
+              'schemaVersion',
+              'id',
+              'userId',
+              'planId',
+              'sourceVersionId',
+              'acceptedEvidenceRevision',
+              'appliedProposalIds',
+              'lastApplicationId',
+              'updatedAt'
+            ])
+            && request.resource.data.schemaVersion == 1
+            && request.resource.data.id == 'current'
+            && request.resource.data.userId == userId
+            && request.resource.data.planId == planId
+            && request.resource.data.sourceVersionId
+              == get(
+                /databases/$(database)/documents/users/$(userId)/plans/$(planId)
+              ).data.currentVersionId
+            && request.resource.data.acceptedEvidenceRevision is string
+            && request.resource.data.appliedProposalIds is list
+            && request.resource.data.appliedProposalIds.size() > 0
+            && request.resource.data.appliedProposalIds.size() <= 50
+            && request.resource.data.appliedProposalIds.toSet().size()
+              == request.resource.data.appliedProposalIds.size()
+            && request.resource.data.lastApplicationId is string
+            && request.resource.data.updatedAt == request.time
+            && existsAfter(
+              /databases/$(database)/documents/users/$(userId)/plans/$(planId)/actionResults/$(request.resource.data.lastApplicationId)
+            )
+            && request.resource.data.appliedProposalIds.hasAny([
+              getAfter(
+                /databases/$(database)/documents/users/$(userId)/plans/$(planId)/actionResults/$(request.resource.data.lastApplicationId)
+              ).data.proposalId
+            ])
+            && getAfter(
+              /databases/$(database)/documents/users/$(userId)/plans/$(planId)/actionResults/$(request.resource.data.lastApplicationId)
+            ).data.status == 'success'
+            && getAfter(
+              /databases/$(database)/documents/users/$(userId)/plans/$(planId)/actionResults/$(request.resource.data.lastApplicationId)
+            ).data.sourceVersionId == request.resource.data.sourceVersionId
+            && getAfter(
+              /databases/$(database)/documents/users/$(userId)/plans/$(planId)/actionResults/$(request.resource.data.lastApplicationId)
+            ).data.postEvidenceRevision
+              == request.resource.data.acceptedEvidenceRevision
+            && (
+              !exists(
+                /databases/$(database)/documents/users/$(userId)/plans/$(planId)/actionState/current
+              )
+              || (
+                (
+                  resource.data.sourceVersionId
+                    == request.resource.data.sourceVersionId
+                  && request.resource.data.appliedProposalIds.hasAll(
+                    resource.data.appliedProposalIds
+                  )
+                  && request.resource.data.appliedProposalIds.size()
+                    == resource.data.appliedProposalIds.size() + 1
+                )
+                || (
+                  resource.data.sourceVersionId
+                    != request.resource.data.sourceVersionId
+                  && request.resource.data.appliedProposalIds.size() == 1
+                )
+              )
+            );
+
+          allow delete: if false;
         }
       }
 

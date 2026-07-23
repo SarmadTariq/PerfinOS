@@ -75,6 +75,9 @@ import {
 import {
   formatCurrency,
 } from '../../utils/format';
+import {
+  PlanActionProposalSection,
+} from './PlanActionProposalSection';
 
 interface PlanDetailScreenProps {
   planId: string;
@@ -901,6 +904,14 @@ const PlanDetailContent = ({
           currency={plan.currency}
         />
 
+        <PlanActionProposalSection
+          key={`${userId}:${plan.id}:${selectedVersion.id}`}
+          data={data}
+          userId={userId}
+          plan={plan}
+          version={selectedVersion}
+        />
+
         <Card style={styles.sectionCard}>
           <Text variant="h3">
             Generation and validation
@@ -1157,18 +1168,6 @@ const PlanVersionContent = ({
         })
       ),
     },
-    {
-      title: 'Pending proposals',
-      empty:
-        PLAN_VERSION_EMPTY_COPY.proposals,
-      rows: version.actionProposals.map(
-        (proposal) => ({
-          id: proposal.id,
-          title: proposal.title,
-          detail: `${proposal.description} · Confirmation required · Not applied`,
-        })
-      ),
-    },
   ];
 
   return (
@@ -1212,22 +1211,6 @@ const PlanVersionContent = ({
           )}
         </Card>
       ))}
-
-      <Card style={styles.sectionCard}>
-        <Text variant="h3">
-          Applied-action results
-        </Text>
-        <Text
-          variant="bodySmall"
-          color="secondary"
-          style={styles.copySpacing}
-        >
-          {
-            PLAN_VERSION_EMPTY_COPY
-              .appliedActions
-          }
-        </Text>
-      </Card>
     </>
   );
 };
