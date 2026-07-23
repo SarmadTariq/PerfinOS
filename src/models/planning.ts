@@ -32,6 +32,15 @@ export interface PlanValidationMetadata {
   warnings: string[];
 }
 
+export interface PlanGenerationProvenance {
+  modelId: string;
+  promptVersion: string;
+  responseSchemaVersion: string;
+  outputSchemaVersion: 1;
+  attemptCount: number;
+  generatedAt: string;
+}
+
 export interface PlanAssumption {
   id: string;
   key: string;
@@ -82,6 +91,7 @@ export interface PlanActionProposal {
   proposedAmount: number | null;
   effectiveDate: string | null;
   requiresConfirmation: true;
+  executionState: 'proposal_only';
 }
 
 export interface PlanVersion {
@@ -92,6 +102,7 @@ export interface PlanVersion {
   createdAt: string;
   createdBy: PlanSource;
   sourceRevision: string;
+  generation: PlanGenerationProvenance | null;
   summary: string;
   assumptions: PlanAssumption[];
   allocations: PlanAllocation[];

@@ -26,6 +26,10 @@ import type {
   PlanDraftResponse,
 } from '../../services/plan';
 
+import type {
+  PlanEditableDraft,
+} from '../../planning/planDraftAdapter';
+
 import {
   Radius,
   Spacing,
@@ -38,6 +42,9 @@ import {
 interface PlanStructuredDraftReviewProps {
   readonly draft:
     PlanDraftResponse;
+
+  readonly output:
+    PlanEditableDraft;
 }
 
 const EvidenceRefs = ({
@@ -97,12 +104,10 @@ const SectionTitle = ({
 
 export const PlanStructuredDraftReview = ({
   draft,
+  output,
 }: PlanStructuredDraftReviewProps) => {
   const colors =
     useColors();
-
-  const output =
-    draft.result;
 
   const money = (
     amountMinor:

@@ -43,6 +43,10 @@ import {
 } from '../../context/FinanceContext';
 
 import {
+  useSession,
+} from '../../context/SessionContext';
+
+import {
   useColors,
 } from '../../context/ThemeContext';
 
@@ -67,6 +71,7 @@ import {
   getPlanCreationProgress,
   isPlanCreationStepComplete,
   markPlanDraftReviewed,
+  markPlanDraftSaved,
   returnToPreviousPlanCreationStep,
   reviewPlanFinancialContext,
   setPlanCoachInput,
@@ -77,6 +82,11 @@ import {
   type PlanCreationHorizon,
   type PlanCreationState,
 } from '../../planning/planCreationFlow';
+
+import {
+  createEditablePlanDraft,
+  type PlanEditableDraft,
+} from '../../planning/planDraftAdapter';
 
 import {
   PLAN_CREATION_STEP_PRESENTATION,
@@ -95,8 +105,13 @@ import {
 
 import {
   createPlanApiClient,
+  saveGeneratedPlanDraft,
   type PlanDraftResponse,
 } from '../../services/plan';
+
+import {
+  PlanDraftEditor,
+} from './PlanDraftEditor';
 
 import {
   PlanStructuredDraftReview,
@@ -123,6 +138,9 @@ interface PlanCreationFlowContentProps {
 
   readonly isGuest:
     boolean;
+
+  readonly remoteUserId:
+    string | null;
 
   readonly onClose:
     () => void;
@@ -415,6 +433,7 @@ const EvidenceSummary = ({
 const PlanCreationFlowContent = ({
   data,
   isGuest,
+  remoteUserId,
   onClose,
 }: PlanCreationFlowContentProps) => {
   const colors =
@@ -496,6 +515,41 @@ const PlanCreationFlowContent = ({
       string | null
     >(null);
 
+  const [
+    editableDraft,
+    setEditableDraft,
+  ] =
+    useState<
+      PlanEditableDraft | null
+    >(null);
+
+  const [
+    saveStatus,
+    setSaveStatus,
+  ] =
+    useState<
+      | 'idle'
+      | 'saving'
+      | 'saved'
+      | 'error'
+    >('idle');
+
+  const [
+    saveMessage,
+    setSaveMessage,
+  ] =
+    useState<
+      string | null
+    >(null);
+
+  const [
+    savedPlanId,
+    setSavedPlanId,
+  ] =
+    useState<
+      string | null
+    >(null);
+
   const anchorDate =
     useMemo(
       localIsoDate,
@@ -523,6 +577,10 @@ const PlanCreationFlowContent = ({
       setLocalError(null);
       setDraft(null);
       setGenerationMessage(null);
+      setEditableDraft(null);
+      setSaveStatus('idle');
+      setSaveMessage(null);
+      setSavedPlanId(null);
     },
     [actor]
   );
@@ -624,7 +682,11 @@ const PlanCreationFlowContent = ({
     value: string
   ) => {
     setDraft(null);
-    setGenerationMessage(null);
+setEditableDraft(null);
+setSaveStatus('idle');
+setSaveMessage(null);
+setSavedPlanId(null);
+setGenerationMessage(null);
 
     setSelectedConstraints(
       (current) =>
@@ -649,7 +711,11 @@ const PlanCreationFlowContent = ({
   ) => {
     setLocalError(null);
     setDraft(null);
-    setGenerationMessage(null);
+setEditableDraft(null);
+setSaveStatus('idle');
+setSaveMessage(null);
+setSavedPlanId(null);
+setGenerationMessage(null);
 
     setState(
       (current) =>
@@ -668,7 +734,11 @@ const PlanCreationFlowContent = ({
       try {
         setLocalError(null);
         setDraft(null);
-        setGenerationMessage(null);
+setEditableDraft(null);
+setSaveStatus('idle');
+setSaveMessage(null);
+setSavedPlanId(null);
+setGenerationMessage(null);
 
         setState(
           (current) =>
@@ -791,6 +861,16 @@ const PlanCreationFlowContent = ({
 
         setDraft(response);
 
+        setEditableDraft(
+          createEditablePlanDraft(
+            response
+          )
+        );
+
+        setSaveStatus('idle');
+        setSaveMessage(null);
+        setSavedPlanId(null);
+
         setState(
           (current) =>
             completePlanGeneration(
@@ -804,6 +884,10 @@ const PlanCreationFlowContent = ({
           );
 
         setDraft(null);
+        setEditableDraft(null);
+        setSaveStatus('idle');
+        setSaveMessage(null);
+        setSavedPlanId(null);
 
         setGenerationMessage(
           failure.message
@@ -816,6 +900,76 @@ const PlanCreationFlowContent = ({
               failure.status,
               failure.code
             )
+        );
+      }
+    };
+
+  const handleSaveDraft =
+    async () => {
+      if (
+        isGuest ||
+        !remoteUserId ||
+        !evidence ||
+        !draft ||
+        !editableDraft ||
+        !state.draftReviewed ||
+        saveStatus ===
+          'saving' ||
+        saveStatus ===
+          'saved'
+      ) {
+        return;
+      }
+
+      setSaveStatus(
+        'saving'
+      );
+
+      setSaveMessage(null);
+
+      try {
+        const result =
+          await saveGeneratedPlanDraft({
+            userId:
+              remoteUserId,
+
+            primaryGoal:
+              state.primaryGoal,
+
+            evidence,
+
+            response:
+              draft,
+
+            draft:
+              editableDraft,
+          });
+
+        setSavedPlanId(
+          result.plan.id
+        );
+
+        setSaveStatus(
+          'saved'
+        );
+
+        setSaveMessage(
+          'Draft Plan saved. No proposal was applied or activated.'
+        );
+
+        setState(
+          (current) =>
+            markPlanDraftSaved(
+              current
+            )
+        );
+      } catch {
+        setSaveStatus(
+          'error'
+        );
+
+        setSaveMessage(
+          'The draft could not be saved. Nothing was activated or applied.'
         );
       }
     };
@@ -958,11 +1112,49 @@ const PlanCreationFlowContent = ({
           return (
             <View style={styles.cardStack}>
               {
-                draft
+                draft &&
+                editableDraft
                   ? (
                       <>
+                        {
+                          !state
+                            .draftReviewed
+                            ? (
+                                <PlanDraftEditor
+                                  draft={
+                                    editableDraft
+                                  }
+                                  onChange={
+                                    (
+                                      nextDraft
+                                    ) => {
+                                      setEditableDraft(
+                                        nextDraft
+                                      );
+
+                                      setSaveStatus(
+                                        'idle'
+                                      );
+
+                                      setSaveMessage(
+                                        null
+                                      );
+
+                                      setSavedPlanId(
+                                        null
+                                      );
+                                    }
+                                  }
+                                />
+                              )
+                            : null
+                        }
+
                         <PlanStructuredDraftReview
                           draft={draft}
+                          output={
+                            editableDraft
+                          }
                         />
 
                         <Card>
@@ -1317,7 +1509,11 @@ const PlanCreationFlowContent = ({
                 }}
                 onPress={() => {
                   setDraft(null);
-                  setGenerationMessage(null);
+setEditableDraft(null);
+setSaveStatus('idle');
+setSaveMessage(null);
+setSavedPlanId(null);
+setGenerationMessage(null);
 
                   setState(
                     (current) =>
@@ -1610,8 +1806,8 @@ const PlanCreationFlowContent = ({
         case 'save':
           return (
             <Card>
-              <Text variant="h4">
-                Reviewed draft required
+              <Text variant="h3">
+                Save as a draft Plan
               </Text>
 
               <Text
@@ -1619,8 +1815,86 @@ const PlanCreationFlowContent = ({
                 color="secondary"
                 style={styles.bodySpacing}
               >
-                Saving becomes available after the generated draft has been reviewed and manually accepted.
+                This creates an owner-only draft and immutable version 1. It does not activate the Plan or apply any generated proposal.
               </Text>
+
+              {
+                !remoteUserId
+                  ? (
+                      <Text
+                        variant="bodySmall"
+                        color="danger"
+                        style={styles.statusCopy}
+                      >
+                        An authenticated account is required to save this draft.
+                      </Text>
+                    )
+                  : null
+              }
+
+              {
+                saveMessage
+                  ? (
+                      <Text
+                        variant="bodySmall"
+                        color={
+                          saveStatus ===
+                            'saved'
+                            ? 'success'
+                            : 'danger'
+                        }
+                        style={styles.statusCopy}
+                      >
+                        {saveMessage}
+                      </Text>
+                    )
+                  : null
+              }
+
+              {
+                savedPlanId
+                  ? (
+                      <Text
+                        variant="caption"
+                        color="tertiary"
+                        style={styles.statusCopy}
+                      >
+                        Saved draft ID: {
+                          savedPlanId
+                        }
+                      </Text>
+                    )
+                  : null
+              }
+
+              <Button
+                label={
+                  saveStatus ===
+                    'saved'
+                    ? 'Draft saved'
+                    : 'Save draft Plan'
+                }
+                loading={
+                  saveStatus ===
+                    'saving'
+                }
+                disabled={
+                  isGuest ||
+                  !remoteUserId ||
+                  !draft ||
+                  !editableDraft ||
+                  !state
+                    .draftReviewed ||
+                  saveStatus ===
+                    'saving' ||
+                  saveStatus ===
+                    'saved'
+                }
+                onPress={() => {
+                  void handleSaveDraft();
+                }}
+                style={styles.primaryAction}
+              />
             </Card>
           );
       }
@@ -1899,6 +2173,11 @@ export const PlanCreationFlowScreen = ({
   } =
     useFinance();
 
+  const {
+    remoteUserId,
+  } =
+    useSession();
+
   return (
     <RequireData>
       {
@@ -1906,6 +2185,9 @@ export const PlanCreationFlowScreen = ({
           <PlanCreationFlowContent
             data={data}
             isGuest={isGuest}
+            remoteUserId={
+              remoteUserId
+            }
             onClose={onClose}
           />
         )

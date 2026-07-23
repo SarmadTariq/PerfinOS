@@ -75,6 +75,7 @@ const makeVersion = (
       : '2026-07-22T12:00:00.000Z',
   createdBy: 'user',
   sourceRevision: `revision-${versionNumber}`,
+  generation: null,
   summary: `Version ${versionNumber}`,
   assumptions: [],
   allocations: [],

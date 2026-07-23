@@ -19,3 +19,12 @@ export type {
   PlanStructuredRecommendation,
   PlanStructuredWarning,
 } from './planApiClient';
+
+export {
+  saveGeneratedPlanDraft,
+} from './planDraftPersistence';
+
+export type {
+  PlanDraftPersistenceDependencies,
+  SaveGeneratedPlanDraftInput,
+} from './planDraftPersistence';
