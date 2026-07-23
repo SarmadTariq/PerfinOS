@@ -19,6 +19,7 @@ import {
   markPlanDraftReviewed,
   markPlanDraftSaved,
   PlanCreationFlowError,
+  resetPlanCreationState,
   reviewPlanFinancialContext,
   setPlanCoachInput,
   setPlanConstraints,
@@ -467,6 +468,52 @@ describe(
           )
         ).toThrow(
           PlanCreationFlowError
+        );
+      }
+    );
+
+    it(
+      'restarts a saved flow without changing the actor',
+      () => {
+        let state =
+          prepareGenerationState();
+
+        state =
+          startPlanGeneration(
+            state
+          );
+
+        state =
+          completePlanGeneration(
+            state
+          );
+
+        state =
+          markPlanDraftReviewed(
+            state
+          );
+
+        state =
+          markPlanDraftSaved(
+            state
+          );
+
+        const restarted =
+          resetPlanCreationState(
+            state
+          );
+
+        expect(restarted)
+          .toEqual(
+            createPlanCreationState(
+              'authenticated'
+            )
+          );
+
+        expect(
+          restarted.actor
+        ).toBe(
+          'authenticated'
         );
       }
     );

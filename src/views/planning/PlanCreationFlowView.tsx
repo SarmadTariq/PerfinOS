@@ -73,6 +73,7 @@ import {
   markPlanDraftReviewed,
   markPlanDraftSaved,
   returnToPreviousPlanCreationStep,
+  resetPlanCreationState,
   reviewPlanFinancialContext,
   setPlanCoachInput,
   setPlanConstraints,
@@ -902,6 +903,28 @@ setGenerationMessage(null);
             )
         );
       }
+    };
+
+  const handleRestart =
+    () => {
+      setState(
+        (current) =>
+          resetPlanCreationState(
+            current
+          )
+      );
+
+      setGoalDraft('');
+      setCoachDraft('');
+      setSelectedMonthDraft('');
+      setSelectedConstraints([]);
+      setLocalError(null);
+      setDraft(null);
+      setEditableDraft(null);
+      setGenerationMessage(null);
+      setSaveStatus('idle');
+      setSaveMessage(null);
+      setSavedPlanId(null);
     };
 
   const handleSaveDraft =
@@ -1867,13 +1890,34 @@ setGenerationMessage(null);
                   : null
               }
 
+              {
+                saveStatus ===
+                  'saved'
+                  ? (
+                      <View style={styles.completionActions}>
+                        <Button
+                          label="Return to Plan home"
+                          variant="secondary"
+                          onPress={onClose}
+                          style={styles.completionButton}
+                          accessibilityLabel="Return to Plan home after saving the draft"
+                        />
+
+                        <Button
+                          label="Create another Plan"
+                          onPress={
+                            handleRestart
+                          }
+                          style={styles.completionButton}
+                          accessibilityLabel="Restart the Plan creation flow"
+                        />
+                      </View>
+                    )
+                  : null
+              }
+
               <Button
-                label={
-                  saveStatus ===
-                    'saved'
-                    ? 'Draft saved'
-                    : 'Save draft Plan'
-                }
+                label="Save draft Plan"
                 loading={
                   saveStatus ===
                     'saving'
@@ -1893,7 +1937,23 @@ setGenerationMessage(null);
                 onPress={() => {
                   void handleSaveDraft();
                 }}
-                style={styles.primaryAction}
+                style={StyleSheet.flatten([
+                  styles.primaryAction,
+                  saveStatus ===
+                    'saved'
+                    ? styles.hiddenAction
+                    : undefined,
+                ])}
+                accessibilityElementsHidden={
+                  saveStatus ===
+                  'saved'
+                }
+                importantForAccessibility={
+                  saveStatus ===
+                    'saved'
+                    ? 'no-hide-descendants'
+                    : 'auto'
+                }
               />
             </Card>
           );
@@ -2564,6 +2624,28 @@ const styles =
     primaryAction: {
       marginTop:
         Spacing.lg,
+    },
+
+    completionActions: {
+      flexDirection:
+        'row',
+
+      flexWrap:
+        'wrap',
+
+      gap:
+        Spacing.md,
+
+      marginTop:
+        Spacing.lg,
+    },
+
+    completionButton: {
+      flexGrow:
+        1,
+
+      flexBasis:
+        180,
     },
 
     navigationActions: {
