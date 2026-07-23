@@ -23,6 +23,10 @@ import type {
   PlanEvidenceContract,
 } from './validation';
 
+import {
+  detectSensitiveText,
+} from './privacy';
+
 type JsonRecord =
   Record<string, unknown>;
 
@@ -90,16 +94,6 @@ const PROHIBITED_OUTPUT_PATTERNS = [
   /\b(?:guaranteed|risk[- ]free)\s+(?:return|investment|profit)\b/i,
 
   /\b(?:evade|hide)\s+(?:tax|taxes|income|assets?)\b/i,
-] as const;
-
-const SENSITIVE_OUTPUT_PATTERNS = [
-  /\bAIza[0-9A-Za-z_-]{30,}\b/,
-
-  /-----BEGIN (?:RSA |EC |)PRIVATE KEY-----/,
-
-  /\bBearer\s+[A-Za-z0-9._~+/-]+=*\b/i,
-
-  /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i,
 ] as const;
 
 const invalid = (
@@ -349,11 +343,7 @@ const assertSafeOutputText = (
         (pattern) =>
           pattern.test(value)
       ) ||
-    SENSITIVE_OUTPUT_PATTERNS
-      .some(
-        (pattern) =>
-          pattern.test(value)
-      )
+    detectSensitiveText(value) !== null
   ) {
     invalid(
       'OUTPUT_CONTENT_PROHIBITED',

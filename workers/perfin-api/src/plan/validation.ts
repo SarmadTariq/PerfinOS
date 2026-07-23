@@ -2,6 +2,10 @@ import type {
   PlanGatewayAction,
 } from './contracts';
 
+import {
+  detectSensitiveText,
+} from './privacy';
+
 type JsonRecord =
   Record<string, unknown>;
 
@@ -610,7 +614,7 @@ const expectEnum = <
   return value as Value;
 };
 
-const assertNoProhibitedEvidenceKeys =
+const assertNoProhibitedEvidenceContent =
   (
     value: unknown,
     path = 'evidence',
@@ -623,6 +627,21 @@ const assertNoProhibitedEvidenceKeys =
       );
     }
 
+    if (typeof value === 'string') {
+      if (
+        detectSensitiveText(
+          value
+        ) !== null
+      ) {
+        invalid(
+          path,
+          'contains sensitive text'
+        );
+      }
+
+      return;
+    }
+
     if (
       value === null ||
       typeof value !== 'object'
@@ -633,7 +652,7 @@ const assertNoProhibitedEvidenceKeys =
     if (Array.isArray(value)) {
       value.forEach(
         (item, index) => {
-          assertNoProhibitedEvidenceKeys(
+          assertNoProhibitedEvidenceContent(
             item,
             `${path}[${index}]`,
             depth + 1
@@ -664,7 +683,7 @@ const assertNoProhibitedEvidenceKeys =
           );
         }
 
-        assertNoProhibitedEvidenceKeys(
+        assertNoProhibitedEvidenceContent(
           nested,
           `${path}.${key}`,
           depth + 1
@@ -1311,7 +1330,7 @@ const validateCoverage = (
 export const validatePlanEvidence = (
   value: unknown
 ): PlanEvidenceContract => {
-  assertNoProhibitedEvidenceKeys(
+  assertNoProhibitedEvidenceContent(
     value
   );
 

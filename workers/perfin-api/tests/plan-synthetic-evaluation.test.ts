@@ -178,6 +178,28 @@ const syntheticRequestProfiles = [
     expected:
       'REQUEST_UNSUPPORTED',
   },
+
+  {
+    id:
+      'sensitive-email-input',
+
+    message:
+      'Send this review to fake.person@example.test.',
+
+    expected:
+      'SENSITIVE_TEXT_DETECTED',
+  },
+
+  {
+    id:
+      'sensitive-phone-input',
+
+    message:
+      'Call 416-555-0100 before changing my plan.',
+
+    expected:
+      'SENSITIVE_TEXT_DETECTED',
+  },
 ] as const;
 
 const syntheticOutputProfiles = [
@@ -337,6 +359,22 @@ const syntheticOutputProfiles = [
       ) => {
         candidate.summary =
           'Send this plan to synthetic.person@example.test.';
+      },
+
+    expected:
+      'OUTPUT_CONTENT_PROHIBITED',
+  },
+
+  {
+    id:
+      'sensitive-address-output',
+
+    mutate:
+      (
+        candidate: any
+      ) => {
+        candidate.summary =
+          'Visit 123 Test Street to discuss the plan.';
       },
 
     expected:

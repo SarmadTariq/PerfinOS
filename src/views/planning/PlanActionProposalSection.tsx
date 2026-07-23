@@ -581,13 +581,13 @@ export const PlanActionProposalSection = ({
           <Text variant="bodySmall" color="danger" accessibilityRole="alert">
             {loadError}
           </Text>
-        ) : results.length === 0 ? (
+        ) : versionResults.length === 0 ? (
           <Text variant="bodySmall" color="secondary" style={styles.copySpacing}>
             No proposal outcomes have been recorded.
           </Text>
         ) : (
           <View style={styles.resultList}>
-            {results.map((result) => (
+            {versionResults.map((result) => (
               <View key={result.id} style={styles.resultRow}>
                 <Text variant="h4">{resultLabel(result)}</Text>
                 <Text variant="bodySmall" color="secondary">
@@ -614,8 +614,14 @@ export const PlanActionProposalSection = ({
         onRequestClose={closeReview}
       >
         <View style={styles.backdrop}>
-          <View style={[styles.modalPanel, { backgroundColor: colors.card }]}>
-            <ScrollView contentContainerStyle={styles.modalContent}>
+          <View
+            accessibilityViewIsModal
+            style={[styles.modalPanel, { backgroundColor: colors.card }]}
+          >
+            <ScrollView
+              contentContainerStyle={styles.modalContent}
+              keyboardShouldPersistTaps="handled"
+            >
               <Text variant="h3">
                 {review ? actionLabel(review) : 'Review action'}
               </Text>
