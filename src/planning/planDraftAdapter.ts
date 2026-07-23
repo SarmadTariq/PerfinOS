@@ -337,6 +337,9 @@ const actionProposalFor = (
         'Action proposal id'
       ),
 
+    schemaVersion:
+      2,
+
     type:
       proposal.type,
 
@@ -372,6 +375,12 @@ const actionProposalFor = (
 
     effectiveDate:
       proposal.effectiveDate,
+
+    evidenceRefs:
+      cloneStrings(
+        proposal
+          .evidenceRefs
+      ),
 
     requiresConfirmation:
       true,
@@ -767,6 +776,50 @@ export const buildInitialPlanRecords =
                 draft.currency
               )
           ),
+
+      actionProposalIds:
+        draft
+          .actionProposals
+          .map(
+            (proposal) =>
+              requireId(
+                proposal.id,
+                'Action proposal id'
+              )
+          ),
+
+      actionProposalApplications:
+        Object.fromEntries(
+          draft
+            .actionProposals
+            .map((proposal) => [
+              requireId(
+                proposal.id,
+                'Action proposal id'
+              ),
+              {
+                schemaVersion: 2,
+                type: proposal.type,
+                targetEntityId:
+                  proposal.targetEntityId,
+                proposedAmount:
+                  proposal
+                    .proposedAmountMinor ===
+                    null
+                    ? null
+                    : fromMinorUnits(
+                        proposal
+                          .proposedAmountMinor,
+                        draft.currency
+                      ),
+                effectiveMonth:
+                  (
+                    proposal.effectiveDate ||
+                    evidence.period.startDate
+                  ).slice(0, 7),
+              },
+            ])
+        ),
 
       validation: {
         schemaVersion:

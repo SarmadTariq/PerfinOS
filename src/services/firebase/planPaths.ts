@@ -76,6 +76,48 @@ export const getUserPlanVersionDocumentRef = (
     versionId
   );
 
+export const userPlanActionResultsCollectionPath = (
+  userId: string,
+  planId: string
+) =>
+  `${userPlanDocumentPath(userId, planId)}/actionResults`;
+
+export const userPlanActionResultDocumentPath = (
+  userId: string,
+  planId: string,
+  applicationId: string
+) =>
+  `${userPlanActionResultsCollectionPath(userId, planId)}/${applicationId}`;
+
+export const getUserPlanActionResultsCollectionRef = (
+  userId: string,
+  planId: string
+) =>
+  collection(
+    getUserPlanDocumentRef(userId, planId),
+    'actionResults'
+  );
+
+export const getUserPlanActionResultDocumentRef = (
+  userId: string,
+  planId: string,
+  applicationId: string
+) =>
+  doc(
+    getUserPlanActionResultsCollectionRef(userId, planId),
+    applicationId
+  );
+
+export const getUserPlanActionStateDocumentRef = (
+  userId: string,
+  planId: string
+) =>
+  doc(
+    getUserPlanDocumentRef(userId, planId),
+    'actionState',
+    'current'
+  );
+
 export const userPlanReservationsCollectionPath = (
   userId: string
 ) =>
@@ -105,4 +147,3 @@ export const getUserPlanReservationDocumentRef = (
     getUserPlanReservationsCollectionRef(userId),
     dateKey
   );
-

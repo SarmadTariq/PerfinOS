@@ -112,14 +112,102 @@ export type PlanActionProposalType =
 
 export interface PlanActionProposal {
   id: string;
+  schemaVersion?: 1 | 2;
   type: PlanActionProposalType;
   title: string;
   description: string;
   targetEntityId: string | null;
   proposedAmount: number | null;
   effectiveDate: string | null;
+  evidenceRefs?: string[];
   requiresConfirmation: true;
   executionState: 'proposal_only';
+}
+
+export interface PlanActionRuleBinding {
+  schemaVersion: 2;
+  type: PlanActionProposalType;
+  targetEntityId: string | null;
+  proposedAmount: number | null;
+  effectiveMonth: string;
+}
+
+export type PlanActionType =
+  | 'total_budget_update'
+  | 'category_budget_update'
+  | 'savings_goal_create'
+  | 'savings_goal_update';
+
+export type PlanActionTargetKind =
+  | 'budget'
+  | 'category_budget'
+  | 'savings_goal';
+
+export type PlanActionResultStatus =
+  | 'success'
+  | 'blocked'
+  | 'canceled'
+  | 'partial_failure'
+  | 'non_retryable_failure';
+
+export type PlanActionFailureCode =
+  | 'authentication_required'
+  | 'unsupported_action'
+  | 'confirmation_required'
+  | 'inactive_plan'
+  | 'historical_version'
+  | 'stale_evidence'
+  | 'currency_mismatch'
+  | 'target_missing'
+  | 'target_unauthorized'
+  | 'current_value_changed'
+  | 'amount_out_of_bounds'
+  | 'invalid_request'
+  | 'idempotency_conflict'
+  | 'write_failed'
+  | null;
+
+export interface PlanActionResult {
+  schemaVersion: 1;
+  id: string;
+  userId: string;
+  planId: string;
+  sourceVersionId: string;
+  proposalId: string;
+  previewFingerprint: string;
+  selectionDigest: string;
+  actionType: PlanActionType;
+  targetKind: PlanActionTargetKind;
+  targetId: string;
+  financeDocumentId: string;
+  targetMonth: string | null;
+  legacyEntityIndex: number;
+  status: PlanActionResultStatus;
+  failureCode: PlanActionFailureCode;
+  retryable: boolean;
+  currency: string;
+  beforeValueMinor: number | null;
+  beforeValueMajor: number | null;
+  changeValueMinor: number;
+  changeValueMajor: number;
+  proposedValueMinor: number;
+  proposedValueMajor: number;
+  confirmedEvidenceRevision: string;
+  postEvidenceRevision: string;
+  previewRevision: string;
+  appliedAt: string;
+}
+
+export interface PlanActionState {
+  schemaVersion: 1;
+  id: 'current';
+  userId: string;
+  planId: string;
+  sourceVersionId: string;
+  acceptedEvidenceRevision: string;
+  appliedProposalIds: string[];
+  lastApplicationId: string;
+  updatedAt: string;
 }
 
 export interface PlanVersion {
@@ -138,6 +226,8 @@ export interface PlanVersion {
   commitments: PlanCommitment[];
   recommendations: PlanRecommendation[];
   actionProposals: PlanActionProposal[];
+  actionProposalIds?: string[];
+  actionProposalApplications?: Record<string, PlanActionRuleBinding>;
   validation: PlanValidationMetadata;
 }
 

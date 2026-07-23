@@ -297,6 +297,25 @@ describe(
     );
 
     it(
+      'accepts a null budget target as an explicit total-budget proposal',
+      () => {
+        const candidate =
+          clone(
+            validPlanStructuredOutput
+          );
+
+        candidate
+          .actionProposals[0]
+          .targetEntityId =
+          null;
+
+        expect(() =>
+          validate(candidate)
+        ).not.toThrow();
+      }
+    );
+
+    it(
       'rejects dates outside the evidence period',
       () => {
         const candidate =

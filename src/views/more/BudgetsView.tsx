@@ -24,7 +24,17 @@ export const BudgetsScreen = () => (
       const current = data.budgets.find((item) => item.month === month);
       const [budgetValue, setBudgetValue] = useState(String(current?.totalBudget || data.user.monthlyBudget));
       const health = calculateBudgetHealth(data.transactions, current, data.categories, month);
-      const breakdown = calculateCategoryBreakdown(data.transactions, data.categories, month);
+      const monthCategories = data.categories.map((category) => ({
+        ...category,
+        monthlyBudget:
+          current?.categoryBudgets[category.id] ??
+          category.monthlyBudget,
+      }));
+      const breakdown = calculateCategoryBreakdown(
+        data.transactions,
+        monthCategories,
+        month
+      );
       return (
         <AppScroll>
           <ScreenHeader title="Budgets" subtitle="Monthly and category budget tracking." action={<IconButton icon="arrow-back" label="Go back" onPress={() => navigation.goBack()} />} />
