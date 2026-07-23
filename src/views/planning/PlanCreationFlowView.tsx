@@ -60,16 +60,20 @@ import {
   PLAN_CREATION_STEPS,
   acceptPlanDataUse,
   advancePlanCreationStep,
+  completePlanGeneration,
   createPlanCreationState,
+  failPlanGeneration,
   getPlanAIGuardReason,
   getPlanCreationProgress,
   isPlanCreationStepComplete,
+  markPlanDraftReviewed,
   returnToPreviousPlanCreationStep,
   reviewPlanFinancialContext,
   setPlanCoachInput,
   setPlanConstraints,
   setPlanCreationHorizon,
   setPlanPrimaryGoal,
+  startPlanGeneration,
   type PlanCreationHorizon,
   type PlanCreationState,
 } from '../../planning/planCreationFlow';
@@ -79,6 +83,24 @@ import {
   planAIGuardCopy,
   planGenerationStatusCopy,
 } from '../../planning/planCreationPresentation';
+
+import {
+  mapPlanGenerationFailure,
+  planClientAvailabilityCopy,
+} from '../../planning/planGenerationPresentation';
+
+import {
+  getPlanAppCheckAvailability,
+} from '../../services/firebase/appCheck';
+
+import {
+  createPlanApiClient,
+  type PlanDraftResponse,
+} from '../../services/plan';
+
+import {
+  PlanStructuredDraftReview,
+} from './PlanStructuredDraftReview';
 
 import {
   Radius,
@@ -458,6 +480,22 @@ const PlanCreationFlowContent = ({
       string | null
     >(null);
 
+  const [
+    draft,
+    setDraft,
+  ] =
+    useState<
+      PlanDraftResponse | null
+    >(null);
+
+  const [
+    generationMessage,
+    setGenerationMessage,
+  ] =
+    useState<
+      string | null
+    >(null);
+
   const anchorDate =
     useMemo(
       localIsoDate,
@@ -483,6 +521,8 @@ const PlanCreationFlowContent = ({
       setSelectedMonthDraft('');
       setSelectedConstraints([]);
       setLocalError(null);
+      setDraft(null);
+      setGenerationMessage(null);
     },
     [actor]
   );
@@ -563,9 +603,29 @@ const PlanCreationFlowContent = ({
       state
     );
 
+  const appCheckAvailability =
+    getPlanAppCheckAvailability();
+
+  const apiConfigured =
+    Boolean(
+      process
+        .env
+        .EXPO_PUBLIC_PERFIN_API_BASE_URL
+        ?.trim()
+    );
+
+  const clientUnavailableMessage =
+    planClientAvailabilityCopy(
+      apiConfigured,
+      appCheckAvailability
+    );
+
   const toggleConstraint = (
     value: string
   ) => {
+    setDraft(null);
+    setGenerationMessage(null);
+
     setSelectedConstraints(
       (current) =>
         current.includes(value)
@@ -588,6 +648,8 @@ const PlanCreationFlowContent = ({
       >
   ) => {
     setLocalError(null);
+    setDraft(null);
+    setGenerationMessage(null);
 
     setState(
       (current) =>
@@ -605,6 +667,8 @@ const PlanCreationFlowContent = ({
     () => {
       try {
         setLocalError(null);
+        setDraft(null);
+        setGenerationMessage(null);
 
         setState(
           (current) =>
@@ -682,6 +746,80 @@ const PlanCreationFlowContent = ({
       }
     };
 
+  const handleGenerate =
+    async () => {
+      if (
+        isGuest ||
+        !evidence ||
+        guardReason ||
+        clientUnavailableMessage ||
+        state.generationStatus ===
+          'loading'
+      ) {
+        return;
+      }
+
+      setLocalError(null);
+      setGenerationMessage(null);
+      setDraft(null);
+
+      try {
+        setState(
+          startPlanGeneration(
+            state
+          )
+        );
+
+        const client =
+          createPlanApiClient();
+
+        const response =
+          await client
+            .createDraft(
+              evidence,
+              {
+                primaryGoal:
+                  state.primaryGoal,
+
+                constraints:
+                  state.constraints,
+
+                coachInput:
+                  state.coachInput,
+              }
+            );
+
+        setDraft(response);
+
+        setState(
+          (current) =>
+            completePlanGeneration(
+              current
+            )
+        );
+      } catch (error) {
+        const failure =
+          mapPlanGenerationFailure(
+            error
+          );
+
+        setDraft(null);
+
+        setGenerationMessage(
+          failure.message
+        );
+
+        setState(
+          (current) =>
+            failPlanGeneration(
+              current,
+              failure.status,
+              failure.code
+            )
+        );
+      }
+    };
+
   const canAdvance =
     (() => {
       switch (
@@ -699,7 +837,191 @@ const PlanCreationFlowContent = ({
           return true;
 
         case 'generate':
+          return (
+            <Card>
+              <View style={styles.iconTitleRow}>
+                <View
+                  style={[
+                    styles.largeIcon,
+                    {
+                      backgroundColor:
+                        colors.primarySoft,
+                    },
+                  ]}
+                >
+                  <MaterialIcons
+                    name="auto-awesome"
+                    size={26}
+                    color={
+                      colors.primary
+                    }
+                  />
+                </View>
+
+                <View style={styles.flexCopy}>
+                  <Text variant="h3">
+                    Secure generation boundary
+                  </Text>
+
+                  <Text
+                    variant="body"
+                    color="secondary"
+                    style={styles.bodySpacing}
+                  >
+                    The app sends the reviewed evidence, primary goal, constraints, and optional coach context through Firebase Auth and App Check.
+                  </Text>
+                </View>
+              </View>
+
+              <Text
+                variant="bodySmall"
+                color={
+                  generationMessage ||
+                  clientUnavailableMessage ||
+                  guardReason
+                    ? 'danger'
+                    : state
+                        .generationStatus ===
+                        'success'
+                      ? 'success'
+                      : 'secondary'
+                }
+                style={styles.statusCopy}
+              >
+                {
+                  generationMessage ??
+                  clientUnavailableMessage ??
+                  planAIGuardCopy(
+                    guardReason
+                  ) ??
+                  planGenerationStatusCopy(
+                    state
+                      .generationStatus
+                  )
+                }
+              </Text>
+
+              <Button
+                label={
+                  isGuest
+                    ? 'Sign in required'
+                    : state
+                        .generationStatus ===
+                        'success'
+                      ? 'Draft generated'
+                      : 'Generate secure draft'
+                }
+                loading={
+                  state
+                    .generationStatus ===
+                  'loading'
+                }
+                disabled={
+                  isGuest ||
+                  Boolean(
+                    guardReason
+                  ) ||
+                  Boolean(
+                    clientUnavailableMessage
+                  ) ||
+                  !evidence ||
+                  state
+                    .generationStatus ===
+                    'success'
+                }
+                onPress={() => {
+                  void handleGenerate();
+                }}
+                style={styles.primaryAction}
+              />
+
+              {
+                state
+                  .generationStatus ===
+                  'success' &&
+                draft
+                  ? (
+                      <Text
+                        variant="bodySmall"
+                        color="success"
+                        style={styles.statusCopy}
+                      >
+                        The validated draft is ready. Continue to review it.
+                      </Text>
+                    )
+                  : null
+              }
+            </Card>
+          );
+
         case 'review':
+          return (
+            <View style={styles.cardStack}>
+              {
+                draft
+                  ? (
+                      <>
+                        <PlanStructuredDraftReview
+                          draft={draft}
+                        />
+
+                        <Card>
+                          <Text variant="h4">
+                            Review confirmation
+                          </Text>
+
+                          <Text
+                            variant="body"
+                            color="secondary"
+                            style={styles.bodySpacing}
+                          >
+                            Confirm only that you reviewed this draft. No financial action is applied by this control.
+                          </Text>
+
+                          <Button
+                            label={
+                              state
+                                .draftReviewed
+                                ? 'Draft reviewed'
+                                : 'I reviewed this draft'
+                            }
+                            variant={
+                              state
+                                .draftReviewed
+                                ? 'success'
+                                : 'primary'
+                            }
+                            disabled={
+                              state
+                                .draftReviewed
+                            }
+                            onPress={() =>
+                              setState(
+                                (current) =>
+                                  markPlanDraftReviewed(
+                                    current
+                                  )
+                              )
+                            }
+                            style={styles.primaryAction}
+                          />
+                        </Card>
+                      </>
+                    )
+                  : (
+                      <Card>
+                        <Text
+                          variant="body"
+                          color="danger"
+                        >
+                          A validated structured draft is required before review.
+                        </Text>
+                      </Card>
+                    )
+              }
+            </View>
+          );
+
         case 'save':
           return false;
 
@@ -993,7 +1315,10 @@ const PlanCreationFlowContent = ({
                     state
                       .dataUseAccepted,
                 }}
-                onPress={() =>
+                onPress={() => {
+                  setDraft(null);
+                  setGenerationMessage(null);
+
                   setState(
                     (current) =>
                       acceptPlanDataUse(
@@ -1001,8 +1326,8 @@ const PlanCreationFlowContent = ({
                         !current
                           .dataUseAccepted
                       )
-                  )
-                }
+                  );
+                }}
                 style={[
                   styles.disclosureControl,
                   {
@@ -1053,7 +1378,11 @@ const PlanCreationFlowContent = ({
                 placeholder="What should this Plan help you accomplish?"
                 value={goalDraft}
                 onChangeText={
-                  setGoalDraft
+                  (value) => {
+                    setGoalDraft(value);
+                    setDraft(null);
+                    setGenerationMessage(null);
+                  }
                 }
                 maxLength={160}
                 accessibilityLabel="Primary Plan goal"
@@ -1163,7 +1492,11 @@ const PlanCreationFlowContent = ({
                 placeholder="Optional context for the Plan coach"
                 value={coachDraft}
                 onChangeText={
-                  setCoachDraft
+                  (value) => {
+                    setCoachDraft(value);
+                    setDraft(null);
+                    setGenerationMessage(null);
+                  }
                 }
                 maxLength={
                   PLAN_COACH_INPUT_MAX_LENGTH
@@ -1527,7 +1860,13 @@ const PlanCreationFlowContent = ({
                 state.currentStep ===
                   'coach_input'
                   ? 'Review generation'
-                  : 'Continue'
+                  : state.currentStep ===
+                      'generate'
+                    ? 'Review draft'
+                    : state.currentStep ===
+                        'review'
+                      ? 'Continue to save'
+                      : 'Continue'
               }
               disabled={
                 !canAdvance
