@@ -75,8 +75,6 @@ export const ChartCard = ({
   summary?: string;
   children: React.ReactNode;
 }) => {
-  const scheme = useThemeScheme();
-  const colors = scheme === 'dark' ? Colors.dark : Colors.light;
   return (
     <Card style={styles.chartCard} shadow="sm">
       <View style={styles.chartHeader}>

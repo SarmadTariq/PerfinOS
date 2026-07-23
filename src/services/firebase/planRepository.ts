@@ -6,7 +6,6 @@ import {
 } from 'firebase/firestore';
 import type {
   FinancialPlan,
-  PlanStatus,
   PlanVersion,
 } from '../../models/planning';
 import { db } from './client';
@@ -42,6 +41,7 @@ export interface UpdatePlanLifecycleInput {
   status: PlanLifecycleTargetStatus;
   occurredAt: string;
   replacedPlanId: string | null;
+  expectedCurrentVersionId: string;
 }
 
 export interface PlanDateReservation {
@@ -486,6 +486,18 @@ export const updatePlanLifecycle = async (
         currentPlan
       );
 
+      if (
+        currentPlan.currentVersionId !==
+        requireId(
+          input.expectedCurrentVersionId,
+          'Expected current Plan version id'
+        )
+      ) {
+        throw new Error(
+          'Plan changed after it was reviewed; reload before changing lifecycle'
+        );
+      }
+
       const currentDateKeys = planDateKeys(
         currentPlan.startDate,
         currentPlan.endDate
@@ -746,4 +758,3 @@ export const updatePlanLifecycle = async (
     }
   );
 };
-

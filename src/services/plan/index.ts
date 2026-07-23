@@ -28,3 +28,20 @@ export type {
   PlanDraftPersistenceDependencies,
   SaveGeneratedPlanDraftInput,
 } from './planDraftPersistence';
+
+export {
+  PlanWorkspaceError,
+  applyPlanLifecycleChange,
+  createManualPlanRevision,
+  duplicatePlan,
+  loadPlanDetail,
+  loadSavedPlans,
+} from './planWorkspaceService';
+
+export type {
+  ApplyPlanLifecycleChangeInput,
+  CreateManualPlanRevisionInput,
+  DuplicatePlanInput,
+  PlanWorkspaceErrorCode,
+  PlanWorkspaceRepository,
+} from './planWorkspaceService';

@@ -354,6 +354,8 @@ describe('Plan repository persistence', () => {
         occurredAt:
           '2026-07-21T13:00:00.000Z',
         replacedPlanId: null,
+        expectedCurrentVersionId:
+          firstPlan.currentVersionId,
       }
     );
 
@@ -366,6 +368,8 @@ describe('Plan repository persistence', () => {
           occurredAt:
             '2026-07-22T13:00:00.000Z',
           replacedPlanId: null,
+          expectedCurrentVersionId:
+            secondPlan.currentVersionId,
         }
       )
     ).rejects.toThrow(
@@ -380,6 +384,8 @@ describe('Plan repository persistence', () => {
         occurredAt:
           '2026-07-22T13:00:00.000Z',
         replacedPlanId: firstPlan.id,
+        expectedCurrentVersionId:
+          secondPlan.currentVersionId,
       }
     );
 
@@ -441,6 +447,41 @@ describe('Plan repository persistence', () => {
       planId: secondPlan.id,
       userId: 'alice',
     });
+  });
+
+  it('rejects lifecycle changes reviewed against a superseded version', async () => {
+    const savedPlan = makePlan(
+      'concurrent-plan'
+    );
+
+    await repository.createPlan('alice', {
+      plan: savedPlan,
+      initialVersion:
+        makeVersion(savedPlan),
+    });
+
+    await repository.createPlanVersion(
+      'alice',
+      savedPlan.id,
+      makeVersion(savedPlan, 2)
+    );
+
+    await expect(
+      repository.updatePlanLifecycle(
+        'alice',
+        savedPlan.id,
+        {
+          status: 'active',
+          occurredAt:
+            '2026-07-23T13:00:00.000Z',
+          replacedPlanId: null,
+          expectedCurrentVersionId:
+            savedPlan.currentVersionId,
+        }
+      )
+    ).rejects.toThrow(
+      'Plan changed after it was reviewed'
+    );
   });
 });
 

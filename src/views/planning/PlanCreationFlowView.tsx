@@ -1916,45 +1916,31 @@ setGenerationMessage(null);
                   : null
               }
 
-              <Button
-                label="Save draft Plan"
-                loading={
-                  saveStatus ===
-                    'saving'
-                }
-                disabled={
-                  isGuest ||
-                  !remoteUserId ||
-                  !draft ||
-                  !editableDraft ||
-                  !state
-                    .draftReviewed ||
-                  saveStatus ===
-                    'saving' ||
-                  saveStatus ===
-                    'saved'
-                }
-                onPress={() => {
-                  void handleSaveDraft();
-                }}
-                style={StyleSheet.flatten([
-                  styles.primaryAction,
-                  saveStatus ===
-                    'saved'
-                    ? styles.hiddenAction
-                    : undefined,
-                ])}
-                accessibilityElementsHidden={
-                  saveStatus ===
-                  'saved'
-                }
-                importantForAccessibility={
-                  saveStatus ===
-                    'saved'
-                    ? 'no-hide-descendants'
-                    : 'auto'
-                }
-              />
+              {saveStatus !== 'saved' ? (
+                <Button
+                  label="Save draft Plan"
+                  loading={
+                    saveStatus ===
+                      'saving'
+                  }
+                  disabled={
+                    isGuest ||
+                    !remoteUserId ||
+                    !draft ||
+                    !editableDraft ||
+                    !state
+                      .draftReviewed ||
+                    saveStatus ===
+                      'saving'
+                  }
+                  onPress={() => {
+                    void handleSaveDraft();
+                  }}
+                  style={
+                    styles.primaryAction
+                  }
+                />
+              ) : null}
             </Card>
           );
       }
