@@ -56,6 +56,7 @@ import type {
 } from '../../planning/planEvidence.types';
 
 import {
+  PLAN_COACH_INPUT_MAX_LENGTH,
   PLAN_CREATION_STEPS,
   acceptPlanDataUse,
   advancePlanCreationStep,
@@ -1164,7 +1165,9 @@ const PlanCreationFlowContent = ({
                 onChangeText={
                   setCoachDraft
                 }
-                maxLength={2_000}
+                maxLength={
+                  PLAN_COACH_INPUT_MAX_LENGTH
+                }
                 multiline
                 numberOfLines={6}
                 style={styles.multilineInput}
@@ -1177,7 +1180,9 @@ const PlanCreationFlowContent = ({
               >
                 {
                   coachDraft.length
-                }/2000
+                }/{
+                  PLAN_COACH_INPUT_MAX_LENGTH
+                }
               </Text>
             </Card>
           );

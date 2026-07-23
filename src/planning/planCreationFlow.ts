@@ -17,6 +17,9 @@ export type PlanCreationStepId =
 export const PLAN_CREATION_STEP_COUNT =
   PLAN_CREATION_STEPS.length;
 
+export const PLAN_COACH_INPUT_MAX_LENGTH =
+  800 as const;
+
 export type PlanCreationActor =
   | 'authenticated'
   | 'guest';
@@ -440,7 +443,7 @@ export const setPlanCoachInput =
     coachInput:
       normalizedText(
         coachInput,
-        2_000,
+        PLAN_COACH_INPUT_MAX_LENGTH,
         'coach_input_invalid'
       ),
 

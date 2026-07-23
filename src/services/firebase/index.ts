@@ -7,12 +7,23 @@ export {
 } from './client';
 
 export {
+  getRemoteIdToken,
   logoutRemote,
   sendRemotePasswordReset,
   signInRemote,
   signUpRemote,
   subscribeToAuth,
 } from './auth';
+
+export {
+  getPlanAppCheckAvailability,
+  getRemoteAppCheckToken,
+  PlanAppCheckUnavailableError,
+} from './appCheck';
+
+export type {
+  PlanAppCheckAvailability,
+} from './appCheck';
 
 export {
   getLegacyAppDataRef,

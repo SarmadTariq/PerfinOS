@@ -5,6 +5,7 @@ import {
 } from 'vitest';
 
 import {
+  PLAN_COACH_INPUT_MAX_LENGTH,
   PLAN_CREATION_STEPS,
   PLAN_CREATION_STEP_COUNT,
   acceptPlanDataUse,
@@ -459,7 +460,10 @@ describe(
         expect(() =>
           setPlanCoachInput(
             state,
-            'a'.repeat(2_001)
+            'a'.repeat(
+              PLAN_COACH_INPUT_MAX_LENGTH +
+                1
+            )
           )
         ).toThrow(
           PlanCreationFlowError

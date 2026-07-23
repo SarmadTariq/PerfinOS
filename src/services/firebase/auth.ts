@@ -1,4 +1,12 @@
-import { User as FirebaseUser, createUserWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import {
+  User as FirebaseUser,
+  createUserWithEmailAndPassword,
+  getIdToken,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signOut,
+} from 'firebase/auth';
 import { auth } from './client';
 
 export const subscribeToAuth = (callback: (user: FirebaseUser | null) => void) => {
@@ -22,6 +30,34 @@ export const sendRemotePasswordReset = async (email: string) => {
   if (!auth) throw new Error('Firebase Auth is not configured');
   await sendPasswordResetEmail(auth, email);
 };
+
+export const getRemoteIdToken =
+  async (
+    forceRefresh = false
+  ): Promise<string> => {
+    const user =
+      auth?.currentUser;
+
+    if (!user) {
+      throw new Error(
+        'Firebase authentication is required'
+      );
+    }
+
+    const token =
+      await getIdToken(
+        user,
+        forceRefresh
+      );
+
+    if (!token.trim()) {
+      throw new Error(
+        'Firebase authentication token is unavailable'
+      );
+    }
+
+    return token;
+  };
 
 export const logoutRemote = async () => {
   if (auth?.currentUser) await signOut(auth);
