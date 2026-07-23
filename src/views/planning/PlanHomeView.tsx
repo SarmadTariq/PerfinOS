@@ -6,11 +6,23 @@ import { StyleSheet, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Card, Text } from '../../components/base';
-import { CategoryBadge, IconButton, ScreenHeader } from '../../components/finance';
+import {
+  CategoryBadge,
+  EmptyState,
+  ErrorState,
+  IconButton,
+  LoadingState,
+  ScreenHeader,
+} from '../../components/finance';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';
 import { calculateActivitySummary, useActivityFilters } from '../../context/ActivityFilterContext';
 import { useColors } from '../../context/ThemeContext';
+import type { FinancialPlan } from '../../models/planning';
+import {
+  PLAN_SAVED_STATE_COPY,
+  PLAN_STATUS_LABEL,
+} from '../../planning/planWorkspacePresentation';
 import { filterTransactions, sortTransactions } from '../../repositories/AnalyticsRepository';
 import { Radius, Spacing, Typography } from '../../theme';
 import { formatCurrency, getMonthKey, readableMonth } from '../../utils/format';
@@ -21,6 +33,16 @@ type PlanHomeScreenProps = {
 
   onStartPlan:
     () => void;
+
+  savedPlans: FinancialPlan[];
+  savedPlansState:
+    | 'loading'
+    | 'ready'
+    | 'error'
+    | 'signed-out';
+  savedPlansError?: string | null;
+  onRetrySavedPlans: () => void;
+  onOpenPlan: (planId: string) => void;
 };
 
 type PlanningStep = {
@@ -54,10 +76,153 @@ const rangeLabel = (startDate?: string, endDate?: string) => {
   return `Until ${endDate}`;
 };
 
+const SavedPlansSection = ({
+  plans,
+  state,
+  error,
+  onRetry,
+  onOpen,
+}: {
+  plans: FinancialPlan[];
+  state: PlanHomeScreenProps['savedPlansState'];
+  error?: string | null;
+  onRetry: () => void;
+  onOpen: (planId: string) => void;
+}) => {
+  const colors = useColors();
+
+  if (state === 'loading') {
+    return (
+      <LoadingState
+        label={
+          PLAN_SAVED_STATE_COPY.loading
+        }
+      />
+    );
+  }
+
+  if (state === 'error') {
+    return (
+      <ErrorState
+        title={
+          PLAN_SAVED_STATE_COPY.error
+            .title
+        }
+        message={
+          error ||
+          PLAN_SAVED_STATE_COPY.error
+            .message
+        }
+        onRetry={onRetry}
+      />
+    );
+  }
+
+  if (state === 'signed-out') {
+    return (
+      <EmptyState
+        icon="cloud-off"
+        title={
+          PLAN_SAVED_STATE_COPY.signedOut
+            .title
+        }
+        message={
+          PLAN_SAVED_STATE_COPY.signedOut
+            .message
+        }
+      />
+    );
+  }
+
+  if (plans.length === 0) {
+    return (
+      <EmptyState
+        icon="flag"
+        title={
+          PLAN_SAVED_STATE_COPY.empty
+            .title
+        }
+        message={
+          PLAN_SAVED_STATE_COPY.empty
+            .message
+        }
+      />
+    );
+  }
+
+  return (
+    <View style={styles.savedPlanList}>
+      {plans.map((plan) => {
+        const statusColor =
+          plan.status === 'active'
+            ? colors.success
+            : plan.status === 'archived'
+              ? colors.textTertiary
+              : plan.status === 'completed'
+                ? colors.primary
+                : colors.warning;
+
+        return (
+          <Card
+            key={plan.id}
+            style={styles.savedPlanCard}
+          >
+            <View style={styles.rowBetween}>
+              <View style={styles.savedPlanCopy}>
+                <Text variant="h4">
+                  {plan.title}
+                </Text>
+                <Text
+                  variant="bodySmall"
+                  color="secondary"
+                  style={styles.sectionCopy}
+                >
+                  {plan.startDate} to {plan.endDate}
+                </Text>
+                <Text
+                  variant="caption"
+                  color="tertiary"
+                  style={styles.sectionCopy}
+                >
+                  {plan.versionCount} immutable version
+                  {plan.versionCount === 1 ? '' : 's'}
+                </Text>
+              </View>
+              <CategoryBadge
+                label={
+                  PLAN_STATUS_LABEL[
+                    plan.status
+                  ]
+                }
+                color={statusColor}
+                icon="flag"
+                library="mi"
+              />
+            </View>
+            <View style={styles.savedPlanAction}>
+              <Button
+                label="Open Plan"
+                variant="secondary"
+                onPress={() => onOpen(plan.id)}
+                accessibilityLabel={`Open ${plan.title}`}
+              />
+            </View>
+          </Card>
+        );
+      })}
+    </View>
+  );
+};
+
 export const PlanHomeScreen = ({
   showBackButton = true,
   showProfileButton = false,
   onStartPlan,
+  savedPlans,
+  savedPlansState,
+  savedPlansError,
+  onRetrySavedPlans,
+  onOpenPlan,
 }: PlanHomeScreenProps) => (
   <RequireData>
     {(data) => {
@@ -167,6 +332,29 @@ export const PlanHomeScreen = ({
               ) : undefined
             }
           />
+
+          <View style={styles.sectionHeader}>
+            <Text variant="h3">
+              Saved Plans
+            </Text>
+            <Text
+              variant="bodySmall"
+              color="secondary"
+              style={styles.sectionCopy}
+            >
+              Saved history stays readable without an AI provider request.
+            </Text>
+          </View>
+
+          <View style={styles.savedPlansSection}>
+            <SavedPlansSection
+              plans={savedPlans}
+              state={savedPlansState}
+              error={savedPlansError}
+              onRetry={onRetrySavedPlans}
+              onOpen={onOpenPlan}
+            />
+          </View>
 
           <Card style={styles.heroCard}>
             <View style={styles.rowBetween}>
@@ -297,6 +485,22 @@ export const PlanHomeScreen = ({
 const styles = StyleSheet.create({
   heroCard: {
     marginBottom: Spacing.lg,
+  },
+  savedPlansSection: {
+    marginBottom: Spacing.xl,
+  },
+  savedPlanList: {
+    gap: Spacing.md,
+  },
+  savedPlanCard: {
+    gap: Spacing.md,
+  },
+  savedPlanCopy: {
+    flex: 1,
+    minWidth: 180,
+  },
+  savedPlanAction: {
+    alignSelf: 'flex-start',
   },
   rowBetween: {
     flexDirection: 'row',

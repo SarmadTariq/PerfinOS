@@ -41,6 +41,34 @@ export interface PlanGenerationProvenance {
   generatedAt: string;
 }
 
+export interface PlanEvidenceSummary {
+  schemaVersion: 1;
+  baselineRevision: string;
+  periodStartDate: string;
+  periodEndDate: string;
+  currency: string;
+  currencyFractionDigits: number;
+  coverageStatus:
+    | 'complete'
+    | 'partial'
+    | 'insufficient';
+  transactionCount: number;
+  recordedIncomeMinor: number;
+  recordedExpensesMinor: number;
+  netCashFlowMinor: number;
+  projectedRecurringCommitmentsMinor: number;
+  budgetTotalMinor: number | null;
+  savingsRemainingMinor: number;
+  componentRevisions?: {
+    expectedIncome: string;
+    categories: string;
+    recurring: string;
+    savings: string;
+    locations: string;
+    coverage: string;
+  };
+}
+
 export interface PlanAssumption {
   id: string;
   key: string;
@@ -102,6 +130,7 @@ export interface PlanVersion {
   createdAt: string;
   createdBy: PlanSource;
   sourceRevision: string;
+  evidenceSummary?: PlanEvidenceSummary | null;
   generation: PlanGenerationProvenance | null;
   summary: string;
   assumptions: PlanAssumption[];

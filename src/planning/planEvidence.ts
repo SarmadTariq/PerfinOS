@@ -1770,6 +1770,37 @@ const deterministicRevision = (
     .join('')}`;
 };
 
+export const createPlanEvidenceComponentRevisions =
+  (
+    snapshot: PlanEvidenceSnapshot
+  ) => ({
+    expectedIncome:
+      deterministicRevision(
+        snapshot.totals
+          .expectedIncome
+      ),
+    categories:
+      deterministicRevision(
+        snapshot.categories
+      ),
+    recurring:
+      deterministicRevision(
+        snapshot.recurring
+      ),
+    savings:
+      deterministicRevision(
+        snapshot.savings
+      ),
+    locations:
+      deterministicRevision(
+        snapshot.locations
+      ),
+    coverage:
+      deterministicRevision(
+        snapshot.coverage
+      ),
+  });
+
 const createEvidenceRevision = (
   snapshot:
     Omit<

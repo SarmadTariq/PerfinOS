@@ -11,6 +11,10 @@ import {
   fromMinorUnits,
 } from './planEvidence';
 
+import {
+  summarizePlanEvidence,
+} from './planWorkspace';
+
 import type {
   PlanEvidenceSnapshot,
 } from './planEvidence.types';
@@ -657,6 +661,11 @@ export const buildInitialPlanRecords =
       sourceRevision:
         evidence
           .baselineRevision,
+
+      evidenceSummary:
+        summarizePlanEvidence(
+          evidence
+        ),
 
       generation: {
         modelId:

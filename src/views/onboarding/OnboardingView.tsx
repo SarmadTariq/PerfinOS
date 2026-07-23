@@ -9,7 +9,6 @@ import { Field } from '../../components/form/Field';
 import { SelectField } from '../../components/form/SelectField';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { useFinance } from '../../context/FinanceContext';
-import { Spacing } from '../../theme';
 import { sanitizeMoneyInput } from '../../utils/validation';
 
 const CURRENCY_OPTIONS = ['USD', 'CAD', 'EUR', 'GBP', 'AUD', 'INR', 'JPY'];

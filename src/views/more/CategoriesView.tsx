@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Card, Text } from '../../components/base';
-import { CategoryBadge, IconButton, ScreenHeader, Toast } from '../../components/finance';
+import { CategoryBadge, IconButton, ScreenHeader } from '../../components/finance';
 import { Field } from '../../components/form/Field';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';

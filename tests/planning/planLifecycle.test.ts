@@ -81,6 +81,45 @@ describe('Plan lifecycle', () => {
     ).not.toThrow();
   });
 
+  it.each([
+    ['draft', 'active'],
+    ['draft', 'archived'],
+    ['active', 'completed'],
+    ['active', 'archived'],
+    ['completed', 'archived'],
+  ] as const)(
+    'allows %s to %s',
+    (currentStatus, targetStatus) => {
+      expect(() =>
+        assertPlanStatusTransition(
+          currentStatus,
+          targetStatus
+        )
+      ).not.toThrow();
+    }
+  );
+
+  it.each([
+    ['active', 'active'],
+    ['completed', 'active'],
+    ['completed', 'completed'],
+    ['archived', 'active'],
+    ['archived', 'completed'],
+    ['archived', 'archived'],
+  ] as const)(
+    'rejects %s to %s',
+    (currentStatus, targetStatus) => {
+      expect(() =>
+        assertPlanStatusTransition(
+          currentStatus,
+          targetStatus
+        )
+      ).toThrow(
+        `Cannot transition Plan from ${currentStatus} to ${targetStatus}`
+      );
+    }
+  );
+
   it('prevents archived Plan reactivation', () => {
     expect(() =>
       assertPlanStatusTransition(

@@ -3,6 +3,9 @@ import { AppData } from '../models/finance';
 import { ensureRemoteAppData, firebaseConfigured, saveRemoteAppData, subscribeRemoteAppData } from '../services/firebaseService';
 import { loadGuestAppData, saveGuestAppData } from '../services/localFinanceStore';
 import { useSession } from './SessionContext';
+import {
+  financeWorkspaceOwnershipKey,
+} from './financeWorkspaceOwnership';
 
 export type DataStatus = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -25,7 +28,11 @@ export const FinanceWorkspaceProvider = ({ children }: { children: React.ReactNo
   const [data, setData] = useState<AppData | null>(null);
   const [status, setStatus] = useState<DataStatus>('ready');
   const [error, setError] = useState<string | null>(null);
-  const { remoteUserId, startGuestSession } = useSession();
+  const {
+    remoteUserId,
+    isGuestSession,
+    startGuestSession,
+  } = useSession();
 
   const isGuest = !!data?.entitlement?.isGuest;
 
@@ -69,7 +76,45 @@ export const FinanceWorkspaceProvider = ({ children }: { children: React.ReactNo
   }, []);
 
   useEffect(() => {
-    if (!remoteUserId || !firebaseConfigured || isGuest) return undefined;
+    if (!isGuestSession) {
+      return undefined;
+    }
+
+    let active = true;
+    setStatus('loading');
+    setError(null);
+
+    loadGuestAppData()
+      .then((guest) => {
+        if (active) {
+          setData(guest);
+          setStatus('ready');
+        }
+      })
+      .catch((err: unknown) => {
+        if (active) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : 'Could not load guest workspace'
+          );
+          setStatus('error');
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [isGuestSession]);
+
+  useEffect(() => {
+    if (
+      !remoteUserId ||
+      !firebaseConfigured ||
+      isGuestSession
+    ) {
+      return undefined;
+    }
 
     let active = true;
     setStatus('loading');
@@ -113,7 +158,10 @@ export const FinanceWorkspaceProvider = ({ children }: { children: React.ReactNo
       active = false;
       unsubscribe();
     };
-  }, [remoteUserId, isGuest]);
+  }, [
+    isGuestSession,
+    remoteUserId,
+  ]);
 
   const value = useMemo<FinanceWorkspaceContextValue>(
     () => ({
@@ -133,6 +181,31 @@ export const FinanceWorkspaceProvider = ({ children }: { children: React.ReactNo
 
   return <FinanceWorkspaceContext.Provider value={value}>{children}</FinanceWorkspaceContext.Provider>;
 };
+
+export const SessionBoundFinanceWorkspaceProvider =
+  ({
+    children,
+  }: {
+    children: React.ReactNode;
+  }) => {
+    const {
+      remoteUserId,
+      isAuthenticated,
+      isGuestSession,
+    } = useSession();
+
+    return (
+      <FinanceWorkspaceProvider
+        key={financeWorkspaceOwnershipKey({
+          remoteUserId,
+          isAuthenticated,
+          isGuestSession,
+        })}
+      >
+        {children}
+      </FinanceWorkspaceProvider>
+    );
+  };
 
 export const useFinanceWorkspace = () => {
   const context = useContext(FinanceWorkspaceContext);
