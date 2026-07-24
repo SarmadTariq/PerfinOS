@@ -4,6 +4,12 @@ import { detectRecurringExpenses, generateMonthlyReport } from '../services/fina
 import { saveRemoteAppData } from '../services/firebaseService';
 import { createEmptyAppData } from '../services/initialData';
 import { getMonthKey } from '../utils/format';
+import {
+  getCategoryRemovalDecision,
+  isCategoryArchived,
+  validateCategoryDraft,
+  validateCategoryName,
+} from '../utils/categories';
 import { validateDate, validateLocation, validatePositiveAmount, validateReceipts, validateTransactionInput } from '../utils/validation';
 import { AuthOptions, useSession } from '../context/SessionContext';
 import { useFinanceWorkspace } from './useFinanceWorkspace';
@@ -135,6 +141,11 @@ export const useFinanceActions = (): FinanceActions => {
 
         await persist((current) => {
           const category = current.categories.find((item) => item.id === input.categoryId);
+
+          if (!category) throw new Error('Select a valid category before saving');
+          if (category.type !== input.type) throw new Error('Category must match the transaction type');
+          if (isCategoryArchived(category)) throw new Error('Archived categories cannot be used for new transactions');
+
           const now = new Date().toISOString();
 
           return refreshDerivedData({
@@ -174,6 +185,15 @@ export const useFinanceActions = (): FinanceActions => {
             ? current.categories.find((item) => item.id === updates.categoryId)
             : undefined;
 
+          const nextType = updates.type || existing.type;
+          const categoryChanged = !!updates.categoryId && updates.categoryId !== existing.categoryId;
+
+          if (updates.categoryId && !category) throw new Error('Select a valid category before saving');
+          if (category && category.type !== nextType) throw new Error('Category must match the transaction type');
+          if (categoryChanged && category && isCategoryArchived(category)) {
+            throw new Error('Archived categories cannot be selected for a different transaction');
+          }
+
           return refreshDerivedData({
             ...current,
             transactions: current.transactions.map((transaction) =>
@@ -182,7 +202,8 @@ export const useFinanceActions = (): FinanceActions => {
                     ...transaction,
                     ...updates,
                     receipts: updates.receipts || transaction.receipts || [],
-                    categoryName: category?.name || updates.categoryName || transaction.categoryName,
+                    // A transaction keeps the name captured when it was categorized.
+                    categoryName: categoryChanged ? category?.name || transaction.categoryName : transaction.categoryName,
                     updateCount: transaction.updateCount + 1,
                     updatedAt: new Date().toISOString(),
                   }
@@ -200,34 +221,70 @@ export const useFinanceActions = (): FinanceActions => {
         );
       },
       addCategory: async (input) => {
-        if (!input.name.trim()) throw new Error('Category name is required');
-        if (input.monthlyBudget < 0) throw new Error('Budget amount cannot be negative');
+        await persist((current) => {
+          const draft = validateCategoryDraft(input, current.categories);
 
-        await persist((current) => ({
-          ...current,
-          categories: [{ ...input, id: uid('cat'), isDefault: false }, ...current.categories],
-        }));
+          return {
+            ...current,
+            categories: [{ ...draft, id: uid('cat'), isDefault: false, isArchived: false, archivedAt: null }, ...current.categories],
+          };
+        });
       },
       updateCategory: async (id, updates) => {
         if (updates.monthlyBudget !== undefined && updates.monthlyBudget < 0) {
           throw new Error('Budget amount cannot be negative');
         }
 
-        await persist((current) => ({
-          ...current,
-          categories: current.categories.map((category) =>
-            category.id === id ? { ...category, ...updates } : category
-          ),
-        }));
+        await persist((current) => {
+          const category = current.categories.find((item) => item.id === id);
+
+          if (!category) throw new Error('Category not found');
+          if (updates.isDefault !== undefined) throw new Error('Category default protection cannot be changed');
+          if (updates.type && updates.type !== category.type) {
+            throw new Error('Category type cannot change after it is created');
+          }
+          if (category.isDefault && (updates.name !== undefined || updates.isArchived !== undefined)) {
+            throw new Error('Default category identity cannot be changed');
+          }
+
+          const name = updates.name === undefined
+            ? category.name
+            : validateCategoryName(updates.name, current.categories, category.type, category.id);
+          const isArchived = updates.isArchived ?? category.isArchived;
+
+          return {
+            ...current,
+            categories: current.categories.map((item) =>
+              item.id === id
+                ? {
+                    ...item,
+                    ...updates,
+                    name,
+                    isArchived,
+                    archivedAt: isArchived ? item.archivedAt || new Date().toISOString() : null,
+                  }
+                : item
+            ),
+          };
+        });
       },
       deleteCategory: async (id) => {
         await persist((current) => {
           const category = current.categories.find((item) => item.id === id);
 
-          if (category?.isDefault) throw new Error('Default categories cannot be deleted');
+          if (!category) throw new Error('Category not found');
 
-          if (current.transactions.some((transaction) => transaction.categoryId === id)) {
-            throw new Error('Category is used by existing transactions');
+          const decision = getCategoryRemovalDecision(category, current.transactions, current.budgets);
+          if (decision === 'blocked_default') throw new Error('Default categories cannot be deleted');
+          if (decision === 'archive') {
+            return {
+              ...current,
+              categories: current.categories.map((item) =>
+                item.id === id
+                  ? { ...item, isArchived: true, archivedAt: item.archivedAt || new Date().toISOString() }
+                  : item
+              ),
+            };
           }
 
           return { ...current, categories: current.categories.filter((item) => item.id !== id) };
