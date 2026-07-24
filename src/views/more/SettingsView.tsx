@@ -99,7 +99,8 @@ const ThemeSelector = () => {
               key={option.value}
               accessibilityRole="radio"
               accessibilityLabel={`${option.label} theme`}
-              accessibilityState={{ selected }}
+              accessibilityState={{ checked: selected }}
+              aria-checked={selected}
               onPress={() =>
                 setMode(option.value)
               }

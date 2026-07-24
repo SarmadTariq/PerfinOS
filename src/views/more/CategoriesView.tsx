@@ -221,7 +221,8 @@ const CategoryEditor = ({
               key={color}
               accessibilityRole="radio"
               accessibilityLabel={`Category color ${color}`}
-              accessibilityState={{ selected }}
+              accessibilityState={{ checked: selected }}
+              aria-checked={selected}
               onPress={() =>
                 onChange({
                   ...draft,
@@ -260,7 +261,8 @@ const CategoryEditor = ({
               key={icon}
               accessibilityRole="radio"
               accessibilityLabel={`Category icon ${icon}`}
-              accessibilityState={{ selected }}
+              accessibilityState={{ checked: selected }}
+              aria-checked={selected}
               onPress={() =>
                 onChange({
                   ...draft,
