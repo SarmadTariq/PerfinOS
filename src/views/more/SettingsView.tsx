@@ -1,201 +1,817 @@
-/**
- * SettingsView: workspace mode, appearance theme, and session controls.
- * Privacy and app scope disclosures live in Privacy & Help.
- */
-import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { Button, Card, Text } from '../../components/base';
+import React, {
+  useMemo,
+  useState,
+} from 'react';
 import {
-  CategoryBadge,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {
+  Button,
+  Text,
+} from '../../components/base';
+import {
+  ConfirmModal,
   IconButton,
   ScreenHeader,
 } from '../../components/finance';
+import {
+  Field,
+  SelectField,
+} from '../../components/form';
 import { AppScroll } from '../../components/layout/AppScroll';
+import { RequireData } from '../../components/layout/RequireData';
 import { useFinance } from '../../context/FinanceContext';
-import { useColors, useTheme } from '../../context/ThemeContext';
-import { ControlSize, Radius, Spacing, Typography } from '../../theme';
+import {
+  useColors,
+  useTheme,
+  type ThemeMode,
+} from '../../context/ThemeContext';
+import {
+  SUPPORTED_CURRENCIES,
+  validateFinancialPreferencesDraft,
+} from '../../settings';
+import {
+  ControlSize,
+  Radius,
+  Spacing,
+} from '../../theme';
 
-export const SettingsScreen = () => {
-  const { logout, isGuest, data } = useFinance();
-  const { mode, resolved, setMode } = useTheme();
-  const navigation = useNavigation<any>();
+const ThemeSelector = () => {
+  const { mode, resolved, setMode } =
+    useTheme();
   const colors = useColors();
-
-  const themeOptions: {
+  const options: {
     label: string;
-    value: 'light' | 'dark' | 'system';
+    value: ThemeMode;
+    icon: React.ComponentProps<
+      typeof MaterialIcons
+    >['name'];
   }[] = [
-    { label: 'Light', value: 'light' },
-    { label: 'Dark', value: 'dark' },
-    { label: 'System', value: 'system' },
+    {
+      label: 'System',
+      value: 'system',
+      icon: 'settings-brightness',
+    },
+    {
+      label: 'Light',
+      value: 'light',
+      icon: 'light-mode',
+    },
+    {
+      label: 'Dark',
+      value: 'dark',
+      icon: 'dark-mode',
+    },
   ];
 
   return (
-    <AppScroll>
-      <ScreenHeader
-        title="Settings"
-        subtitle="Appearance, workspace, and session controls."
-        action={
-          <IconButton
-            icon="arrow-back"
-            label="Go back"
-            onPress={() => navigation.goBack()}
-          />
-        }
-      />
-
-      <Card style={styles.sectionCard}>
-        <Text variant="h4">Workspace mode</Text>
-
-        <Text variant="body" color="secondary" style={styles.sectionCopy}>
-          {isGuest
-            ? 'Guest data stays on this device. Sign in to unlock cloud sync, receipt uploads, account recovery, and AI planning.'
-            : 'Your PerFin OS workspace syncs through Firebase. Receipt and AI features use configured production gateways when keys are provided.'}
-        </Text>
-
-        <View style={styles.badgeRow}>
-          <CategoryBadge
-            label={`Plan: ${data?.entitlement.plan || 'guest'}`}
-            color={isGuest ? colors.warning : colors.success}
-            icon={isGuest ? 'person-outline' : 'verified'}
-            library="mi"
-          />
+    <View>
+      <View style={styles.rowHeading}>
+        <View style={styles.rowCopy}>
+          <Text variant="body">
+            Appearance
+          </Text>
+          <Text
+            variant="bodySmall"
+            color="secondary"
+          >
+            Currently {resolved};{' '}
+            {mode === 'system'
+              ? 'following device settings'
+              : 'manual override'}
+            . Saved on this device.
+          </Text>
         </View>
-
-        <Button
-          label="Logout"
-          variant="danger"
-          onPress={logout}
-          style={styles.logoutAction}
-        />
-      </Card>
-
-      <Card style={styles.sectionCard}>
-        <View style={styles.sectionHeading}>
-          <MaterialIcons
-            name="brightness-6"
-            size={20}
-            color={colors.primary}
-            style={styles.sectionIcon}
-          />
-
-          <Text variant="h4">Appearance</Text>
-        </View>
-
-        <Text
-          variant="bodySmall"
-          color="secondary"
-          style={styles.currentTheme}
-        >
-          Currently: {resolved === 'dark' ? 'Dark theme' : 'Light theme'} ·{' '}
-          {mode === 'system' ? 'Following system' : 'Manual override'}
-        </Text>
-
-        <View style={styles.themeOptions}>
-          {themeOptions.map((option) => {
-            const selected = mode === option.value;
-
-            return (
-              <TouchableOpacity
-                key={option.value}
-                onPress={() => setMode(option.value)}
-                accessibilityRole="button"
-                accessibilityLabel={`Set theme to ${option.label}`}
-                accessibilityState={{ selected }}
-                activeOpacity={0.82}
-                style={[
-                  styles.themeOption,
-                  {
-                    borderColor: selected ? colors.primary : colors.border,
-                    backgroundColor: selected
-                      ? colors.primarySoft
-                      : colors.bgSecondary,
-                  },
-                ]}
-              >
-                <View style={styles.themeOptionContent}>
-                  <MaterialIcons
-                    name={
-                      selected
-                        ? 'check-circle'
-                        : 'radio-button-unchecked'
-                    }
-                    size={16}
-                    color={selected ? colors.primary : colors.textTertiary}
-                  />
-
-                  <Text
-                    variant="bodySmall"
-                    style={[
-                      styles.themeOptionLabel,
-                      {
-                        color: selected
-                          ? colors.primary
-                          : colors.textSecondary,
-                      },
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </Card>
-    </AppScroll>
+      </View>
+      <View
+        accessibilityRole="radiogroup"
+        style={styles.themeOptions}
+      >
+        {options.map((option) => {
+          const selected =
+            option.value === mode;
+          return (
+            <TouchableOpacity
+              key={option.value}
+              accessibilityRole="radio"
+              accessibilityLabel={`${option.label} theme`}
+              accessibilityState={{ selected }}
+              onPress={() =>
+                setMode(option.value)
+              }
+              style={[
+                styles.themeOption,
+                {
+                  borderColor: selected
+                    ? colors.primary
+                    : colors.border,
+                  backgroundColor: selected
+                    ? colors.primarySoft
+                    : colors.bgSecondary,
+                },
+              ]}
+            >
+              <MaterialIcons
+                name={option.icon}
+                size={20}
+                color={
+                  selected
+                    ? colors.primary
+                    : colors.textSecondary
+                }
+              />
+              <Text variant="bodySmall">
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
   );
 };
 
+const InfoRow = ({
+  icon,
+  title,
+  value,
+  description,
+}: {
+  icon: React.ComponentProps<
+    typeof MaterialIcons
+  >['name'];
+  title: string;
+  value: string;
+  description: string;
+}) => {
+  const colors = useColors();
+  return (
+    <View
+      style={[
+        styles.settingRow,
+        {
+          borderBottomColor:
+            colors.borderLight,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.rowIcon,
+          {
+            backgroundColor:
+              colors.bgTertiary,
+          },
+        ]}
+      >
+        <MaterialIcons
+          name={icon}
+          size={20}
+          color={colors.textSecondary}
+        />
+      </View>
+      <View style={styles.rowCopy}>
+        <View style={styles.titleValue}>
+          <Text variant="body">{title}</Text>
+          <Text
+            variant="caption"
+            color="secondary"
+          >
+            {value}
+          </Text>
+        </View>
+        <Text
+          variant="bodySmall"
+          color="secondary"
+        >
+          {description}
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+const NavigationRow = ({
+  icon,
+  title,
+  description,
+  onPress,
+}: {
+  icon: React.ComponentProps<
+    typeof MaterialIcons
+  >['name'];
+  title: string;
+  description: string;
+  onPress: () => void;
+}) => {
+  const colors = useColors();
+  return (
+    <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${title}`}
+      onPress={onPress}
+      style={[
+        styles.settingRow,
+        {
+          borderBottomColor:
+            colors.borderLight,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.rowIcon,
+          {
+            backgroundColor:
+              colors.primarySoft,
+          },
+        ]}
+      >
+        <MaterialIcons
+          name={icon}
+          size={20}
+          color={colors.primary}
+        />
+      </View>
+      <View style={styles.rowCopy}>
+        <Text variant="body">{title}</Text>
+        <Text
+          variant="bodySmall"
+          color="secondary"
+        >
+          {description}
+        </Text>
+      </View>
+      <MaterialIcons
+        name="chevron-right"
+        size={22}
+        color={colors.textTertiary}
+      />
+    </TouchableOpacity>
+  );
+};
+
+const Section = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) => {
+  const colors = useColors();
+  return (
+    <View style={styles.section}>
+      <Text
+        variant="caption"
+        color="secondary"
+        style={styles.sectionTitle}
+      >
+        {title}
+      </Text>
+      <View
+        style={[
+          styles.sectionBody,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border,
+          },
+        ]}
+      >
+        {children}
+      </View>
+    </View>
+  );
+};
+
+export const SettingsScreen = () => (
+  <RequireData>
+    {(data) => {
+      const {
+        isGuest,
+        updateUser,
+        logout,
+      } = useFinance();
+      const navigation = useNavigation<any>();
+      const colors = useColors();
+      const [financialDraft, setFinancialDraft] =
+        useState({
+          currency: data.user.currency,
+          monthlyIncome: String(
+            data.user.monthlyIncome
+          ),
+          monthlyBudget: String(
+            data.user.monthlyBudget
+          ),
+        });
+      const [submittedPreferences, setSubmittedPreferences] =
+        useState(false);
+      const [savingPreferences, setSavingPreferences] =
+        useState(false);
+      const [notice, setNotice] =
+        useState<string | null>(null);
+      const [error, setError] =
+        useState<string | null>(null);
+      const [confirmLogout, setConfirmLogout] =
+        useState(false);
+      const [loggingOut, setLoggingOut] =
+        useState(false);
+
+      const preferencesValidation = useMemo(
+        () =>
+          validateFinancialPreferencesDraft(
+            financialDraft
+          ),
+        [financialDraft]
+      );
+
+      const preferencesChanged =
+        financialDraft.currency !==
+          data.user.currency ||
+        financialDraft.monthlyIncome.trim() !==
+          String(data.user.monthlyIncome) ||
+        financialDraft.monthlyBudget.trim() !==
+          String(data.user.monthlyBudget);
+
+      const saveFinancialPreferences =
+        async () => {
+          setSubmittedPreferences(true);
+          if (
+            savingPreferences ||
+            !preferencesChanged ||
+            !preferencesValidation.isValid
+          ) {
+          return;
+        }
+        setSavingPreferences(true);
+        setError(null);
+        setNotice(null);
+        try {
+          await updateUser(
+            preferencesValidation.update
+          );
+          setNotice(
+            'Financial preferences saved.'
+          );
+          setSubmittedPreferences(false);
+        } catch (caught) {
+          setError(
+            caught instanceof Error
+              ? caught.message
+              : 'Financial preferences could not be saved.'
+          );
+        } finally {
+          setSavingPreferences(false);
+        }
+      };
+
+      const confirmLogoutAction =
+        async () => {
+          if (loggingOut) return;
+          setLoggingOut(true);
+          setError(null);
+          try {
+            await logout();
+            setConfirmLogout(false);
+          } catch (caught) {
+            setError(
+              caught instanceof Error
+                ? caught.message
+                : 'Logout failed.'
+            );
+          } finally {
+            setLoggingOut(false);
+          }
+        };
+
+      return (
+        <AppScroll>
+          <ScreenHeader
+            title="Settings"
+            subtitle="Implemented preferences, capability status, and account routes."
+            action={
+              <IconButton
+                icon="arrow-back"
+                label="Go back"
+                onPress={() =>
+                  navigation.goBack()
+                }
+              />
+            }
+          />
+
+          {notice ? (
+            <View
+              accessibilityLiveRegion="polite"
+              style={[
+                styles.message,
+                {
+                  backgroundColor:
+                    colors.primarySoft,
+                },
+              ]}
+            >
+              <Text variant="bodySmall">
+                {notice}
+              </Text>
+            </View>
+          ) : null}
+          {error ? (
+            <View
+              accessibilityRole="alert"
+              style={[
+                styles.message,
+                {
+                  borderColor: colors.danger,
+                },
+              ]}
+            >
+              <Text
+                variant="bodySmall"
+                color="danger"
+              >
+                {error}
+              </Text>
+            </View>
+          ) : null}
+
+          <Section title="Appearance">
+            <View style={styles.controlRow}>
+              <ThemeSelector />
+            </View>
+          </Section>
+
+          <Section title="Financial preferences">
+            <View style={styles.controlRow}>
+              <View style={styles.rowHeading}>
+                <View style={styles.rowCopy}>
+                  <Text variant="body">
+                    Default money settings
+                  </Text>
+                  <Text
+                    variant="bodySmall"
+                    color="secondary"
+                  >
+                    Used for totals, reports,
+                    budgets, and onboarding
+                    defaults. Saved to this
+                    workspace.
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.selectorWrap}>
+                <SelectField
+                  label="Currency"
+                  value={
+                    financialDraft.currency
+                  }
+                  options={[
+                    ...SUPPORTED_CURRENCIES,
+                  ]}
+                  onChange={(value) => {
+                    setFinancialDraft(
+                      (current) => ({
+                        ...current,
+                        currency: value,
+                      })
+                    );
+                  }}
+                />
+                {submittedPreferences &&
+                preferencesValidation.errors
+                  .currency ? (
+                  <Text
+                    accessibilityRole="alert"
+                    variant="bodySmall"
+                    color="danger"
+                  >
+                    {
+                      preferencesValidation
+                        .errors.currency
+                    }
+                  </Text>
+                ) : null}
+                <Field
+                  label="Monthly income"
+                  value={
+                    financialDraft.monthlyIncome
+                  }
+                  onChangeText={(
+                    monthlyIncome
+                  ) =>
+                    setFinancialDraft(
+                      (current) => ({
+                        ...current,
+                        monthlyIncome,
+                      })
+                    )
+                  }
+                  placeholder="0"
+                  keyboardType="decimal-pad"
+                  error={
+                    submittedPreferences
+                      ? preferencesValidation
+                          .errors
+                          .monthlyIncome
+                      : undefined
+                  }
+                />
+                <Field
+                  label="Default monthly budget"
+                  value={
+                    financialDraft.monthlyBudget
+                  }
+                  onChangeText={(
+                    monthlyBudget
+                  ) =>
+                    setFinancialDraft(
+                      (current) => ({
+                        ...current,
+                        monthlyBudget,
+                      })
+                    )
+                  }
+                  placeholder="0"
+                  keyboardType="decimal-pad"
+                  error={
+                    submittedPreferences
+                      ? preferencesValidation
+                          .errors
+                          .monthlyBudget
+                      : undefined
+                  }
+                />
+                <Button
+                  label={
+                    savingPreferences
+                      ? 'Saving preferences'
+                      : 'Save financial preferences'
+                  }
+                  onPress={() => {
+                    void saveFinancialPreferences();
+                  }}
+                  disabled={
+                    savingPreferences ||
+                    !preferencesChanged
+                  }
+                  variant="primary"
+                />
+                {savingPreferences ? (
+                  <Text
+                    variant="bodySmall"
+                    color="secondary"
+                  >
+                    Saving financial
+                    preferences…
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+          </Section>
+
+          <Section title="Notifications">
+            <InfoRow
+              icon="notifications-off"
+              title="Push notifications"
+              value="Not implemented"
+              description="PerFin OS has no push-notification registration or preference persistence. No toggle is shown."
+            />
+          </Section>
+
+          <Section title="Location and permissions">
+            <InfoRow
+              icon="location-on"
+              title="Location access"
+              value="Point of use"
+              description="Location permission is requested only from transaction and map workflows that use it. Settings does not start tracking or request permission."
+            />
+          </Section>
+
+          <Section title="AI-assisted features">
+            <InfoRow
+              icon="route"
+              title="Plan generation"
+              value={
+                !isGuest &&
+                data.entitlement.features
+                  .aiPlanning
+                  ? 'Available'
+                  : 'Unavailable'
+              }
+              description={
+                isGuest
+                  ? 'A signed-in workspace is required for provider-assisted Plan generation.'
+                  : 'Availability reflects the current workspace entitlement; provider configuration is verified only at request time.'
+              }
+            />
+            <InfoRow
+              icon="summarize"
+              title="AI report interpretation"
+              value={
+                !isGuest &&
+                data.entitlement.features
+                  .aiReports
+                  ? 'Entitled, not active here'
+                  : 'Unavailable'
+              }
+              description="Monthly Reports are deterministic. This Settings screen does not enable an AI report provider."
+            />
+          </Section>
+
+          <Section title="Privacy and support">
+            <NavigationRow
+              icon="privacy-tip"
+              title="Privacy & Help"
+              description="Review verified data use, provider roles, product scope, and support guidance."
+              onPress={() =>
+                navigation.navigate(
+                  'HelpAbout'
+                )
+              }
+            />
+          </Section>
+
+          <Section title="Account behavior">
+            <NavigationRow
+              icon="person"
+              title="Profile"
+              description="Edit identity and review account state."
+              onPress={() =>
+                navigation.navigate('Profile')
+              }
+            />
+            <NavigationRow
+              icon="category"
+              title="Categories"
+              description="Manage category names, colors, icons, and archived states."
+              onPress={() =>
+                navigation.navigate(
+                  'Categories'
+                )
+              }
+            />
+            <InfoRow
+              icon={
+                isGuest
+                  ? 'person-outline'
+                  : 'verified-user'
+              }
+              title="Workspace mode"
+              value={
+                isGuest
+                  ? 'Guest'
+                  : 'Signed in'
+              }
+              description={
+                isGuest
+                  ? 'Guest data is local and is not a synced account.'
+                  : 'Signed-in data is handled by the active account workspace.'
+              }
+            />
+            <View style={styles.destructiveRow}>
+              <View style={styles.rowCopy}>
+                <Text variant="body">
+                  {isGuest
+                    ? 'Exit guest workspace'
+                    : 'Sign out'}
+                </Text>
+                <Text
+                  variant="bodySmall"
+                  color="secondary"
+                >
+                  Confirmation is required.
+                </Text>
+              </View>
+              <Button
+                label={
+                  isGuest ? 'Exit' : 'Sign out'
+                }
+                variant="danger"
+                size="sm"
+                onPress={() =>
+                  setConfirmLogout(true)
+                }
+              />
+            </View>
+          </Section>
+
+          <ConfirmModal
+            visible={confirmLogout}
+            title={
+              isGuest
+                ? 'Exit guest workspace?'
+                : 'Sign out?'
+            }
+            message={
+              isGuest
+                ? 'The guest session will close. Guest data is not synced to an account.'
+                : 'PerFin OS will sign out before clearing the local workspace.'
+            }
+            confirmLabel={
+              loggingOut
+                ? 'Signing out'
+                : isGuest
+                  ? 'Exit'
+                  : 'Sign out'
+            }
+            onConfirm={
+              confirmLogoutAction
+            }
+            onCancel={() => {
+              if (!loggingOut) {
+                setConfirmLogout(false);
+              }
+            }}
+          />
+        </AppScroll>
+      );
+    }}
+  </RequireData>
+);
+
 const styles = StyleSheet.create({
-  sectionCard: {
+  message: {
+    borderWidth: 1,
+    borderColor: 'transparent',
+    borderRadius: Radius.sm,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  section: {
     marginBottom: Spacing.lg,
   },
-  sectionCopy: {
-    marginTop: Spacing.sm,
+  sectionTitle: {
+    fontWeight: '800',
+    marginBottom: Spacing.sm,
   },
-  badgeRow: {
-    marginTop: Spacing.md,
+  sectionBody: {
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    overflow: 'hidden',
   },
-  logoutAction: {
-    marginTop: Spacing.md,
+  controlRow: {
+    padding: Spacing.lg,
   },
-  sectionHeading: {
+  rowHeading: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
+    justifyContent: 'space-between',
+    gap: Spacing.md,
   },
-  sectionIcon: {
-    marginRight: Spacing.sm,
-  },
-  currentTheme: {
-    marginBottom: Spacing.md,
+  rowCopy: {
+    flex: 1,
+    gap: Spacing.xs,
   },
   themeOptions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
+    marginTop: Spacing.md,
   },
   themeOption: {
+    minHeight:
+      ControlSize.minimumTouchTarget,
     flexGrow: 1,
-    flexBasis: 96,
-    minWidth: 88,
-    minHeight: ControlSize.minimumTouchTarget,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radius.sm,
+    minWidth: 96,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
     borderWidth: 1,
+    borderRadius: Radius.sm,
+    paddingHorizontal: Spacing.md,
+  },
+  selectorWrap: {
+    marginTop: Spacing.md,
+  },
+  settingRow: {
+    minHeight: 76,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    borderBottomWidth: 1,
+    padding: Spacing.lg,
+  },
+  rowIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: Radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  themeOptionContent: {
+  titleValue: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+  },
+  destructiveRow: {
+    minHeight: 76,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  themeOptionLabel: {
-    fontWeight: Typography.label.fontWeight,
+    gap: Spacing.md,
+    padding: Spacing.lg,
   },
 });
