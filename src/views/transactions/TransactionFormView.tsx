@@ -32,6 +32,7 @@ import { useColors } from '../../context/ThemeContext';
 import { AppData, Category, ReceiptAttachment, Transaction } from '../../models/finance';
 import { BrandColors, Colors, Radius, Spacing, Typography } from '../../theme';
 import { todayIso } from '../../utils/format';
+import { getTransactionCategoryOptions } from '../../utils/categories';
 import { MAX_RECEIPTS_PER_TRANSACTION, MAX_RECEIPT_BYTES, parseMoney, sanitizeMoneyInput, SUPPORTED_RECEIPT_MIME_TYPES } from '../../utils/validation';
 import { getCurrentLocation, getLocationSuggestions } from '../../services/locationService';
 import { createLocalReceiptAttachment, receiptUploadConfigured, uploadReceiptToWorker } from '../../services/receiptService';
@@ -103,9 +104,15 @@ const uniqueCategories = (categories: Category[]) => {
 const getVisibleCategories = (
   allCategories: Category[],
   type: 'income' | 'expense',
-  selectedCategoryId?: string
+  selectedCategoryId?: string,
+  includeSelectedArchived = false
 ) => {
-  const pool = allCategories.filter((category) => category.type === type);
+  const pool = getTransactionCategoryOptions(
+    allCategories,
+    type,
+    selectedCategoryId,
+    includeSelectedArchived
+  );
   const standardNames = type === 'income' ? STANDARD_INCOME_CATEGORY_NAMES : STANDARD_EXPENSE_CATEGORY_NAMES;
   const selectedCategory = selectedCategoryId
     ? pool.find((category) => category.id === selectedCategoryId)
@@ -712,7 +719,7 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
   const existing = data.transactions.find((item) => item.id === route.params?.transactionId);
 
   const initialType = existing?.type || 'expense';
-  const initialCategories = getVisibleCategories(data.categories, initialType, existing?.categoryId);
+  const initialCategories = getVisibleCategories(data.categories, initialType, existing?.categoryId, !!existing);
   const initialPlace = toPlaceSelection(existing?.location);
 
   const [type, setType] = useState<'income' | 'expense'>(initialType);
@@ -756,7 +763,7 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
 
   const receiptsEnabled = canUseFeature('receiptUploads') && !isGuest;
   const receiptBackendReady = receiptUploadConfigured();
-  const categories = getVisibleCategories(data.categories, type, categoryId);
+  const categories = getVisibleCategories(data.categories, type, categoryId, mode === 'edit');
   const selected = data.categories.find((category) => category.id === categoryId) || categories[0];
   const editLocked = mode === 'edit' && !!existing && existing.updateCount >= 2;
   const amountError = amount && !/^\d+(\.\d{0,2})?$/.test(amount) ? 'Use numbers with up to 2 decimals' : undefined;

@@ -77,6 +77,9 @@ export interface Category {
   icon: string;
   monthlyBudget: number;
   isDefault: boolean;
+  /** Absent on existing records. Missing values are treated as active. */
+  isArchived?: boolean;
+  archivedAt?: string | null;
 }
 
 export interface Budget {
