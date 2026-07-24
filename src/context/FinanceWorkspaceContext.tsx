@@ -41,16 +41,19 @@ export const FinanceWorkspaceProvider = ({ children }: { children: React.ReactNo
       if (!data) throw new Error('PerFin OS data is still loading');
 
       const next = updater(data);
-      setData(next);
 
       if (next.entitlement.isGuest) {
         await saveGuestAppData(next);
+        setData(next);
         return;
       }
 
-      if (remoteUserId && firebaseConfigured) {
-        await saveRemoteAppData(remoteUserId, next);
+      if (!remoteUserId || !firebaseConfigured) {
+        throw new Error('Signed-in workspace persistence is unavailable');
       }
+
+      await saveRemoteAppData(remoteUserId, next);
+      setData(next);
     },
     [data, remoteUserId]
   );

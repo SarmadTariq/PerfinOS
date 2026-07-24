@@ -31,6 +31,8 @@ interface FinanceContextValue {
   updateSavingsGoal: (id: string, updates: Partial<SavingsGoal>) => Promise<void>;
   deleteSavingsGoal: (id: string) => Promise<void>;
   updateRecurringExpense: (id: string, updates: Partial<RecurringExpense>) => Promise<void>;
+  previewReport: (month?: string) => Promise<Report>;
+  saveReport: (report: Report) => Promise<void>;
   generateReport: (month?: string) => Promise<Report>;
   canUseFeature: (feature: keyof AppData['entitlement']['features']) => boolean;
 }
