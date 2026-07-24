@@ -69,9 +69,9 @@ const sections: MoreSection[] = [
         icon: 'subscriptions',
       },
       {
-        label: 'Guided Planning',
-        description: 'Turn Activity signals into budget, savings, recurring, and report actions.',
-        route: 'PlannerChat',
+        label: 'Plan',
+        description: 'Review planning context and confirmed actions.',
+        route: 'Plan',
         icon: 'route',
       },
     ],
