@@ -11,10 +11,10 @@
     "typecheck": "tsc --noEmit",
     "typecheck:strict": "tsc --noEmit --noUnusedLocals --noUnusedParameters",
     "audit:prod": "npm audit --omit=dev",
-    "test": "npm run test:planning && npm run test:pf214 && npm run test:pf207 && npm run test:pf210 && npm run test:pf211 && npm run test:pf212 && npm run test:pf213 && npm run test:pf202 && npm run test:pf198 && npm run test:pf199 && npm run test:pf200 && npm run test:pf201 && npm run test:pf203 && npm run test:pf204",
+    "test": "npm run test:planning && npm run test:pf214 && npm run test:pf207 && npm run test:pf210 && npm run test:pf211 && npm run test:pf212 && npm run test:pf213 && npm run test:pf202 && npm run test:pf198 && npm run test:pf199 && npm run test:pf200 && npm run test:pf201 && npm run test:pf203 && npm run test:pf204 && npm run test:backend-refactor",
     "test:planning": "vitest run tests/planning/planLifecycle.test.ts --fileParallelism=false",
     "test:pf214": "vitest run tests/transactions/transactionPlaceDisclosure.test.ts --fileParallelism=false",
-    "test:firebase": "firebase emulators:exec --project demo-perfin-os --only firestore \"vitest run tests/firebase/planPersistence.test.ts tests/firebase/planActionPersistence.test.ts --fileParallelism=false\"",
+    "test:firebase": "firebase emulators:exec --project demo-perfin-os --only firestore \"vitest run tests/firebase/financeContracts.test.ts tests/firebase/financeMigrationPersistence.test.ts tests/firebase/financeCommandPersistence.test.ts tests/firebase/planPersistence.test.ts tests/firebase/planActionPersistence.test.ts --fileParallelism=false\"",
     "test:pf206": "npm run test:planning && npm run test:firebase",
     "test:pf207": "vitest run tests/planning/planEvidence.test.ts --fileParallelism=false",
     "test:pf210": "vitest run tests/planning/planCreationFlow.test.ts tests/planning/planCreationPresentation.test.ts tests/planning/planApiClient.test.ts tests/planning/planGenerationPresentation.test.ts tests/planning/planDraftAdapter.test.ts --fileParallelism=false",
@@ -27,7 +27,8 @@
     "test:pf200": "vitest run tests/profile/profileValidation.test.ts --fileParallelism=false",
     "test:pf201": "vitest run tests/settings/settingsInventory.test.ts --fileParallelism=false",
     "test:pf203": "vitest run tests/privacy/privacyContent.test.ts --fileParallelism=false",
-    "test:pf204": "vitest run tests/integration/nativeConfig.test.ts --fileParallelism=false"
+    "test:pf204": "vitest run tests/integration/nativeConfig.test.ts --fileParallelism=false",
+    "test:backend-refactor": "vitest run tests/firebase/financeContracts.test.ts tests/firebase/financeWorkspaceHydration.test.ts tests/planning/planActionApplication.test.ts tests/receipts/receiptService.test.ts --fileParallelism=false"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",

@@ -7,10 +7,10 @@ import {
   type DocumentSnapshot,
 } from 'firebase/firestore';
 import type {
-  AppData,
   Budget,
   Category,
   SavingsGoal,
+  WorkspaceMeta,
 } from '../../models/finance';
 import type {
   FinancialPlan,
@@ -22,24 +22,22 @@ import {
   buildPlanActionPreview,
   planActionSelectionDigest,
   PlanActionValidationError,
+  workspaceRevisionToken,
   type PlanActionPreview,
   type PlanActionSelection,
 } from '../../planning/planActionApplication';
 import {
-  buildPlanEvidenceSnapshot,
   fromMinorUnits,
   toMinorUnits,
 } from '../../planning/planEvidence';
-import {
-  planEvidenceHorizonForSavedPlan,
-} from '../../planning/planWorkspace';
 import { db } from './client';
 import {
   getUserEntityDocumentRef,
+  getUserSingletonDocumentRef,
 } from './entityPaths';
 import {
-  getLegacyAppDataRef,
-} from './paths';
+  ensureRemoteFinanceWorkspace,
+} from './financeWorkspaceRepository';
 import {
   getUserPlanActionResultDocumentRef,
   getUserPlanActionResultsCollectionRef,
@@ -78,20 +76,20 @@ export interface RecordPlanActionOutcomeInput {
 }
 
 const requireFirestore = () => {
-  if (!db) {
-    throw new Error('Firestore is not configured');
-  }
+  if (!db) throw new Error('Firestore is not configured');
   return db;
 };
 
 const requireId = (value: string, label: string): string => {
   const normalized = value.trim();
+
   if (!normalized) {
     throw new PlanActionValidationError(
       'invalid_request',
       `${label} is required.`
     );
   }
+
   return normalized;
 };
 
@@ -103,6 +101,7 @@ const requireDocument = <TValue>(
   if (!snapshot.exists()) {
     throw new PlanActionValidationError(code, message);
   }
+
   return fromJsonSafeValue<TValue>({
     ...snapshot.data(),
     id: snapshot.id,
@@ -116,10 +115,12 @@ const actionStateFromSnapshot = (
   sourceVersionId: string
 ): PlanActionState | null => {
   if (!snapshot.exists()) return null;
+
   const state = fromJsonSafeValue<PlanActionState>({
     ...snapshot.data(),
     id: snapshot.id,
   });
+
   if (
     state.userId !== userId ||
     state.planId !== planId ||
@@ -130,24 +131,11 @@ const actionStateFromSnapshot = (
       'The Plan action state does not match the signed-in account.'
     );
   }
+
   return state.sourceVersionId === sourceVersionId
     ? state
     : null;
 };
-
-const evidenceRevisionFor = (
-  plan: FinancialPlan,
-  data: AppData
-): string =>
-  buildPlanEvidenceSnapshot({
-    user: data.user,
-    horizon: planEvidenceHorizonForSavedPlan(plan),
-    transactions: data.transactions,
-    categories: data.categories,
-    budgets: data.budgets,
-    savingsGoals: data.savingsGoals,
-    recurringExpenses: data.recurringExpenses,
-  }).baselineRevision;
 
 const requirePreviewMatch = (
   preview: PlanActionPreview,
@@ -159,6 +147,7 @@ const requirePreviewMatch = (
       preview.failureMessage || 'The Plan action is blocked.'
     );
   }
+
   if (
     preview.previewRevision !== input.confirmedPreviewRevision ||
     preview.previewFingerprint !== input.confirmedPreviewFingerprint ||
@@ -188,6 +177,7 @@ const assertBudgetMatchesPreview = (
             preview.currency
           )
         : null;
+
   if (currentValueMinor !== preview.currentValueMinor) {
     throw new PlanActionValidationError(
       'current_value_changed',
@@ -211,49 +201,6 @@ const assertGoalMatchesPreview = (
   }
 };
 
-const sameCategoryBudgets = (
-  left: Record<string, number>,
-  right: Record<string, number>
-): boolean => {
-  const keys = [...new Set([...Object.keys(left), ...Object.keys(right)])];
-  return keys.every((key) => left[key] === right[key]);
-};
-
-const budgetMirrorsMatch = (
-  entity: Budget,
-  legacy: Budget
-): boolean =>
-  entity.id === legacy.id &&
-  entity.userId === legacy.userId &&
-  entity.month === legacy.month &&
-  entity.totalBudget === legacy.totalBudget &&
-  entity.createdAt === legacy.createdAt &&
-  sameCategoryBudgets(entity.categoryBudgets, legacy.categoryBudgets);
-
-const savingsMirrorsMatch = (
-  entity: SavingsGoal,
-  legacy: SavingsGoal
-): boolean =>
-  entity.id === legacy.id &&
-  entity.userId === legacy.userId &&
-  entity.name === legacy.name &&
-  entity.targetAmount === legacy.targetAmount &&
-  entity.currentAmount === legacy.currentAmount &&
-  entity.targetDate === legacy.targetDate &&
-  entity.createdAt === legacy.createdAt;
-
-const categoryMirrorsMatch = (
-  entity: Category,
-  legacy: Category
-): boolean =>
-  entity.id === legacy.id &&
-  entity.name === legacy.name &&
-  entity.type === legacy.type &&
-  entity.color === legacy.color &&
-  entity.icon === legacy.icon &&
-  entity.monthlyBudget === legacy.monthlyBudget &&
-  entity.isDefault === legacy.isDefault;
-
 const resultFromDocument = (
   id: string,
   value: DocumentData
@@ -265,6 +212,7 @@ const resultFromDocument = (
     typeof appliedAtValue === 'string'
       ? appliedAtValue
       : appliedAtValue?.toDate?.().toISOString() || '';
+
   return fromJsonSafeValue<PlanActionResult>({
     ...value,
     id,
@@ -275,9 +223,8 @@ const resultFromDocument = (
 const resultFor = (
   input: ApplyPlanActionInput,
   preview: PlanActionPreview,
-  postEvidenceRevision: string,
-  financeDocumentId: string,
-  legacyEntityIndex: number
+  workspaceRevision: number,
+  financeDocumentId: string
 ): PlanActionResult => ({
   schemaVersion: 1,
   id: input.applicationId,
@@ -286,14 +233,14 @@ const resultFor = (
   sourceVersionId: input.sourceVersionId,
   proposalId: input.proposalId,
   previewFingerprint: input.confirmedPreviewFingerprint,
-  selectionDigest:
-    planActionSelectionDigest(input.selection),
+  selectionDigest: planActionSelectionDigest(input.selection),
   actionType: preview.actionType,
   targetKind: preview.targetKind,
   targetId: preview.targetId,
   financeDocumentId,
   targetMonth: preview.targetMonth,
-  legacyEntityIndex,
+  workspaceRevision,
+  postWorkspaceRevision: workspaceRevision + 1,
   status: 'success',
   failureCode: null,
   retryable: false,
@@ -317,7 +264,8 @@ const resultFor = (
     preview.currency
   ),
   confirmedEvidenceRevision: input.confirmedEvidenceRevision,
-  postEvidenceRevision,
+  postEvidenceRevision:
+    workspaceRevisionToken(workspaceRevision + 1),
   previewRevision: input.confirmedPreviewRevision,
   appliedAt: input.occurredAt,
 });
@@ -337,8 +285,7 @@ const isExactSuccessfulDuplicate = (
   existing.previewRevision === input.confirmedPreviewRevision &&
   existing.confirmedEvidenceRevision === input.confirmedEvidenceRevision &&
   existing.actionType === input.selection.actionType &&
-  existing.selectionDigest ===
-    planActionSelectionDigest(input.selection);
+  existing.selectionDigest === planActionSelectionDigest(input.selection);
 
 const isExactOutcomeDuplicate = (
   existing: PlanActionResult,
@@ -350,8 +297,7 @@ const isExactOutcomeDuplicate = (
   existing.proposalId === input.proposalId &&
   existing.status === input.status &&
   existing.actionType === input.selection.actionType &&
-  existing.selectionDigest ===
-    planActionSelectionDigest(input.selection);
+  existing.selectionDigest === planActionSelectionDigest(input.selection);
 
 export const applyPlanAction = async (
   input: ApplyPlanActionInput
@@ -364,6 +310,7 @@ export const applyPlanAction = async (
   requireId(input.confirmedPreviewRevision, 'Preview revision');
   requireId(input.confirmedPreviewFingerprint, 'Preview fingerprint');
   requireId(input.confirmedEvidenceRevision, 'Evidence revision');
+
   if (input.confirmed !== true) {
     throw new PlanActionValidationError(
       'confirmation_required',
@@ -371,6 +318,9 @@ export const applyPlanAction = async (
     );
   }
 
+  const reviewedWorkspace = await ensureRemoteFinanceWorkspace(
+    input.userId
+  );
   const transactionResult = await runTransaction(
     requireFirestore(),
     async (transaction) => {
@@ -389,19 +339,22 @@ export const applyPlanAction = async (
         input.userId,
         input.planId
       );
-      const appDataRef = getLegacyAppDataRef(input.userId);
+      const workspaceMetaRef = getUserSingletonDocumentRef(
+        input.userId,
+        'workspaceMeta'
+      );
       const [
         planSnapshot,
         versionSnapshot,
         resultSnapshot,
         stateSnapshot,
-        appDataSnapshot,
+        workspaceMetaSnapshot,
       ] = await Promise.all([
         transaction.get(planRef),
         transaction.get(versionRef),
         transaction.get(resultRef),
         transaction.get(stateRef),
-        transaction.get(appDataRef),
+        transaction.get(workspaceMetaRef),
       ]);
 
       if (resultSnapshot.exists()) {
@@ -409,9 +362,11 @@ export const applyPlanAction = async (
           resultSnapshot.id,
           resultSnapshot.data()
         );
+
         if (isExactSuccessfulDuplicate(existing, input)) {
           return existing;
         }
+
         throw new PlanActionValidationError(
           'idempotency_conflict',
           'This application id is already bound to a different action or outcome.'
@@ -428,10 +383,10 @@ export const applyPlanAction = async (
         'invalid_request',
         'The source Plan version no longer exists.'
       );
-      const data = requireDocument<AppData>(
-        appDataSnapshot,
+      const workspaceMeta = requireDocument<WorkspaceMeta>(
+        workspaceMetaSnapshot,
         'invalid_request',
-        'The account workspace is unavailable.'
+        'Workspace revision metadata is unavailable.'
       );
       const state = actionStateFromSnapshot(
         stateSnapshot,
@@ -442,16 +397,28 @@ export const applyPlanAction = async (
       const proposal = version.actionProposals.find(
         (candidate) => candidate.id === input.proposalId
       );
+
       if (!proposal) {
         throw new PlanActionValidationError(
           'invalid_request',
           'The proposal does not exist in the immutable source version.'
         );
       }
+
       if (state?.appliedProposalIds.includes(input.proposalId)) {
         throw new PlanActionValidationError(
           'idempotency_conflict',
           'This proposal already has a successful application.'
+        );
+      }
+
+      if (
+        workspaceMeta.revision !==
+        reviewedWorkspace.workspaceMeta.revision
+      ) {
+        throw new PlanActionValidationError(
+          'stale_evidence',
+          'Financial evidence changed after review. Review the action again.'
         );
       }
 
@@ -460,269 +427,200 @@ export const applyPlanAction = async (
         plan,
         version,
         proposal,
-        data,
+        data: reviewedWorkspace.data,
+        workspaceRevision: workspaceMeta.revision,
         selection: input.selection,
         acceptedEvidenceRevision: state?.acceptedEvidenceRevision,
       });
       requirePreviewMatch(preview, input);
 
-      let nextData: AppData;
-      let financeDocumentId = '';
-      let legacyEntityIndex = -1;
-      const entityWrites: Array<{
-        ref: ReturnType<typeof getUserEntityDocumentRef>;
-        value: Budget | SavingsGoal;
-      }> = [];
+      let targetRef;
+      let categoryRef;
 
       if (
         input.selection.actionType === 'total_budget_update' ||
         input.selection.actionType === 'category_budget_update'
       ) {
-        const budget = data.budgets.find(
+        const budget = reviewedWorkspace.data.budgets.find(
           (candidate) => candidate.month === preview.targetMonth
         );
+
         if (!budget) {
           throw new PlanActionValidationError(
             'target_missing',
             'The target budget no longer exists.'
           );
         }
-        const budgetRef = getUserEntityDocumentRef(
+
+        targetRef = getUserEntityDocumentRef(
           input.userId,
           'budgets',
           budget.id
         );
-        financeDocumentId = budget.id;
-        legacyEntityIndex = data.budgets.findIndex(
-          (candidate) => candidate.id === budget.id
+        categoryRef =
+          input.selection.actionType === 'category_budget_update'
+            ? getUserEntityDocumentRef(
+                input.userId,
+                'categories',
+                input.selection.categoryId
+              )
+            : null;
+      } else {
+        targetRef = getUserEntityDocumentRef(
+          input.userId,
+          'savingsGoals',
+          input.selection.goalId
         );
-        if (legacyEntityIndex < 0) {
-          throw new PlanActionValidationError(
-            'target_missing',
-            'The budget workspace mirror is missing.'
-          );
-        }
-        const budgetSnapshot = await transaction.get(budgetRef);
-        const budgetEntity = requireDocument<Budget>(
-          budgetSnapshot,
+        categoryRef = null;
+      }
+
+      const targetSnapshot = await transaction.get(targetRef);
+      const categorySnapshot = categoryRef
+        ? await transaction.get(categoryRef)
+        : null;
+      let targetValue: Budget | SavingsGoal;
+      let financeDocumentId = targetRef.id;
+
+      if (
+        input.selection.actionType === 'total_budget_update' ||
+        input.selection.actionType === 'category_budget_update'
+      ) {
+        const budget = requireDocument<Budget>(
+          targetSnapshot,
           'target_missing',
           'The target budget entity no longer exists.'
         );
+
         if (
-          budgetEntity.userId !== input.userId ||
-          budget.userId !== input.userId
+          budget.userId !== input.userId ||
+          budget.month !== preview.targetMonth
         ) {
           throw new PlanActionValidationError(
             'target_unauthorized',
-            'The target budget does not belong to the signed-in account.'
+            'The target budget does not belong to this Plan action.'
           );
         }
-        if (!budgetMirrorsMatch(budgetEntity, budget)) {
-          throw new PlanActionValidationError(
-            'current_value_changed',
-            'The budget entity and workspace mirror disagree. Review the budget before applying.'
-          );
-        }
+
         let categoryDefault: number | null = null;
+
         if (input.selection.actionType === 'category_budget_update') {
-          const selectedCategoryId = input.selection.categoryId;
-          const category = data.categories.find(
-            (candidate) => candidate.id === selectedCategoryId
-          );
-          if (!category) {
+          if (!categorySnapshot) {
             throw new PlanActionValidationError(
               'target_missing',
               'The selected category no longer exists.'
             );
           }
-          const categoryRef = getUserEntityDocumentRef(
-            input.userId,
-            'categories',
-            category.id
-          );
-          const categorySnapshot = await transaction.get(categoryRef);
-          const categoryEntity = requireDocument<Category>(
+
+          const category = requireDocument<Category>(
             categorySnapshot,
             'target_missing',
-            'The selected category entity no longer exists.'
+            'The selected category no longer exists.'
           );
-          if (!categoryMirrorsMatch(categoryEntity, category)) {
+
+          if (category.id !== input.selection.categoryId) {
             throw new PlanActionValidationError(
-              'current_value_changed',
-              'The category entity and workspace mirror disagree.'
+              'target_unauthorized',
+              'The selected category does not match this action.'
             );
           }
+
           categoryDefault = category.monthlyBudget;
         }
+
         assertBudgetMatchesPreview(
-          budgetEntity,
+          budget,
           preview,
           input.selection,
           categoryDefault
         );
 
         if (input.selection.actionType === 'total_budget_update') {
-          const nextBudget: Budget = {
-            ...budgetEntity,
+          targetValue = {
+            ...budget,
             totalBudget: fromMinorUnits(
               preview.proposedValueMinor,
               preview.currency
             ),
             updatedAt: input.occurredAt,
           };
-          const nextLegacyBudget: Budget = {
-            ...budget,
-            totalBudget: nextBudget.totalBudget,
-            updatedAt: input.occurredAt,
-          };
-          entityWrites.push({ ref: budgetRef, value: nextBudget });
-          nextData = {
-            ...data,
-            budgets: data.budgets.map((candidate) =>
-              candidate.id === budget.id ? nextLegacyBudget : candidate
-            ),
-          };
         } else {
-          const categoryId = input.selection.categoryId;
-          const nextValue = fromMinorUnits(
-            preview.proposedValueMinor,
-            preview.currency
-          );
-          const nextBudget: Budget = {
-            ...budgetEntity,
-            categoryBudgets: {
-              ...budgetEntity.categoryBudgets,
-              [categoryId]: nextValue,
-            },
-            updatedAt: input.occurredAt,
-          };
-          const nextLegacyBudget: Budget = {
+          targetValue = {
             ...budget,
             categoryBudgets: {
               ...budget.categoryBudgets,
-              [categoryId]: nextValue,
+              [input.selection.categoryId]: fromMinorUnits(
+                preview.proposedValueMinor,
+                preview.currency
+              ),
             },
             updatedAt: input.occurredAt,
           };
-          entityWrites.push({ ref: budgetRef, value: nextBudget });
-          nextData = {
-            ...data,
-            budgets: data.budgets.map((candidate) =>
-              candidate.id === budget.id ? nextLegacyBudget : candidate
-            ),
-          };
         }
-      } else {
-        const selectedGoalId = input.selection.goalId;
-        const goalRef = getUserEntityDocumentRef(
-          input.userId,
-          'savingsGoals',
-          selectedGoalId
-        );
-        financeDocumentId = selectedGoalId;
-        legacyEntityIndex =
-          input.selection.actionType === 'savings_goal_create'
-            ? data.savingsGoals.length
-            : data.savingsGoals.findIndex(
-                (candidate) =>
-                  candidate.id === selectedGoalId
-              );
-        if (legacyEntityIndex < 0) {
+      } else if (input.selection.actionType === 'savings_goal_create') {
+        if (targetSnapshot.exists()) {
           throw new PlanActionValidationError(
-            'target_missing',
-            'The savings workspace mirror is missing.'
+            'current_value_changed',
+            'The savings goal was created before this action completed.'
           );
         }
-        const goalSnapshot = await transaction.get(goalRef);
-        if (input.selection.actionType === 'savings_goal_create') {
-          if (goalSnapshot.exists()) {
-            throw new PlanActionValidationError(
-              'current_value_changed',
-              'The savings goal was created before this action completed.'
-            );
-          }
-          const nextGoal: SavingsGoal = {
-            id: input.selection.goalId,
-            userId: input.userId,
-            name: input.selection.goalName.trim(),
-            targetAmount: fromMinorUnits(
-              input.selection.targetAmountMinor,
-              preview.currency
-            ),
-            currentAmount: fromMinorUnits(
-              preview.proposedValueMinor,
-              preview.currency
-            ),
-            targetDate: input.selection.targetDate,
-            createdAt: input.occurredAt,
-            updatedAt: input.occurredAt,
-          };
-          entityWrites.push({ ref: goalRef, value: nextGoal });
-          nextData = {
-            ...data,
-            savingsGoals: [...data.savingsGoals, nextGoal],
-          };
-        } else {
-          const goal = requireDocument<SavingsGoal>(
-            goalSnapshot,
-            'target_missing',
-            'The target savings goal no longer exists.'
+
+        targetValue = {
+          id: input.selection.goalId,
+          userId: input.userId,
+          name: input.selection.goalName.trim(),
+          targetAmount: fromMinorUnits(
+            input.selection.targetAmountMinor,
+            preview.currency
+          ),
+          currentAmount: fromMinorUnits(
+            preview.proposedValueMinor,
+            preview.currency
+          ),
+          targetDate: input.selection.targetDate,
+          createdAt: input.occurredAt,
+          updatedAt: input.occurredAt,
+        };
+      } else {
+        const goal = requireDocument<SavingsGoal>(
+          targetSnapshot,
+          'target_missing',
+          'The target savings goal no longer exists.'
+        );
+
+        if (goal.userId !== input.userId) {
+          throw new PlanActionValidationError(
+            'target_unauthorized',
+            'The target savings goal does not belong to the signed-in account.'
           );
-          if (goal.userId !== input.userId) {
-            throw new PlanActionValidationError(
-              'target_unauthorized',
-              'The target savings goal does not belong to the signed-in account.'
-            );
-          }
-          const legacyGoal = data.savingsGoals.find(
-            (candidate) => candidate.id === goal.id
-          );
-          if (!legacyGoal || !savingsMirrorsMatch(goal, legacyGoal)) {
-            throw new PlanActionValidationError(
-              'current_value_changed',
-              'The savings entity and workspace mirror disagree. Review the goal before applying.'
-            );
-          }
-          assertGoalMatchesPreview(goal, preview);
-          if (
-            preview.proposedValueMinor >=
-            toMinorUnits(goal.targetAmount, preview.currency)
-          ) {
-            throw new PlanActionValidationError(
-              'amount_out_of_bounds',
-              'The contribution must keep the saved balance below the transaction-read goal target.'
-            );
-          }
-          const nextGoal: SavingsGoal = {
-            ...goal,
-            currentAmount: fromMinorUnits(
-              preview.proposedValueMinor,
-              preview.currency
-            ),
-            updatedAt: input.occurredAt,
-          };
-          const nextLegacyGoal: SavingsGoal = {
-            ...legacyGoal,
-            currentAmount: nextGoal.currentAmount,
-            updatedAt: input.occurredAt,
-          };
-          entityWrites.push({ ref: goalRef, value: nextGoal });
-          nextData = {
-            ...data,
-            savingsGoals: data.savingsGoals.map((candidate) =>
-              candidate.id === goal.id ? nextLegacyGoal : candidate
-            ),
-          };
         }
+
+        assertGoalMatchesPreview(goal, preview);
+
+        if (
+          preview.proposedValueMinor >=
+          toMinorUnits(goal.targetAmount, preview.currency)
+        ) {
+          throw new PlanActionValidationError(
+            'amount_out_of_bounds',
+            'The contribution must keep the saved balance below the transaction-read goal target.'
+          );
+        }
+
+        targetValue = {
+          ...goal,
+          currentAmount: fromMinorUnits(
+            preview.proposedValueMinor,
+            preview.currency
+          ),
+          updatedAt: input.occurredAt,
+        };
       }
 
-      const postEvidenceRevision = evidenceRevisionFor(plan, nextData);
       const result = resultFor(
         input,
         preview,
-        postEvidenceRevision,
-        financeDocumentId,
-        legacyEntityIndex
+        workspaceMeta.revision,
+        financeDocumentId
       );
       const nextState: PlanActionState = {
         schemaVersion: 1,
@@ -730,7 +628,8 @@ export const applyPlanAction = async (
         userId: input.userId,
         planId: input.planId,
         sourceVersionId: input.sourceVersionId,
-        acceptedEvidenceRevision: postEvidenceRevision,
+        acceptedEvidenceRevision:
+          workspaceRevisionToken(workspaceMeta.revision + 1),
         appliedProposalIds: [
           ...(state?.appliedProposalIds || []),
           input.proposalId,
@@ -738,10 +637,15 @@ export const applyPlanAction = async (
         lastApplicationId: input.applicationId,
         updatedAt: input.occurredAt,
       };
-      for (const write of entityWrites) {
-        transaction.set(write.ref, toJsonSafeValue(write.value));
-      }
-      transaction.set(appDataRef, toJsonSafeValue(nextData));
+      const nextMeta: WorkspaceMeta = {
+        schemaVersion: 1,
+        revision: workspaceMeta.revision + 1,
+        lastMutationId: `plan:${input.applicationId}`,
+        updatedAt: input.occurredAt,
+      };
+
+      transaction.set(targetRef, toJsonSafeValue(targetValue));
+      transaction.set(workspaceMetaRef, toJsonSafeValue(nextMeta));
       transaction.set(stateRef, {
         ...toJsonSafeValue(nextState),
         updatedAt: serverTimestamp(),
@@ -750,6 +654,7 @@ export const applyPlanAction = async (
         ...toJsonSafeValue(result),
         appliedAt: serverTimestamp(),
       });
+
       return result;
     }
   );
@@ -760,6 +665,7 @@ export const applyPlanAction = async (
       input.applicationId
     )
   );
+
   return saved.exists()
     ? resultFromDocument(saved.id, saved.data())
     : transactionResult;
@@ -771,9 +677,11 @@ export const listPlanActionResults = async (
 ): Promise<PlanActionResult[]> => {
   requireId(userId, 'User id');
   requireId(planId, 'Plan id');
+
   const snapshot = await getDocs(
     getUserPlanActionResultsCollectionRef(userId, planId)
   );
+
   return snapshot.docs
     .map((documentSnapshot) =>
       resultFromDocument(
@@ -781,7 +689,9 @@ export const listPlanActionResults = async (
         documentSnapshot.data()
       )
     )
-    .sort((left, right) => left.appliedAt.localeCompare(right.appliedAt));
+    .sort((left, right) =>
+      left.appliedAt.localeCompare(right.appliedAt)
+    );
 };
 
 export const getPlanActionState = async (
@@ -790,14 +700,18 @@ export const getPlanActionState = async (
 ): Promise<PlanActionState | null> => {
   requireId(userId, 'User id');
   requireId(planId, 'Plan id');
+
   const snapshot = await getDoc(
     getUserPlanActionStateDocumentRef(userId, planId)
   );
+
   if (!snapshot.exists()) return null;
+
   const value = snapshot.data();
   const updatedAtValue = value.updatedAt as
     | string
     | { toDate?: () => Date };
+
   return fromJsonSafeValue<PlanActionState>({
     ...value,
     id: snapshot.id,
@@ -817,6 +731,9 @@ export const recordPlanActionOutcome = async (
   requireId(input.proposalId, 'Proposal id');
   requireId(input.applicationId, 'Application id');
 
+  const reviewedWorkspace = await ensureRemoteFinanceWorkspace(
+    input.userId
+  );
   const transactionResult = await runTransaction(
     requireFirestore(),
     async (transaction) => {
@@ -835,33 +752,40 @@ export const recordPlanActionOutcome = async (
         input.userId,
         input.planId
       );
-      const appDataRef = getLegacyAppDataRef(input.userId);
+      const workspaceMetaRef = getUserSingletonDocumentRef(
+        input.userId,
+        'workspaceMeta'
+      );
       const [
         planSnapshot,
         versionSnapshot,
         resultSnapshot,
         stateSnapshot,
-        appDataSnapshot,
+        workspaceMetaSnapshot,
       ] = await Promise.all([
         transaction.get(planRef),
         transaction.get(versionRef),
         transaction.get(resultRef),
         transaction.get(stateRef),
-        transaction.get(appDataRef),
+        transaction.get(workspaceMetaRef),
       ]);
+
       if (resultSnapshot.exists()) {
         const existing = resultFromDocument(
           resultSnapshot.id,
           resultSnapshot.data()
         );
+
         if (isExactOutcomeDuplicate(existing, input)) {
           return existing;
         }
+
         throw new PlanActionValidationError(
           'idempotency_conflict',
           'This application id is already bound to a different outcome.'
         );
       }
+
       const plan = requireDocument<FinancialPlan>(
         planSnapshot,
         'invalid_request',
@@ -872,10 +796,10 @@ export const recordPlanActionOutcome = async (
         'invalid_request',
         'The source Plan version no longer exists.'
       );
-      const data = requireDocument<AppData>(
-        appDataSnapshot,
+      const workspaceMeta = requireDocument<WorkspaceMeta>(
+        workspaceMetaSnapshot,
         'invalid_request',
-        'The account workspace is unavailable.'
+        'Workspace revision metadata is unavailable.'
       );
       const state = actionStateFromSnapshot(
         stateSnapshot,
@@ -883,42 +807,66 @@ export const recordPlanActionOutcome = async (
         input.planId,
         input.sourceVersionId
       );
+
+      if (
+        workspaceMeta.revision !==
+        reviewedWorkspace.workspaceMeta.revision
+      ) {
+        throw new PlanActionValidationError(
+          'stale_evidence',
+          'Financial evidence changed before the outcome was recorded.'
+        );
+      }
+
       if (state?.appliedProposalIds.includes(input.proposalId)) {
         throw new PlanActionValidationError(
           'idempotency_conflict',
           'This proposal already has a successful application.'
         );
       }
+
       const proposal = version.actionProposals.find(
         (candidate) => candidate.id === input.proposalId
       );
+
       if (!proposal) {
         throw new PlanActionValidationError(
           'target_unauthorized',
           'The proposal does not belong to the signed-in account.'
         );
       }
+
       const preview = buildPlanActionPreview({
         userId: input.userId,
         plan,
         version,
         proposal,
-        data,
+        data: reviewedWorkspace.data,
+        workspaceRevision: workspaceMeta.revision,
         selection: input.selection,
         acceptedEvidenceRevision: state?.acceptedEvidenceRevision,
       });
+
       if (input.status === 'canceled' && preview.blocked) {
         throw new PlanActionValidationError(
           preview.failureCode || 'invalid_request',
           'A blocked preview cannot be recorded as canceled.'
         );
       }
+
       if (input.status === 'blocked' && !preview.blocked) {
         throw new PlanActionValidationError(
           'invalid_request',
           'A valid preview cannot be recorded as blocked.'
         );
       }
+
+      const financeDocumentId =
+        preview.actionType === 'category_budget_update'
+          ? reviewedWorkspace.data.budgets.find(
+              (budget) => budget.month === preview.targetMonth
+            )?.id || ''
+          : preview.targetId;
       const result: PlanActionResult = {
         schemaVersion: 1,
         id: input.applicationId,
@@ -927,37 +875,14 @@ export const recordPlanActionOutcome = async (
         sourceVersionId: input.sourceVersionId,
         proposalId: input.proposalId,
         previewFingerprint: preview.previewFingerprint,
-        selectionDigest:
-          planActionSelectionDigest(input.selection),
+        selectionDigest: planActionSelectionDigest(input.selection),
         actionType: preview.actionType,
         targetKind: preview.targetKind,
         targetId: preview.targetId,
-        financeDocumentId:
-          preview.actionType === 'category_budget_update'
-            ? data.budgets.find(
-                (budget) => budget.month === preview.targetMonth
-              )?.id || ''
-            : preview.targetId,
+        financeDocumentId,
         targetMonth: preview.targetMonth,
-        legacyEntityIndex:
-          preview.actionType === 'savings_goal_create'
-            ? data.savingsGoals.length
-            : preview.actionType.startsWith('savings_')
-              ? data.savingsGoals.findIndex(
-                  (goal) => goal.id === preview.targetId
-                )
-              : data.budgets.findIndex(
-                  (budget) =>
-                    budget.id ===
-                    (
-                      preview.actionType === 'category_budget_update'
-                        ? data.budgets.find(
-                            (candidate) =>
-                              candidate.month === preview.targetMonth
-                          )?.id
-                        : preview.targetId
-                    )
-                ),
+        workspaceRevision: workspaceMeta.revision,
+        postWorkspaceRevision: workspaceMeta.revision,
         status: input.status,
         failureCode:
           input.status === 'blocked'
@@ -983,11 +908,14 @@ export const recordPlanActionOutcome = async (
           preview.proposedValueMinor,
           preview.currency
         ),
-        confirmedEvidenceRevision: preview.currentEvidenceRevision,
-        postEvidenceRevision: preview.currentEvidenceRevision,
+        confirmedEvidenceRevision:
+          preview.currentEvidenceRevision,
+        postEvidenceRevision:
+          preview.currentEvidenceRevision,
         previewRevision: preview.previewRevision,
         appliedAt: input.occurredAt,
       };
+
       transaction.set(resultRef, {
         ...toJsonSafeValue(result),
         appliedAt: serverTimestamp(),
@@ -1002,6 +930,7 @@ export const recordPlanActionOutcome = async (
       input.applicationId
     )
   );
+
   return saved.exists()
     ? resultFromDocument(saved.id, saved.data())
     : transactionResult;

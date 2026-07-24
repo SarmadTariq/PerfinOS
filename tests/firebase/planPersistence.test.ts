@@ -159,16 +159,101 @@ describe('existing Firebase ownership rules', () => {
         .authenticatedContext('bob')
         .firestore();
 
-    const collections = [
-      'transactions',
-      'categories',
-      'budgets',
-      'savingsGoals',
-      'recurringExpenses',
-      'reports',
-    ];
+    const records: Record<string, Record<string, unknown>> = {
+      transactions: {
+        id: 'record-1',
+        userId: 'alice',
+        type: 'expense',
+        amount: 10,
+        categoryId: 'cat-1',
+        categoryName: 'Food',
+        merchant: 'Test',
+        date: '2026-07-24',
+        notes: '',
+        location: {
+          name: 'Test',
+          formattedAddress: 'Test',
+          latitude: 0,
+          longitude: 0,
+          address: 'Test',
+          source: 'imported',
+        },
+        paymentMethod: 'Test',
+        isRecurring: false,
+        receipts: [],
+        updateCount: 0,
+        createdAt: '2026-07-24T00:00:00.000Z',
+        updatedAt: '2026-07-24T00:00:00.000Z',
+      },
+      categories: {
+        id: 'record-1',
+        name: 'Food',
+        type: 'expense',
+        color: '#000000',
+        icon: 'food',
+        monthlyBudget: 100,
+        isDefault: false,
+      },
+      budgets: {
+        id: 'record-1',
+        userId: 'alice',
+        month: '2026-07',
+        totalBudget: 100,
+        categoryBudgets: {},
+        createdAt: '2026-07-24T00:00:00.000Z',
+        updatedAt: '2026-07-24T00:00:00.000Z',
+      },
+      savingsGoals: {
+        id: 'record-1',
+        userId: 'alice',
+        name: 'Emergency',
+        targetAmount: 100,
+        currentAmount: 10,
+        targetDate: '2027-01-01',
+        createdAt: '2026-07-24T00:00:00.000Z',
+        updatedAt: '2026-07-24T00:00:00.000Z',
+      },
+      recurringExpenses: {
+        id: 'record-1',
+        userId: 'alice',
+        merchant: 'Test',
+        amount: 10,
+        category: 'Food',
+        frequency: 'monthly',
+        nextDate: '2026-08-01',
+        status: 'active',
+      },
+      reports: {
+        id: 'record-1',
+        userId: 'alice',
+        month: '2026-07',
+        totalIncome: 100,
+        totalExpense: 10,
+        topCategory: 'Food',
+        budgetStatus: 'within',
+        savingsProgress: 10,
+        generatedAt: '2026-07-24T00:00:00.000Z',
+      },
+    };
 
-    for (const collectionName of collections) {
+    await testEnvironment.withSecurityRulesDisabled(async (context) => {
+      await Promise.all(
+        Object.entries(records).map(([collectionName, value]) =>
+          setDoc(
+            doc(
+              context.firestore(),
+              'users',
+              'alice',
+              collectionName,
+              'record-1'
+            ),
+            value
+          )
+        )
+      );
+    });
+
+    for (const collectionName of Object.keys(records)) {
       const aliceReference = doc(
         aliceDb,
         'users',
@@ -177,12 +262,7 @@ describe('existing Firebase ownership rules', () => {
         'record-1'
       );
 
-      await assertSucceeds(
-        setDoc(aliceReference, {
-          id: 'record-1',
-          value: collectionName,
-        })
-      );
+      await assertSucceeds(getDoc(aliceReference));
 
       await assertFails(
         getDoc(
@@ -280,7 +360,64 @@ describe('Plan repository persistence', () => {
         'alice',
         plan.id
       )
-    ).resolves.toEqual([version]);
+    ).resolves.toEqual([
+      {
+        ...version,
+        workspaceRevision: 0,
+      },
+    ]);
+  });
+
+  it('captures the current workspace revision in a new immutable version', async () => {
+    await testEnvironment.withSecurityRulesDisabled(
+      async (context) => {
+        await setDoc(
+          doc(
+            context.firestore(),
+            'users',
+            'alice',
+            'private',
+            'workspaceMeta'
+          ),
+          {
+            schemaVersion: 1,
+            revision: 4,
+            lastMutationId:
+              'finance:before-plan',
+            updatedAt:
+              '2026-07-21T12:00:00.000Z',
+          }
+        );
+      }
+    );
+
+    const plan =
+      makePlan('revision-plan');
+    const version = makeVersion(plan);
+
+    const result =
+      await repository.createPlan(
+        'alice',
+        {
+          plan,
+          initialVersion: version,
+        }
+      );
+
+    expect(
+      result.version.workspaceRevision
+    ).toBe(4);
+    await expect(
+      repository.listPlanVersions(
+        'alice',
+        plan.id
+      )
+    ).resolves.toEqual([
+      {
+        ...version,
+        workspaceRevision: 4,
+      },
+    ]);
   });
 
   it('creates sequential immutable versions', async () => {

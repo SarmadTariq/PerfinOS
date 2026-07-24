@@ -31,12 +31,6 @@ export {
 } from './paths';
 
 export {
-  ensureRemoteAppData,
-  saveRemoteAppData,
-  subscribeRemoteAppData,
-} from './legacyAppDataStore';
-
-export {
   FIRESTORE_ROOT_COLLECTIONS,
   LEGACY_APP_DATA_DOCUMENT,
   PLAN_RESERVATIONS_COLLECTION,
@@ -142,15 +136,57 @@ export {
   deleteUserEntity,
   getUserEntity,
   listUserEntities,
-  replaceUserEntityCollection,
+  subscribeUserEntities,
   updateUserEntity,
 } from './entityRepository';
 
 export {
   loadRemoteAppDataEntities,
-  saveRemoteAppDataEntities,
 } from './entityAppDataSync';
 
 export type {
   RemoteEntityCollections,
 } from './entityAppDataSync';
+
+export {
+  getUserSingleton,
+  setUserSingleton,
+  subscribeUserSingleton,
+  updateUserSingleton,
+} from './documentRepository';
+
+export {
+  canonicalFinanceJson,
+  composeFinanceWorkspace,
+  createInitialMigrationState,
+  createInitialWorkspaceMeta,
+  financeWorkspaceChecksum,
+  financeWorkspaceCounts,
+  splitFinanceWorkspace,
+} from './financeWorkspaceContracts';
+
+export type {
+  FinanceWorkspaceDocuments,
+} from './financeWorkspaceContracts';
+
+export {
+  getLegacyAppData,
+  initializeFinanceWorkspace,
+  migrateLegacyAppData,
+  MIGRATION_CHUNK_SIZE,
+} from './migrationRepository';
+
+export {
+  ensureRemoteFinanceWorkspace,
+  importFinanceWorkspace,
+  subscribeRemoteFinanceWorkspace,
+} from './financeWorkspaceRepository';
+
+export type {
+  FinanceWorkspaceSnapshot,
+} from './financeWorkspaceRepository';
+
+export {
+  createFinanceMutationId,
+  persistFinanceWorkspaceMutation,
+} from './financeCommandRepository';

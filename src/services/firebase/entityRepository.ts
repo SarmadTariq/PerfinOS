@@ -2,6 +2,7 @@ import {
   deleteDoc,
   getDoc,
   getDocs,
+  onSnapshot,
   setDoc,
   updateDoc,
   type DocumentData,
@@ -39,13 +40,39 @@ export const listUserEntities = async <TCollection extends UserEntityCollectionK
 ): Promise<UserEntityForCollection<TCollection>[]> => {
   const snapshot = await getDocs(getUserEntityCollectionRef(userId, collectionKey));
 
-  return snapshot.docs.map((documentSnapshot) =>
-    deserializeUserEntity<TCollection>({
-      ...documentSnapshot.data(),
-      id: documentSnapshot.id,
-    })
-  );
+  return snapshot.docs
+    .map((documentSnapshot) =>
+      deserializeUserEntity<TCollection>({
+        ...documentSnapshot.data(),
+        id: documentSnapshot.id,
+      })
+    )
+    .sort((left, right) => left.id.localeCompare(right.id));
 };
+
+export const subscribeUserEntities = <
+  TCollection extends UserEntityCollectionKey,
+>(
+  userId: string,
+  collectionKey: TCollection,
+  onData: (entities: UserEntityForCollection<TCollection>[]) => void,
+  onError: (error: Error) => void
+) =>
+  onSnapshot(
+    getUserEntityCollectionRef(userId, collectionKey),
+    (snapshot) =>
+      onData(
+        snapshot.docs
+          .map((documentSnapshot) =>
+            deserializeUserEntity<TCollection>({
+              ...documentSnapshot.data(),
+              id: documentSnapshot.id,
+            })
+          )
+          .sort((left, right) => left.id.localeCompare(right.id))
+      ),
+    onError
+  );
 
 export const getUserEntity = async <TCollection extends UserEntityCollectionKey>(
   userId: string,
@@ -101,18 +128,4 @@ export const deleteUserEntity = async <TCollection extends MutableUserEntityColl
   }
 
   await deleteDoc(getUserEntityDocumentRef(userId, collectionKey, id));
-};
-
-export const replaceUserEntityCollection = async <TCollection extends MutableUserEntityCollectionKey>(
-  userId: string,
-  collectionKey: TCollection,
-  entities: Array<UserEntityForCollection<TCollection> & EntityWithId>
-): Promise<void> => {
-  const snapshot = await getDocs(getUserEntityCollectionRef(userId, collectionKey));
-
-  await Promise.all(snapshot.docs.map((documentSnapshot) => deleteDoc(documentSnapshot.ref)));
-
-  await Promise.all(
-    entities.map((entity) => createUserEntity(userId, collectionKey, entity))
-  );
 };

@@ -18,6 +18,326 @@ service cloud.firestore {
       ];
     }
 
+    function validProfile(userId) {
+      return request.resource.data.keys().hasOnly([
+          'id',
+          'name',
+          'email',
+          'phone',
+          'createdAt'
+        ])
+        && request.resource.data.id == userId
+        && request.resource.data.name is string
+        && request.resource.data.email is string
+        && request.resource.data.phone is string
+        && request.resource.data.createdAt is string;
+    }
+
+    function validFinancePreferences() {
+      return request.resource.data.keys().hasOnly([
+          'currency',
+          'monthlyIncome',
+          'monthlyBudget',
+          'onboarded',
+          'updatedAt'
+        ])
+        && request.resource.data.currency is string
+        && request.resource.data.monthlyIncome is number
+        && request.resource.data.monthlyIncome >= 0
+        && request.resource.data.monthlyBudget is number
+        && request.resource.data.monthlyBudget >= 0
+        && request.resource.data.onboarded is bool
+        && request.resource.data.updatedAt is string;
+    }
+
+    function validWorkspaceMeta() {
+      return request.resource.data.keys().hasOnly([
+          'schemaVersion',
+          'revision',
+          'lastMutationId',
+          'updatedAt'
+        ])
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.revision is int
+        && request.resource.data.revision >= 0
+        && request.resource.data.lastMutationId is string
+        && request.resource.data.updatedAt is string;
+    }
+
+    function validMigrationState() {
+      return request.resource.data.keys().hasOnly([
+          'schemaVersion',
+          'status',
+          'sourceSchemaVersion',
+          'targetSchemaVersion',
+          'attemptCount',
+          'lastCompletedChunk',
+          'sourceCounts',
+          'targetCounts',
+          'sourceChecksum',
+          'targetChecksum',
+          'fallbackAllowed',
+          'conflicts',
+          'failureCode',
+          'startedAt',
+          'updatedAt',
+          'completedAt'
+        ])
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.status in [
+          'not_started',
+          'preflight',
+          'copying',
+          'verifying',
+          'completed',
+          'failed',
+          'legacy_retired'
+        ]
+        && request.resource.data.sourceSchemaVersion == 1
+        && request.resource.data.targetSchemaVersion == 1
+        && request.resource.data.attemptCount is int
+        && request.resource.data.attemptCount >= 0
+        && request.resource.data.lastCompletedChunk is int
+        && request.resource.data.sourceCounts is map
+        && request.resource.data.targetCounts is map
+        && request.resource.data.fallbackAllowed is bool
+        && request.resource.data.conflicts is list
+        && request.resource.data.updatedAt is string;
+    }
+
+    function migrationAllowsTargetCreateOrUpdate(userId) {
+      let migrationPath = /databases/$(database)/documents/users/$(userId)/private/migration;
+      return (
+          !exists(migrationPath)
+          && existsAfter(migrationPath)
+          && getAfter(migrationPath).data.status == 'completed'
+        )
+        || (
+          exists(migrationPath)
+          && get(migrationPath).data.status in [
+            'preflight',
+            'copying'
+          ]
+          && getAfter(migrationPath).data.status == 'copying'
+        );
+    }
+
+    function validCompletedWorkspaceMutation(userId) {
+      let migrationPath = /databases/$(database)/documents/users/$(userId)/private/migration;
+      let metaPath = /databases/$(database)/documents/users/$(userId)/private/workspaceMeta;
+      return exists(migrationPath)
+        && get(migrationPath).data.status == 'completed'
+        && exists(metaPath)
+        && getAfter(metaPath).data.revision
+          == get(metaPath).data.revision + 1;
+    }
+
+    function validReceipt(userId, transactionId, receipt) {
+      let objectPrefix = 'receipts/' + userId + '/' + transactionId + '/' + receipt.id + '.';
+      return receipt is map
+        && receipt.keys().hasOnly([
+          'id',
+          'objectKey',
+          'fileName',
+          'mimeType',
+          'sizeBytes',
+          'uploadedAt',
+          'status'
+        ])
+        && receipt.id is string
+        && receipt.id.matches('^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$')
+        && receipt.fileName is string
+        && receipt.mimeType in [
+          'image/jpeg',
+          'image/png',
+          'image/heic',
+          'image/heif'
+        ]
+        && receipt.sizeBytes is int
+        && receipt.sizeBytes > 0
+        && receipt.sizeBytes <= 5242880
+        && receipt.uploadedAt is string
+        && receipt.status == 'uploaded'
+        && (
+          (receipt.mimeType == 'image/jpeg' && receipt.objectKey == objectPrefix + 'jpg')
+          || (receipt.mimeType == 'image/png' && receipt.objectKey == objectPrefix + 'png')
+          || (receipt.mimeType == 'image/heic' && receipt.objectKey == objectPrefix + 'heic')
+          || (receipt.mimeType == 'image/heif' && receipt.objectKey == objectPrefix + 'heif')
+        );
+    }
+
+    function validReceiptAt(userId, transactionId, receipts, index) {
+      return receipts.size() <= index
+        || validReceipt(userId, transactionId, receipts[index]);
+    }
+
+    function validTransaction(userId, documentId) {
+      return request.resource.data.keys().hasOnly([
+          'id',
+          'userId',
+          'type',
+          'amount',
+          'categoryId',
+          'categoryName',
+          'merchant',
+          'date',
+          'notes',
+          'location',
+          'paymentMethod',
+          'isRecurring',
+          'receipts',
+          'updateCount',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.id == documentId
+        && request.resource.data.userId == userId
+        && request.resource.data.type in ['income', 'expense']
+        && request.resource.data.amount is number
+        && request.resource.data.amount > 0
+        && request.resource.data.categoryId is string
+        && request.resource.data.categoryName is string
+        && request.resource.data.merchant is string
+        && request.resource.data.date is string
+        && request.resource.data.notes is string
+        && request.resource.data.location is map
+        && request.resource.data.paymentMethod is string
+        && request.resource.data.isRecurring is bool
+        && request.resource.data.receipts is list
+        && request.resource.data.receipts.size() <= 5
+        && validReceiptAt(userId, documentId, request.resource.data.receipts, 0)
+        && validReceiptAt(userId, documentId, request.resource.data.receipts, 1)
+        && validReceiptAt(userId, documentId, request.resource.data.receipts, 2)
+        && validReceiptAt(userId, documentId, request.resource.data.receipts, 3)
+        && validReceiptAt(userId, documentId, request.resource.data.receipts, 4)
+        && request.resource.data.updateCount is int
+        && request.resource.data.updateCount >= 0
+        && request.resource.data.createdAt is string
+        && request.resource.data.updatedAt is string;
+    }
+
+    function validCategory(documentId) {
+      return request.resource.data.keys().hasOnly([
+          'id',
+          'name',
+          'type',
+          'color',
+          'icon',
+          'monthlyBudget',
+          'isDefault',
+          'isArchived',
+          'archivedAt'
+        ])
+        && request.resource.data.id == documentId
+        && request.resource.data.name is string
+        && request.resource.data.type in ['income', 'expense']
+        && request.resource.data.color is string
+        && request.resource.data.icon is string
+        && request.resource.data.monthlyBudget is number
+        && request.resource.data.monthlyBudget >= 0
+        && request.resource.data.isDefault is bool;
+    }
+
+    function validBudget(userId, documentId) {
+      return request.resource.data.keys().hasOnly([
+          'id',
+          'userId',
+          'month',
+          'totalBudget',
+          'categoryBudgets',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.id == documentId
+        && request.resource.data.userId == userId
+        && request.resource.data.month is string
+        && request.resource.data.totalBudget is number
+        && request.resource.data.totalBudget >= 0
+        && request.resource.data.categoryBudgets is map
+        && request.resource.data.createdAt is string
+        && request.resource.data.updatedAt is string;
+    }
+
+    function validSavingsGoal(userId, documentId) {
+      return request.resource.data.keys().hasOnly([
+          'id',
+          'userId',
+          'name',
+          'targetAmount',
+          'currentAmount',
+          'targetDate',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.id == documentId
+        && request.resource.data.userId == userId
+        && request.resource.data.name is string
+        && request.resource.data.targetAmount is number
+        && request.resource.data.targetAmount > 0
+        && request.resource.data.currentAmount is number
+        && request.resource.data.currentAmount >= 0
+        && request.resource.data.currentAmount < request.resource.data.targetAmount
+        && request.resource.data.targetDate is string
+        && request.resource.data.createdAt is string
+        && request.resource.data.updatedAt is string;
+    }
+
+    function validRecurringExpense(userId, documentId) {
+      return request.resource.data.keys().hasOnly([
+          'id',
+          'userId',
+          'merchant',
+          'amount',
+          'category',
+          'frequency',
+          'nextDate',
+          'status'
+        ])
+        && request.resource.data.id == documentId
+        && request.resource.data.userId == userId
+        && request.resource.data.merchant is string
+        && request.resource.data.amount is number
+        && request.resource.data.amount > 0
+        && request.resource.data.category is string
+        && request.resource.data.frequency in [
+          'weekly',
+          'biweekly',
+          'monthly',
+          'quarterly',
+          'annual'
+        ]
+        && request.resource.data.nextDate is string
+        && request.resource.data.status in ['active', 'inactive'];
+    }
+
+    function validReport(userId, documentId) {
+      return request.resource.data.keys().hasOnly([
+          'id',
+          'userId',
+          'month',
+          'totalIncome',
+          'totalExpense',
+          'topCategory',
+          'budgetStatus',
+          'savingsProgress',
+          'generatedAt',
+          'periodStart',
+          'periodEnd',
+          'periodLabel',
+          'source',
+          'coverage'
+        ])
+        && request.resource.data.id == documentId
+        && request.resource.data.userId == userId
+        && request.resource.data.month is string
+        && request.resource.data.totalIncome is number
+        && request.resource.data.totalExpense is number
+        && request.resource.data.topCategory is string
+        && request.resource.data.budgetStatus is string
+        && request.resource.data.savingsProgress is number
+        && request.resource.data.generatedAt is string;
+    }
+
     function hasValidPlanOwnership(userId, planId) {
       return request.resource.data.userId == userId
         && request.resource.data.id == planId;
@@ -91,6 +411,19 @@ service cloud.firestore {
         ]);
     }
 
+    function validWorkspaceActionMutation(userId) {
+      let result = request.resource.data;
+      let metaPath = /databases/$(database)/documents/users/$(userId)/private/workspaceMeta;
+      let beforeMeta = get(metaPath).data;
+      let afterMeta = getAfter(metaPath).data;
+      return beforeMeta.schemaVersion == 1
+        && afterMeta.schemaVersion == 1
+        && result.workspaceRevision == beforeMeta.revision
+        && result.postWorkspaceRevision == afterMeta.revision
+        && afterMeta.revision == beforeMeta.revision + 1
+        && afterMeta.lastMutationId == 'plan:' + result.id;
+    }
+
     function validTotalBudgetSuccess(userId) {
       let result = request.resource.data;
       let binding = actionBinding(
@@ -100,11 +433,8 @@ service cloud.firestore {
         result.proposalId
       );
       let budgetPath = /databases/$(database)/documents/users/$(userId)/budgets/$(result.financeDocumentId);
-      let appDataPath = /databases/$(database)/documents/users/$(userId)/private/appData;
       let beforeBudget = get(budgetPath).data;
       let afterBudget = getAfter(budgetPath).data;
-      let beforeData = get(appDataPath).data;
-      let afterData = getAfter(appDataPath).data;
       return binding.type == 'budget_adjustment'
         && binding.targetEntityId == null
         && binding.proposedAmount == result.proposedValueMajor
@@ -115,17 +445,7 @@ service cloud.firestore {
         && beforeBudget.userId == userId
         && beforeBudget.totalBudget == result.beforeValueMajor
         && afterBudget.totalBudget == result.proposedValueMajor
-        && beforeBudget.totalBudget != afterBudget.totalBudget
-        && result.legacyEntityIndex < beforeData.budgets.size()
-        && result.legacyEntityIndex < afterData.budgets.size()
-        && beforeData.budgets[result.legacyEntityIndex].id
-          == result.financeDocumentId
-        && afterData.budgets[result.legacyEntityIndex].id
-          == result.financeDocumentId
-        && beforeData.budgets[result.legacyEntityIndex].totalBudget
-          == result.beforeValueMajor
-        && afterData.budgets[result.legacyEntityIndex].totalBudget
-          == result.proposedValueMajor;
+        && beforeBudget.totalBudget != afterBudget.totalBudget;
     }
 
     function validCategoryBudgetSuccess(userId) {
@@ -138,12 +458,9 @@ service cloud.firestore {
       );
       let budgetPath = /databases/$(database)/documents/users/$(userId)/budgets/$(result.financeDocumentId);
       let categoryPath = /databases/$(database)/documents/users/$(userId)/categories/$(result.targetId);
-      let appDataPath = /databases/$(database)/documents/users/$(userId)/private/appData;
       let beforeBudget = get(budgetPath).data;
       let afterBudget = getAfter(budgetPath).data;
       let category = get(categoryPath).data;
-      let beforeData = get(appDataPath).data;
-      let afterData = getAfter(appDataPath).data;
       let beforeValue = beforeBudget.categoryBudgets.get(
         result.targetId,
         category.monthlyBudget
@@ -159,19 +476,7 @@ service cloud.firestore {
         && beforeValue == result.beforeValueMajor
         && afterBudget.categoryBudgets[result.targetId]
           == result.proposedValueMajor
-        && beforeValue != afterBudget.categoryBudgets[result.targetId]
-        && result.legacyEntityIndex < beforeData.budgets.size()
-        && result.legacyEntityIndex < afterData.budgets.size()
-        && beforeData.budgets[result.legacyEntityIndex].id
-          == result.financeDocumentId
-        && afterData.budgets[result.legacyEntityIndex].id
-          == result.financeDocumentId
-        && beforeData.budgets[result.legacyEntityIndex].categoryBudgets.get(
-          result.targetId,
-          category.monthlyBudget
-        ) == result.beforeValueMajor
-        && afterData.budgets[result.legacyEntityIndex]
-          .categoryBudgets[result.targetId] == result.proposedValueMajor;
+        && beforeValue != afterBudget.categoryBudgets[result.targetId];
     }
 
     function validSavingsUpdateSuccess(userId) {
@@ -183,11 +488,8 @@ service cloud.firestore {
         result.proposalId
       );
       let goalPath = /databases/$(database)/documents/users/$(userId)/savingsGoals/$(result.financeDocumentId);
-      let appDataPath = /databases/$(database)/documents/users/$(userId)/private/appData;
       let beforeGoal = get(goalPath).data;
       let afterGoal = getAfter(goalPath).data;
-      let beforeData = get(appDataPath).data;
-      let afterData = getAfter(appDataPath).data;
       return binding.type == 'savings_contribution'
         && (
           binding.targetEntityId == null
@@ -200,17 +502,7 @@ service cloud.firestore {
         && beforeGoal.userId == userId
         && beforeGoal.currentAmount == result.beforeValueMajor
         && afterGoal.currentAmount == result.proposedValueMajor
-        && beforeGoal.currentAmount != afterGoal.currentAmount
-        && result.legacyEntityIndex < beforeData.savingsGoals.size()
-        && result.legacyEntityIndex < afterData.savingsGoals.size()
-        && beforeData.savingsGoals[result.legacyEntityIndex].id
-          == result.financeDocumentId
-        && afterData.savingsGoals[result.legacyEntityIndex].id
-          == result.financeDocumentId
-        && beforeData.savingsGoals[result.legacyEntityIndex].currentAmount
-          == result.beforeValueMajor
-        && afterData.savingsGoals[result.legacyEntityIndex].currentAmount
-          == result.proposedValueMajor;
+        && beforeGoal.currentAmount != afterGoal.currentAmount;
     }
 
     function validSavingsCreateSuccess(userId) {
@@ -222,9 +514,6 @@ service cloud.firestore {
         result.proposalId
       );
       let goalPath = /databases/$(database)/documents/users/$(userId)/savingsGoals/$(result.financeDocumentId);
-      let appDataPath = /databases/$(database)/documents/users/$(userId)/private/appData;
-      let beforeData = get(appDataPath).data;
-      let afterData = getAfter(appDataPath).data;
       return binding.type == 'savings_contribution'
         && binding.targetEntityId == null
         && binding.proposedAmount == result.changeValueMajor
@@ -237,38 +526,36 @@ service cloud.firestore {
         && existsAfter(goalPath)
         && getAfter(goalPath).data.userId == userId
         && getAfter(goalPath).data.currentAmount
-          == result.proposedValueMajor
-        && beforeData.savingsGoals.size() == result.legacyEntityIndex
-        && afterData.savingsGoals.size()
-          == result.legacyEntityIndex + 1
-        && afterData.savingsGoals[result.legacyEntityIndex].id
-          == result.financeDocumentId
-        && afterData.savingsGoals[result.legacyEntityIndex].currentAmount
           == result.proposedValueMajor;
     }
 
     function validSuccessfulActionWrite(userId) {
       let result = request.resource.data;
-      return result.beforeValueMajor != null
-        && result.beforeValueMajor + result.changeValueMajor
-          == result.proposedValueMajor
+      return validWorkspaceActionMutation(userId)
         && (
           (
-            result.actionType == 'total_budget_update'
-            && validTotalBudgetSuccess(userId)
+            result.beforeValueMajor != null
+            && result.beforeValueMajor + result.changeValueMajor
+              == result.proposedValueMajor
+            && (
+              (
+                result.actionType == 'total_budget_update'
+                && validTotalBudgetSuccess(userId)
+              )
+              || (
+                result.actionType == 'category_budget_update'
+                && validCategoryBudgetSuccess(userId)
+              )
+              || (
+                result.actionType == 'savings_goal_update'
+                && validSavingsUpdateSuccess(userId)
+              )
+            )
           )
           || (
-            result.actionType == 'category_budget_update'
-            && validCategoryBudgetSuccess(userId)
+            result.actionType == 'savings_goal_create'
+            && validSavingsCreateSuccess(userId)
           )
-          || (
-            result.actionType == 'savings_goal_update'
-            && validSavingsUpdateSuccess(userId)
-          )
-        )
-        || (
-          result.actionType == 'savings_goal_create'
-          && validSavingsCreateSuccess(userId)
         );
     }
 
@@ -276,14 +563,134 @@ service cloud.firestore {
       allow read, create, update: if isOwner(userId);
       allow delete: if false;
 
+      match /profile/main {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && validProfile(userId)
+          && (
+            migrationAllowsTargetCreateOrUpdate(userId)
+            || validCompletedWorkspaceMutation(userId)
+          );
+        allow delete: if false;
+      }
+
+      match /private/appData {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /private/preferences {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && validFinancePreferences()
+          && (
+            migrationAllowsTargetCreateOrUpdate(userId)
+            || validCompletedWorkspaceMutation(userId)
+          );
+        allow delete: if false;
+      }
+
+      match /private/entitlement {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
+
+      match /private/migration {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && validMigrationState();
+        allow delete: if false;
+      }
+
+      match /private/workspaceMeta {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && validWorkspaceMeta()
+          && request.resource.data.revision == 0;
+        allow update: if isOwner(userId)
+          && validWorkspaceMeta()
+          && request.resource.data.revision == resource.data.revision + 1;
+        allow delete: if false;
+      }
+
       match /private/{documentId} {
-        allow read, write: if isOwner(userId)
-          && documentId == 'appData';
+        allow read, write: if false;
+      }
+
+      match /transactions/{documentId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && validTransaction(userId, documentId)
+          && (
+            migrationAllowsTargetCreateOrUpdate(userId)
+            || validCompletedWorkspaceMutation(userId)
+          );
+        allow delete: if isOwner(userId)
+          && validCompletedWorkspaceMutation(userId);
+      }
+
+      match /categories/{documentId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && validCategory(documentId)
+          && (
+            migrationAllowsTargetCreateOrUpdate(userId)
+            || validCompletedWorkspaceMutation(userId)
+          );
+        allow delete: if isOwner(userId)
+          && resource.data.isDefault == false
+          && validCompletedWorkspaceMutation(userId);
+      }
+
+      match /budgets/{documentId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && validBudget(userId, documentId)
+          && (
+            migrationAllowsTargetCreateOrUpdate(userId)
+            || validCompletedWorkspaceMutation(userId)
+          );
+        allow delete: if isOwner(userId)
+          && validCompletedWorkspaceMutation(userId);
+      }
+
+      match /savingsGoals/{documentId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && validSavingsGoal(userId, documentId)
+          && (
+            migrationAllowsTargetCreateOrUpdate(userId)
+            || validCompletedWorkspaceMutation(userId)
+          );
+        allow delete: if isOwner(userId)
+          && validCompletedWorkspaceMutation(userId);
+      }
+
+      match /recurringExpenses/{documentId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && validRecurringExpense(userId, documentId)
+          && (
+            migrationAllowsTargetCreateOrUpdate(userId)
+            || validCompletedWorkspaceMutation(userId)
+          );
+        allow delete: if isOwner(userId)
+          && validCompletedWorkspaceMutation(userId);
+      }
+
+      match /reports/{documentId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && validReport(userId, documentId)
+          && (
+            migrationAllowsTargetCreateOrUpdate(userId)
+            || validCompletedWorkspaceMutation(userId)
+          );
+        allow delete: if isOwner(userId)
+          && validCompletedWorkspaceMutation(userId);
       }
 
       match /{collectionId}/{documentId} {
-        allow read, write: if isOwner(userId)
-          && isStandardEntityCollection(collectionId);
+        allow read, write: if false;
       }
 
       match /plans/{planId} {
@@ -355,7 +762,8 @@ service cloud.firestore {
               'targetId',
               'financeDocumentId',
               'targetMonth',
-              'legacyEntityIndex',
+              'workspaceRevision',
+              'postWorkspaceRevision',
               'status',
               'failureCode',
               'retryable',
@@ -428,7 +836,8 @@ service cloud.firestore {
               'targetId',
               'financeDocumentId',
               'targetMonth',
-              'legacyEntityIndex',
+              'workspaceRevision',
+              'postWorkspaceRevision',
               'status',
               'failureCode',
               'retryable',
@@ -459,8 +868,11 @@ service cloud.firestore {
             && request.resource.data.selectionDigest is string
             && request.resource.data.financeDocumentId is string
             && request.resource.data.financeDocumentId.size() > 0
-            && request.resource.data.legacyEntityIndex is int
-            && request.resource.data.legacyEntityIndex >= 0
+            && request.resource.data.workspaceRevision is int
+            && request.resource.data.workspaceRevision >= 0
+            && request.resource.data.postWorkspaceRevision is int
+            && request.resource.data.postWorkspaceRevision
+              == request.resource.data.workspaceRevision + 1
             && request.resource.data.actionType in [
               'total_budget_update',
               'category_budget_update',

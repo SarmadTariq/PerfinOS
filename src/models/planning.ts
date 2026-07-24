@@ -181,7 +181,10 @@ export interface PlanActionResult {
   targetId: string;
   financeDocumentId: string;
   targetMonth: string | null;
-  legacyEntityIndex: number;
+  /** Legacy compatibility only. New action results do not persist this field. */
+  legacyEntityIndex?: number;
+  workspaceRevision?: number;
+  postWorkspaceRevision?: number;
   status: PlanActionResultStatus;
   failureCode: PlanActionFailureCode;
   retryable: boolean;
@@ -218,6 +221,8 @@ export interface PlanVersion {
   createdAt: string;
   createdBy: PlanSource;
   sourceRevision: string;
+  /** Workspace revision captured when this immutable version was persisted. */
+  workspaceRevision?: number;
   evidenceSummary?: PlanEvidenceSummary | null;
   generation: PlanGenerationProvenance | null;
   summary: string;
