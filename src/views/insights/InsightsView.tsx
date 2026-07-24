@@ -1,393 +1,518 @@
-/**
- * InsightsView — decision center for what matters, why it matters, and the next action.
- */
-import React, { useMemo } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { Button, Card, Text } from '../../components/base';
-import { CategoryBadge, EmptyState, IconButton, ScreenHeader } from '../../components/finance';
+import React, { useMemo } from 'react';
+import {
+  StyleSheet,
+  View,
+} from 'react-native';
+import {
+  Button,
+  Card,
+  Text,
+} from '../../components/base';
+import {
+  EmptyState,
+  ScreenHeader,
+} from '../../components/finance';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';
-import { calculateActivitySummary, useActivityFilters } from '../../context/ActivityFilterContext';
-import { useInsights } from '../../context/FinanceContext';
+import {
+  calculateActivitySummary,
+  useActivityFilters,
+} from '../../context/ActivityFilterContext';
 import { useColors } from '../../context/ThemeContext';
-import { AppData, InsightSeverity, Transaction } from '../../models/finance';
-import { calculateBudgetHealth, filterTransactions, sortTransactions } from '../../repositories/AnalyticsRepository';
-import { ControlSize, Radius, Spacing, Typography } from '../../theme';
-import { formatCurrency, getMonthKey, readableMonth } from '../../utils/format';
+import {
+  buildInsightHierarchy,
+  getInsightCoverageState,
+  type InsightGroup,
+  type InsightHierarchyItem,
+} from '../../insights';
+import type {
+  AppData,
+} from '../../models/finance';
+import {
+  filterTransactions,
+  sortTransactions,
+} from '../../repositories/AnalyticsRepository';
+import {
+  Radius,
+  Spacing,
+} from '../../theme';
+import { formatCurrency } from '../../utils/format';
 
-type DecisionStatus = 'good' | 'watch' | 'action';
-
-type DecisionCard = {
-  title: string;
-  description: string;
-  evidence: string;
-  nextAction: string;
-  actionLabel: string;
-  route: 'Analytics' | 'Reports' | 'PlannerChat' | 'Budgets' | 'RecurringExpenses' | 'Transactions';
-  icon: React.ComponentProps<typeof MaterialIcons>['name'];
-  status: DecisionStatus;
-};
-
-const rangeLabel = (startDate?: string, endDate?: string) => {
-  if (!startDate && !endDate) return 'All available activity';
-  if (startDate && endDate) return `${startDate} to ${endDate}`;
-  if (startDate) return `${startDate} to today`;
-  return `Until ${endDate}`;
-};
-
-const statusMeta = (
-  status: DecisionStatus,
-  colors: ReturnType<typeof useColors>
-): {
-  label: string;
-  color: string;
-  icon: React.ComponentProps<typeof MaterialIcons>['name'];
-} => {
-  if (status === 'action') {
-    return { label: 'Action', color: colors.danger, icon: 'priority-high' };
+const GROUP_META: Record<
+  InsightGroup,
+  {
+    title: string;
+    description: string;
+    icon: React.ComponentProps<
+      typeof MaterialIcons
+    >['name'];
   }
-
-  if (status === 'watch') {
-    return { label: 'Watch', color: colors.warning, icon: 'tips-and-updates' };
-  }
-
-  return { label: 'Stable', color: colors.success, icon: 'check-circle' };
+> = {
+  observation: {
+    title: 'Observations',
+    description:
+      'Descriptive facts from the selected Activity period.',
+    icon: 'visibility',
+  },
+  attention: {
+    title: 'Needs review',
+    description:
+      'Evidence gaps or comparisons worth checking.',
+    icon: 'fact-check',
+  },
+  action: {
+    title: 'Next actions',
+    description:
+      'Supported destinations for an explicit next step.',
+    icon: 'arrow-forward',
+  },
 };
 
-const insightSeverityMeta = (
-  severity: InsightSeverity,
-  colors: ReturnType<typeof useColors>
-): {
-  label: string;
-  color: string;
-  icon: React.ComponentProps<typeof MaterialIcons>['name'];
-} => {
-  if (severity === 'high') {
-    return { label: 'Risk', color: colors.danger, icon: 'priority-high' };
-  }
+const InsightCard = ({
+  item,
+  onOpen,
+}: {
+  item: InsightHierarchyItem;
+  onOpen: () => void;
+}) => {
+  const colors = useColors();
+  const meta = GROUP_META[item.group];
 
-  if (severity === 'medium') {
-    return { label: 'Watch', color: colors.warning, icon: 'tips-and-updates' };
-  }
+  return (
+    <Card style={styles.itemCard}>
+      <View style={styles.itemLayout}>
+        <View
+          style={[
+            styles.itemIcon,
+            {
+              backgroundColor:
+                colors.primarySoft,
+            },
+          ]}
+        >
+          <MaterialIcons
+            name={meta.icon}
+            size={20}
+            color={colors.primary}
+          />
+        </View>
+        <View style={styles.itemContent}>
+          <Text variant="h4">
+            {item.title}
+          </Text>
+          <Text
+            variant="body"
+            color="secondary"
+            style={styles.itemSummary}
+          >
+            {item.summary}
+          </Text>
 
-  return { label: 'Note', color: colors.success, icon: 'check-circle' };
+          <View
+            style={[
+              styles.evidence,
+              {
+                borderColor:
+                  colors.borderLight,
+              },
+            ]}
+          >
+            <Text
+              variant="caption"
+              color="secondary"
+            >
+              DATA USED
+            </Text>
+            <Text
+              variant="bodySmall"
+              style={styles.evidenceCopy}
+            >
+              {item.evidence}
+            </Text>
+            <Text
+              variant="caption"
+              color="secondary"
+              style={styles.evidenceLabel}
+            >
+              PERIOD
+            </Text>
+            <Text
+              variant="bodySmall"
+              style={styles.evidenceCopy}
+            >
+              {item.period}
+            </Text>
+            <Text
+              variant="caption"
+              color="secondary"
+              style={styles.evidenceLabel}
+            >
+              COMPARISON
+            </Text>
+            <Text
+              variant="bodySmall"
+              style={styles.evidenceCopy}
+            >
+              {item.comparison}
+            </Text>
+            <Text
+              variant="caption"
+              color="secondary"
+              style={styles.evidenceLabel}
+            >
+              WHY IT MATTERS
+            </Text>
+            <Text
+              variant="bodySmall"
+              style={styles.evidenceCopy}
+            >
+              {item.whyItMatters}
+            </Text>
+            <Text
+              variant="caption"
+              color="secondary"
+              style={styles.evidenceLabel}
+            >
+              BASIS AND UNCERTAINTY
+            </Text>
+            <Text
+              variant="bodySmall"
+              style={styles.evidenceCopy}
+            >
+              Deterministic calculation.{' '}
+              {item.uncertainty}
+            </Text>
+          </View>
+
+          {item.destination &&
+          item.actionLabel ? (
+            <Button
+              label={item.actionLabel}
+              variant={
+                item.group === 'action'
+                  ? 'primary'
+                  : 'secondary'
+              }
+              onPress={onOpen}
+              style={styles.itemAction}
+            />
+          ) : null}
+        </View>
+      </View>
+    </Card>
+  );
 };
 
-const topVariableCategory = (transactions: Transaction[]) => {
-  const grouped = transactions
-    .filter((transaction) => transaction.type === 'expense' && !transaction.isRecurring)
-    .reduce<Record<string, { label: string; amount: number; count: number }>>((acc, transaction) => {
-      const key = transaction.categoryName || transaction.categoryId;
-      acc[key] = acc[key] || { label: key, amount: 0, count: 0 };
-      acc[key].amount += transaction.amount;
-      acc[key].count += 1;
-      return acc;
-    }, {});
+const InsightSection = ({
+  group,
+  items,
+  onOpen,
+}: {
+  group: InsightGroup;
+  items: InsightHierarchyItem[];
+  onOpen: (
+    item: InsightHierarchyItem
+  ) => void;
+}) => {
+  if (items.length === 0) return null;
+  const meta = GROUP_META[group];
 
-  return Object.values(grouped).sort((a, b) => b.amount - a.amount)[0];
+  return (
+    <View style={styles.section}>
+      <Text variant="h3">{meta.title}</Text>
+      <Text
+        variant="bodySmall"
+        color="secondary"
+        style={styles.sectionCopy}
+      >
+        {meta.description}
+      </Text>
+      <View style={styles.itemList}>
+        {items.map((item) => (
+          <InsightCard
+            key={item.id}
+            item={item}
+            onOpen={() => onOpen(item)}
+          />
+        ))}
+      </View>
+    </View>
+  );
 };
 
-const buildDecisions = (
-  data: AppData,
-  transactions: Transaction[],
-  currency: string,
-  periodLabel: string
-): DecisionCard[] => {
-  const summary = calculateActivitySummary(transactions);
-  const monthKey = transactions[0]?.date?.slice(0, 7) || getMonthKey();
-  const budget = data.budgets.find((item) => item.month === monthKey);
-  const budgetHealth = calculateBudgetHealth(transactions, budget, data.categories, monthKey);
-  const activeRecurring = data.recurringExpenses.filter((item) => item.status === 'active');
-  const recurringSpend = transactions
-    .filter((transaction) => transaction.type === 'expense' && transaction.isRecurring)
-    .reduce((sum, transaction) => sum + transaction.amount, 0);
-  const recurringShare = summary.expenses > 0 ? Math.round((recurringSpend / summary.expenses) * 100) : 0;
-  const variableLeader = topVariableCategory(transactions);
-
-  return [
-    {
-      title: 'Budget pressure',
-      description:
-        budgetHealth.totalBudget > 0
-          ? `${budgetHealth.usedPercent}% of the ${readableMonth(monthKey)} budget is used in this view.`
-          : 'No budget baseline is set for this period yet.',
-      evidence:
-        budgetHealth.totalBudget > 0
-          ? `${formatCurrency(budgetHealth.spent, currency)} spent against ${formatCurrency(budgetHealth.totalBudget, currency)} planned.`
-          : 'A budget gives this signal a target to compare against.',
-      nextAction:
-        budgetHealth.totalBudget === 0
-          ? 'Create a budget baseline before judging spending pressure.'
-          : budgetHealth.usedPercent >= 90
-            ? 'Review categories and reduce the highest flexible spend first.'
-            : 'Keep monitoring the period before making changes.',
-      actionLabel: budgetHealth.totalBudget === 0 ? 'Open Budgets' : 'Open Analytics',
-      route: budgetHealth.totalBudget === 0 ? 'Budgets' : 'Analytics',
-      icon: 'speed',
-      status: budgetHealth.totalBudget === 0 ? 'action' : budgetHealth.usedPercent >= 90 ? 'action' : budgetHealth.usedPercent >= 75 ? 'watch' : 'good',
-    },
-    {
-      title: 'Fixed commitments',
-      description:
-        activeRecurring.length > 0
-          ? `${activeRecurring.length} active recurring item${activeRecurring.length === 1 ? '' : 's'} are tracked.`
-          : 'No active recurring expenses are tracked yet.',
-      evidence:
-        recurringSpend > 0
-          ? `${formatCurrency(recurringSpend, currency)} recurring spend appears in ${periodLabel}.`
-          : 'No recurring transactions appear in this selected activity period.',
-      nextAction:
-        recurringShare >= 35
-          ? 'Audit recurring costs before cutting daily spending.'
-          : 'Keep recurring costs visible while planning the period.',
-      actionLabel: 'Open Recurring',
-      route: 'RecurringExpenses',
-      icon: 'autorenew',
-      status: recurringShare >= 35 ? 'action' : recurringShare >= 20 ? 'watch' : 'good',
-    },
-    {
-      title: 'Variable spending signal',
-      description: variableLeader
-        ? `${variableLeader.label} is the largest flexible category in this period.`
-        : 'No flexible expense category stands out yet.',
-      evidence: variableLeader
-        ? `${formatCurrency(variableLeader.amount, currency)} across ${variableLeader.count} transaction${variableLeader.count === 1 ? '' : 's'}.`
-        : 'Add more transactions to make variable spend signals useful.',
-      nextAction: variableLeader
-        ? 'Use Analytics to compare this category against the rest of the period.'
-        : 'Keep tracking activity before making a spending decision.',
-      actionLabel: 'Open Analytics',
-      route: 'Analytics',
-      icon: 'stacked-bar-chart',
-      status: variableLeader && variableLeader.amount > summary.expenses * 0.4 ? 'watch' : 'good',
-    },
-    {
-      title: 'Planning handoff',
-      description: 'Turn this signal set into a practical next action.',
-      evidence: `${summary.transactionCount} transaction${summary.transactionCount === 1 ? '' : 's'} are included in this context.`,
-      nextAction: 'Use Guided Planning to decide whether the next move is budget, savings, recurring, or reporting.',
-      actionLabel: 'Open Guided Planning',
-      route: 'PlannerChat',
-      icon: 'route',
-      status: 'good',
-    },
-  ];
-};
-
-const InsightsContent = ({ data }: { data: AppData }) => {
+const InsightsContent = ({
+  data,
+}: {
+  data: AppData;
+}) => {
   const navigation = useNavigation<any>();
   const colors = useColors();
-  const insights = useInsights();
-  const { dateRange, frequencyFilter } = useActivityFilters();
-
-  const periodTransactions = useMemo(
+  const {
+    dateRange,
+    frequencyFilter,
+  } = useActivityFilters();
+  const transactions = useMemo(
     () =>
       sortTransactions(
-        filterTransactions(data.transactions, {
-          startDate: dateRange.startDate,
-          endDate: dateRange.endDate,
-          frequency: frequencyFilter,
-        }),
+        filterTransactions(
+          data.transactions,
+          {
+            startDate:
+              dateRange.startDate,
+            endDate: dateRange.endDate,
+            frequency:
+              frequencyFilter,
+          }
+        ),
         'date-desc'
       ),
-    [data.transactions, dateRange.endDate, dateRange.startDate, frequencyFilter]
+    [
+      data.transactions,
+      dateRange.endDate,
+      dateRange.startDate,
+      frequencyFilter,
+    ]
   );
-
-  const summary = useMemo(() => calculateActivitySummary(periodTransactions), [periodTransactions]);
-  const periodLabel = `${dateRange.label} · ${rangeLabel(dateRange.startDate, dateRange.endDate)}`;
-  const decisions = useMemo(
-    () => buildDecisions(data, periodTransactions, data.user.currency, dateRange.label),
-    [data, dateRange.label, periodTransactions]
+  const summary = useMemo(
+    () =>
+      calculateActivitySummary(
+        transactions
+      ),
+    [transactions]
   );
+  const input = useMemo(
+    () => ({
+      data,
+      transactions,
+      period: {
+        label: dateRange.label,
+        startDate:
+          dateRange.startDate,
+        endDate: dateRange.endDate,
+      },
+    }),
+    [
+      data,
+      dateRange.endDate,
+      dateRange.label,
+      dateRange.startDate,
+      transactions,
+    ]
+  );
+  const coverage =
+    getInsightCoverageState(input);
+  const items =
+    buildInsightHierarchy(input);
 
-  const focusDecision = decisions.find((decision) => decision.status === 'action') || decisions.find((decision) => decision.status === 'watch') || decisions[0];
+  const open = (
+    item: InsightHierarchyItem
+  ) => {
+    if (!item.destination) return;
+    if (item.destination === 'Plan') {
+      navigation.navigate('Plan', {
+        insightProposal: {
+          source: 'insights',
+          insightId: item.id,
+          period: input.period,
+          frequency: frequencyFilter,
+          summary: item.summary,
+          evidence: item.evidence,
+          comparison: item.comparison,
+          whyItMatters: item.whyItMatters,
+          intent: 'review_plan_context',
+          persists: false,
+        },
+      });
+      return;
+    }
+    navigation.navigate(item.destination);
+  };
+
+  const groups: InsightGroup[] = [
+    'observation',
+    'attention',
+    'action',
+  ];
+  const frequencyLabel =
+    frequencyFilter === 'all'
+      ? 'All transaction frequencies'
+      : frequencyFilter === 'recurring'
+        ? 'Recurring transactions'
+        : 'One-time transactions';
 
   return (
     <AppScroll>
       <ScreenHeader
         title="Insights"
-        subtitle="What matters, why it matters, and what to do next."
-        action={<IconButton icon="analytics" label="Open analytics" onPress={() => navigation.navigate('Analytics')} />}
+        subtitle="A small set of evidence-bound signals and supported next steps."
       />
 
-      <Card style={styles.heroCard}>
-        <View style={styles.rowBetween}>
-          <View style={styles.heroCopy}>
-            <Text variant="caption" color="secondary" style={styles.overline}>
-              Decision context
+      <View
+        style={[
+          styles.contextBand,
+          {
+            backgroundColor:
+              colors.bgSecondary,
+            borderColor: colors.border,
+          },
+        ]}
+      >
+        <View style={styles.contextHeading}>
+          <View style={styles.contextCopy}>
+            <Text
+              variant="caption"
+              color="secondary"
+            >
+              EVIDENCE PERIOD
             </Text>
-            <Text variant="h3">{dateRange.label}</Text>
-            <Text variant="bodySmall" color="secondary" style={styles.sectionCopy}>
-              {periodLabel}
+            <Text variant="h3">
+              {dateRange.label}
+            </Text>
+            <Text
+              variant="bodySmall"
+              color="secondary"
+            >
+              {dateRange.startDate ||
+                'First tracked date'}{' '}
+              to{' '}
+              {dateRange.endDate ||
+                'latest tracked date'}{' '}
+              · {frequencyLabel}
             </Text>
           </View>
-          <CategoryBadge
-            label={focusDecision.status === 'good' ? 'Stable' : 'Review'}
-            color={focusDecision.status === 'good' ? colors.success : colors.warning}
-            icon="flag"
-            library="mi"
+          <Button
+            label="Adjust in Activity"
+            variant="secondary"
+            onPress={() =>
+              navigation.navigate(
+                'Transactions'
+              )
+            }
           />
         </View>
 
         <View style={styles.summaryGrid}>
           <View style={styles.summaryItem}>
-            <Text variant="caption" color="secondary" style={styles.overline}>
+            <Text
+              variant="caption"
+              color="secondary"
+            >
               Income
             </Text>
-            <Text variant="h4">{formatCurrency(summary.income, data.user.currency)}</Text>
+            <Text variant="h4">
+              {formatCurrency(
+                summary.income,
+                data.user.currency
+              )}
+            </Text>
           </View>
-
           <View style={styles.summaryItem}>
-            <Text variant="caption" color="secondary" style={styles.overline}>
+            <Text
+              variant="caption"
+              color="secondary"
+            >
               Expenses
             </Text>
-            <Text variant="h4">{formatCurrency(summary.expenses, data.user.currency)}</Text>
-          </View>
-
-          <View style={styles.summaryItem}>
-            <Text variant="caption" color="secondary" style={styles.overline}>
-              Net
+            <Text variant="h4">
+              {formatCurrency(
+                summary.expenses,
+                data.user.currency
+              )}
             </Text>
-            <Text variant="h4">{formatCurrency(summary.netCashFlow, data.user.currency)}</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text
+              variant="caption"
+              color="secondary"
+            >
+              Transactions
+            </Text>
+            <Text variant="h4">
+              {summary.transactionCount}
+            </Text>
           </View>
         </View>
-
-        <Text variant="bodySmall" color="secondary" style={styles.sectionCopy}>
-          {summary.transactionCount} transaction{summary.transactionCount === 1 ? '' : 's'} · {summary.recurringCount} recurring · {summary.oneTimeCount} one-time
-        </Text>
-
-        <View style={styles.cardActions}>
-          <Button
-            label={focusDecision.actionLabel}
-            onPress={() => navigation.navigate(focusDecision.route)}
-            style={styles.heroAction}
-          />
-          <Button
-            label="Open reports"
-            onPress={() => navigation.navigate('Reports')}
-            variant="secondary"
-            style={styles.heroAction}
-          />
-        </View>
-      </Card>
-
-      <View style={styles.sectionHeader}>
-        <Text variant="h3">Decision sections</Text>
-        <Text variant="bodySmall" color="secondary" style={styles.sectionCopy}>
-          Each card explains the signal, the evidence, and the next screen to visit.
-        </Text>
       </View>
 
-      <View style={styles.decisionList}>
-        {decisions.map((decision) => {
-          const meta = statusMeta(decision.status, colors);
-
-          return (
-            <Card key={decision.title} style={styles.decisionCard}>
-              <View style={styles.decisionTopRow}>
-                <View style={[styles.decisionIcon, { backgroundColor: `${meta.color}1F` }]}>
-                  <MaterialIcons name={decision.icon} size={18} color={meta.color} />
-                </View>
-
-                <View style={styles.decisionCopy}>
-                  <View style={styles.rowBetween}>
-                    <Text variant="caption" color="secondary" style={styles.overline}>
-                      Signal
-                    </Text>
-                    <CategoryBadge label={meta.label} color={meta.color} icon={meta.icon} library="mi" />
-                  </View>
-
-                  <Text variant="h4" style={styles.decisionTitle}>
-                    {decision.title}
-                  </Text>
-                  <Text variant="body" color="secondary" style={styles.sectionCopy}>
-                    {decision.description}
-                  </Text>
-
-                  <View
-                      style={[
-                        styles.evidenceBox,
-                        { borderColor: colors.borderLight },
-                      ]}
-                    >
-                    <Text variant="caption" color="secondary" style={styles.overline}>
-                      Evidence
-                    </Text>
-                    <Text variant="bodySmall" style={styles.sectionCopy}>
-                      {decision.evidence}
-                    </Text>
-                  </View>
-
-                  <View
-                      style={[
-                        styles.evidenceBox,
-                        { borderColor: colors.borderLight },
-                      ]}
-                    >
-                    <Text variant="caption" color="secondary" style={styles.overline}>
-                      Next action
-                    </Text>
-                    <Text variant="bodySmall" style={styles.sectionCopy}>
-                      {decision.nextAction}
-                    </Text>
-                  </View>
-
-                  <View style={styles.stepAction}>
-                    <Button label={decision.actionLabel} onPress={() => navigation.navigate(decision.route)} variant="secondary" />
-                  </View>
-                </View>
-              </View>
-            </Card>
-          );
-        })}
-      </View>
-
-      <View style={styles.sectionHeader}>
-        <Text variant="h3">Automated signals</Text>
-        <Text variant="bodySmall" color="secondary" style={styles.sectionCopy}>
-          Rule-based signals from current transactions, budget, locations, and recurring expenses.
-        </Text>
-      </View>
-
-      {insights.length === 0 ? (
-        <EmptyState title="No signals yet" message="Add more transactions to generate behavior signals." />
+      {coverage === 'empty' ? (
+        <EmptyState
+          title="No evidence for this period"
+          message="Adjust the Activity period or add tracked transactions before using Insights."
+          actionLabel="Open Activity"
+          onAction={() =>
+            navigation.navigate(
+              'Transactions'
+            )
+          }
+        />
       ) : (
-        <View style={styles.signalList}>
-          {insights.map((insight) => {
-            const severity = insightSeverityMeta(insight.severity, colors);
-
-            return (
-              <TouchableOpacity
-                key={insight.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Open evidence for ${insight.title}`}
-                accessibilityHint="Opens Analytics with supporting evidence"
-                onPress={() => navigation.navigate('Analytics')}
-                activeOpacity={0.82}
-                style={styles.signalAction}
+        <>
+          {coverage === 'partial' ? (
+            <View
+              accessibilityRole="alert"
+              style={[
+                styles.coverageNotice,
+                {
+                  borderColor:
+                    colors.warning,
+                },
+              ]}
+            >
+              <Text variant="h4">
+                Partial category data
+              </Text>
+              <Text
+                variant="bodySmall"
+                color="secondary"
+                style={styles.sectionCopy}
               >
-                <Card style={styles.signalCard}>
-                  <View style={styles.rowBetween}>
-                    <View style={styles.signalCopy}>
-                      <Text variant="h4">{insight.title}</Text>
-                      <Text variant="body" color="secondary" style={styles.signalDescription}>
-                        {insight.description}
-                      </Text>
-                    </View>
+                Some transactions no longer
+                resolve to a category. Totals
+                still use transaction amounts,
+                but category comparisons need
+                review.
+              </Text>
+            </View>
+          ) : coverage ===
+            'historical' ? (
+            <View
+              style={[
+                styles.coverageNotice,
+                {
+                  borderColor:
+                    colors.border,
+                },
+              ]}
+            >
+              <Text variant="h4">
+                Historical period
+              </Text>
+              <Text
+                variant="bodySmall"
+                color="secondary"
+                style={styles.sectionCopy}
+              >
+                These signals describe a
+                completed period and are not a
+                prediction of current activity.
+              </Text>
+            </View>
+          ) : null}
 
-                    <CategoryBadge label={severity.label} color={severity.color} icon={severity.icon} library="mi" />
-                  </View>
-
-                  <Text variant="caption" color="secondary" style={styles.linkCopy}>
-                    Open Analytics for supporting evidence
-                  </Text>
-                </Card>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+          {groups.map((group) => (
+            <InsightSection
+              key={group}
+              group={group}
+              items={items.filter(
+                (item) =>
+                  item.group === group
+              )}
+              onOpen={open}
+            />
+          ))}
+        </>
       )}
     </AppScroll>
   );
@@ -395,110 +520,92 @@ const InsightsContent = ({ data }: { data: AppData }) => {
 
 export const InsightsScreen = () => (
   <RequireData>
-    {(data) => <InsightsContent data={data} />}
+    {(data) => (
+      <InsightsContent data={data} />
+    )}
   </RequireData>
 );
 
 const styles = StyleSheet.create({
-  heroCard: {
-    marginBottom: Spacing.lg,
+  contextBand: {
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    padding: Spacing.lg,
+    marginBottom: Spacing.xl,
   },
-  rowBetween: {
+  contextHeading: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexWrap: 'wrap',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: Spacing.md,
+    gap: Spacing.lg,
   },
-  heroCopy: {
+  contextCopy: {
     flex: 1,
+    minWidth: 240,
     gap: Spacing.xs,
-  },
-  overline: {
-    letterSpacing: 0.1,
-    fontWeight: Typography.label.fontWeight,
-  },
-  sectionHeader: {
-    marginBottom: Spacing.md,
-  },
-  sectionCopy: {
-    marginTop: Spacing.xs,
   },
   summaryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.md,
-    marginTop: Spacing.lg,
+    gap: Spacing.lg,
+    marginTop: Spacing.xl,
   },
   summaryItem: {
+    minWidth: 120,
     flexGrow: 1,
-    flexBasis: 96,
-    minWidth: 96,
     gap: Spacing.xs,
   },
-  cardActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
-    marginTop: Spacing.lg,
-  },
-  heroAction: {
-    flexGrow: 1,
-    flexBasis: 156,
-  },
-  decisionList: {
-    gap: Spacing.md,
+  coverageNotice: {
+    borderWidth: 1,
+    borderRadius: Radius.sm,
+    padding: Spacing.lg,
     marginBottom: Spacing.xl,
   },
-  decisionCard: {
-    paddingVertical: Spacing.md,
+  section: {
+    marginBottom: Spacing.xl,
   },
-  decisionTopRow: {
+  sectionCopy: {
+    marginTop: Spacing.xs,
+  },
+  itemList: {
+    gap: Spacing.md,
+    marginTop: Spacing.md,
+  },
+  itemCard: {
+    paddingVertical: Spacing.lg,
+  },
+  itemLayout: {
     flexDirection: 'row',
     gap: Spacing.md,
   },
-  decisionIcon: {
-    width: 32,
-    height: 32,
+  itemIcon: {
+    width: 40,
+    height: 40,
     borderRadius: Radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  decisionCopy: {
-    flex: 1,
-    gap: Spacing.xs,
-  },
-  decisionTitle: {
-    marginTop: Spacing.xs,
-  },
-  evidenceBox: {
-    marginTop: Spacing.md,
-    paddingTop: Spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  stepAction: {
-    alignSelf: 'flex-start',
-    marginTop: Spacing.md,
-  },
-  signalList: {
-    gap: Spacing.md,
-  },
-  signalAction: {
-    minHeight: ControlSize.minimumTouchTarget,
-    borderRadius: Radius.md,
-  },
-  signalCard: {
-    paddingVertical: Spacing.md,
-  },
-  signalCopy: {
+  itemContent: {
     flex: 1,
     minWidth: 0,
-    gap: Spacing.sm,
   },
-  signalDescription: {
-    lineHeight: 22,
+  itemSummary: {
+    marginTop: Spacing.xs,
   },
-  linkCopy: {
+  evidence: {
+    borderTopWidth: 1,
     marginTop: Spacing.md,
-    fontWeight: Typography.label.fontWeight,
+    paddingTop: Spacing.md,
+  },
+  evidenceLabel: {
+    marginTop: Spacing.md,
+  },
+  evidenceCopy: {
+    marginTop: Spacing.xs,
+  },
+  itemAction: {
+    alignSelf: 'flex-start',
+    marginTop: Spacing.lg,
   },
 });
