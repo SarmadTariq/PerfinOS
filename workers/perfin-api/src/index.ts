@@ -24,12 +24,13 @@ import {
 } from './plan/actionHandler';
 
 import {
+  createReceiptGateway,
+} from './receipt/gateway';
+
+import {
   createGeminiPlanProvider,
   createInMemoryPlanCircuitBreaker,
 } from './plan/provider';
-
-const ALLOWED_RECEIPT_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/heif'];
-const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -37,143 +38,14 @@ const json = (body: unknown, status = 200) =>
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Object-Key',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Firebase-AppCheck',
       'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
     },
   }
 );
 
-export async function requireAuth(
-  request: Request,
-  env: Env
-): Promise<string> {
-  const authorization =
-    request.headers.get(
-      'Authorization'
-    );
-
-  if (
-    !authorization?.startsWith(
-      'Bearer '
-    )
-  ) {
-    throw new Response(
-      JSON.stringify({
-        error:
-          'Authentication required',
-      }),
-      {
-        status: 401,
-      }
-    );
-  }
-
-  const token =
-    authorization
-      .slice(7)
-      .trim();
-
-  if (!token) {
-    throw new Response(
-      JSON.stringify({
-        error:
-          'Authentication required',
-      }),
-      {
-        status: 401,
-      }
-    );
-  }
-
-  try {
-    const verified =
-      await verifyFirebaseIdToken(
-        token,
-        env
-      );
-
-    return verified.uid;
-  } catch {
-    throw new Response(
-      JSON.stringify({
-        error:
-          'Invalid token',
-      }),
-      {
-        status: 401,
-      }
-    );
-  }
-}
-
 const notConfigured = (feature: string) =>{
   return json({ error: `${feature} is not configured`, placeholder: true }, 503);
-};
-
-const handleReceiptUpload = async (request: Request, env: Env): Promise<Response> => {
-
-  const userId = await requireAuth(request, env);
-  if (!env.RECEIPTS) return notConfigured('R2 Receipts');
-
-  const filename = request.headers.get('X-Object-Key');
-  const mimeType = (request.headers.get('Content-Type') || 'image/jpeg').split(';')[0].trim();
-
-  if (!filename) return json({ error: 'X-Object-Key header required' }, 400);
-  if (!ALLOWED_RECEIPT_TYPES.includes(mimeType)) {
-    return json({ error: 'Unsupported MIME type. Use JPG, PNG, HEIC, or HEIF.' }, 415);
-  }
-
-  const objectKey = `${userId}/${filename}`;
-
-  const body = await request.arrayBuffer();
-  if (body.byteLength === 0) return json({ error: 'Empty file body' }, 400);
-  if (body.byteLength > MAX_RECEIPT_BYTES) {
-    return json({ error: 'File exceeds 5 MB limit' }, 413);
-  }
-
-  await env.RECEIPTS.put(objectKey, body, {
-    httpMetadata: { contentType: mimeType },
-  });
-
-  return json({ objectKey, uploadedAt: new Date().toISOString() });
-};
-
-// ── Receipt download: Worker fetches from R2, streams back ─────────────────
-
-const handleReceiptDownload = async (request: Request, env: Env): Promise<Response> => {
-  await requireAuth(request, env);
-  if (!env.RECEIPTS) return notConfigured('R2 Receipts');
-
-  const body = (await request.json()) as { objectKey?: string };
-  const objectKey = body?.objectKey;
-  if (!objectKey) return json({ error: 'objectKey required' }, 400);
-
-  const obj = await env.RECEIPTS.get(objectKey);
-  if (!obj) return json({ error: 'Receipt not found' }, 404);
-
-  return new Response(obj.body, {
-    headers: {
-      'Content-Type': obj.httpMetadata?.contentType || 'image/jpeg',
-      'Cache-Control': 'private, max-age=3600',
-      'Access-Control-Allow-Origin': '*',
-    },
-  });
-};
-
-// ── Receipt delete ─────────────────────────────────────────────────────────
-
-const handleReceiptDelete = async (request: Request, env: Env): Promise<Response> => {
-  const userId = await requireAuth(request, env);
-  if (!env.RECEIPTS) return notConfigured('R2 Receipts');
-
-  // objectKey is everything after /receipts/ in the path
-  const rawKey = new URL(request.url).pathname.replace(/^\/receipts\//, '');
-  const fileName = decodeURIComponent(rawKey);
-  const objectKey = `${userId}/${fileName}`;
-  if (!objectKey) return json({ error: 'objectKey required in path' }, 400);
-
-  await env.RECEIPTS.delete(objectKey);
-  return json({ deleted: true, objectKey });
 };
 
 // ── Google Places proxy ────────────────────────────────────────────────────
@@ -256,6 +128,14 @@ const planGateway =
         ),
   });
 
+const receiptGateway =
+  createReceiptGateway({
+    verifyIdToken:
+      verifyFirebaseIdToken,
+    verifyAppCheckToken:
+      verifyFirebaseAppCheckToken,
+  });
+
 // ── Main router ────────────────────────────────────────────────────────────
 
 export default {
@@ -272,6 +152,16 @@ export default {
 
       if (planResponse) {
         return planResponse;
+      }
+
+      const receiptResponse =
+        await receiptGateway(
+          request,
+          env
+        );
+
+      if (receiptResponse) {
+        return receiptResponse;
       }
 
       if (
@@ -300,15 +190,6 @@ export default {
           },
           410
         );
-      }
-      if (url.pathname === '/receipts/upload' && request.method === 'POST') {
-        return handleReceiptUpload(request, env);
-      }
-      if (url.pathname === '/receipts/download-url' && request.method === 'POST') {
-        return handleReceiptDownload(request, env);
-      }
-      if (url.pathname.startsWith('/receipts/') && request.method === 'DELETE') {
-        return handleReceiptDelete(request, env);
       }
       return json({ error: 'Not found' }, 404);
     } catch (error) {

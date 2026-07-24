@@ -36,6 +36,9 @@ import {
   useColors,
 } from '../../context/ThemeContext';
 import {
+  useFinanceWorkspace,
+} from '../../hooks/useFinanceWorkspace';
+import {
   applyPlanAction,
   getPlanActionState,
   listPlanActionResults,
@@ -119,6 +122,7 @@ export const PlanActionProposalSection = ({
   version,
 }: PlanActionProposalSectionProps) => {
   const colors = useColors();
+  const { workspaceMeta } = useFinanceWorkspace();
   const [results, setResults] = useState<PlanActionResult[]>([]);
   const [actionState, setActionState] = useState<PlanActionState | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -233,6 +237,7 @@ export const PlanActionProposalSection = ({
         version,
         proposal,
         data,
+        workspaceRevision: workspaceMeta?.revision,
         selection,
         acceptedEvidenceRevision:
           actionState?.sourceVersionId === version.id
@@ -289,6 +294,7 @@ export const PlanActionProposalSection = ({
       version,
       proposal: activeProposal,
       data,
+      workspaceRevision: workspaceMeta?.revision,
       selection,
       acceptedEvidenceRevision:
         actionState?.sourceVersionId === version.id

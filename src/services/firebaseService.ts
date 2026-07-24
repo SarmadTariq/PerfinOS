@@ -25,9 +25,11 @@ export {
   subscribeToAuth,
   getLegacyAppDataRef,
   legacyAppDataPath,
-  ensureRemoteAppData,
-  saveRemoteAppData,
-  subscribeRemoteAppData,
+  ensureRemoteFinanceWorkspace,
+  importFinanceWorkspace,
+  subscribeRemoteFinanceWorkspace,
+  createFinanceMutationId,
+  persistFinanceWorkspaceMutation,
   FIRESTORE_ROOT_COLLECTIONS,
   LEGACY_APP_DATA_DOCUMENT,
   USER_ENTITY_COLLECTIONS,
@@ -50,10 +52,8 @@ export {
   deleteUserEntity,
   getUserEntity,
   listUserEntities,
-  replaceUserEntityCollection,
   updateUserEntity,
   loadRemoteAppDataEntities,
-  saveRemoteAppDataEntities,
 } from './firebase';
 
 export type {
@@ -69,4 +69,5 @@ export type {
   UserEntityForCollection,
   UserEntityMap,
   RemoteEntityCollections,
+  FinanceWorkspaceSnapshot,
 } from './firebase';

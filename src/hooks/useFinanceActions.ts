@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { AppData, Budget, Category, RecurringExpense, Report, SavingsGoal, Transaction, User } from '../models/finance';
+import { AppData, Budget, Category, NewTransactionInput, RecurringExpense, Report, SavingsGoal, Transaction, User } from '../models/finance';
 import { detectRecurringExpenses, generateMonthlyReport } from '../services/financeAnalytics';
-import { saveRemoteAppData } from '../services/firebaseService';
+import { importFinanceWorkspace } from '../services/firebaseService';
 import { createEmptyAppData } from '../services/initialData';
 import { getMonthKey } from '../utils/format';
 import {
@@ -22,7 +22,7 @@ export interface FinanceActions {
   logout: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
   completeOnboarding: (updates: Partial<User>) => Promise<void>;
-  addTransaction: (input: Omit<Transaction, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'updateCount'>) => Promise<void>;
+  addTransaction: (input: NewTransactionInput) => Promise<void>;
   updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   addCategory: (input: Omit<Category, 'id' | 'isDefault'>) => Promise<void>;
@@ -88,7 +88,15 @@ const refreshDerivedData = (current: AppData): AppData => {
 };
 
 export const useFinanceActions = (): FinanceActions => {
-  const { data, persist, setData, setError, loadGuestWorkspace, clearWorkspace } = useFinanceWorkspace();
+  const {
+    data,
+    persist,
+    setData,
+    setError,
+    setWorkspaceMeta,
+    loadGuestWorkspace,
+    clearWorkspace,
+  } = useFinanceWorkspace();
   const {
     loginRemote,
     signupRemote,
@@ -107,8 +115,9 @@ export const useFinanceActions = (): FinanceActions => {
 
         if (options.importGuestData && guestSnapshot) {
           const imported = normalizeForUser(guestSnapshot, user.uid, guestSnapshot.user.name, email);
-          await saveRemoteAppData(user.uid, imported);
-          setData(imported);
+          const snapshot = await importFinanceWorkspace(user.uid, imported);
+          setData(snapshot.data);
+          setWorkspaceMeta(snapshot.workspaceMeta);
         }
       },
       signupWithEmail: async (name, email, password, options = {}) => {
@@ -118,8 +127,9 @@ export const useFinanceActions = (): FinanceActions => {
           ? normalizeForUser(guestSnapshot, user.uid, name, email)
           : createEmptyAppData({ userId: user.uid, name, email, isGuest: false });
 
-        setData(base);
-        await saveRemoteAppData(user.uid, base);
+        const snapshot = await importFinanceWorkspace(user.uid, base);
+        setData(snapshot.data);
+        setWorkspaceMeta(snapshot.workspaceMeta);
       },
       forgotPassword: async (email) => {
         await resetRemotePassword(email);
@@ -158,6 +168,20 @@ export const useFinanceActions = (): FinanceActions => {
           if (isCategoryArchived(category)) throw new Error('Archived categories cannot be used for new transactions');
 
           const now = new Date().toISOString();
+          const transactionId =
+            input.id?.trim() ||
+            uid('tx');
+
+          if (
+            current.transactions.some(
+              (transaction) =>
+                transaction.id === transactionId
+            )
+          ) {
+            throw new Error(
+              'A transaction already uses this id'
+            );
+          }
 
           return refreshDerivedData({
             ...current,
@@ -165,7 +189,7 @@ export const useFinanceActions = (): FinanceActions => {
               {
                 ...input,
                 receipts: input.receipts || [],
-                id: uid('tx'),
+                id: transactionId,
                 userId: current.user.id,
                 categoryName: category?.name || input.categoryName,
                 updateCount: 0,
@@ -188,7 +212,14 @@ export const useFinanceActions = (): FinanceActions => {
 
           if (!existing) throw new Error('Transaction not found');
 
-          if (existing.updateCount >= 2) {
+          const receiptSyncOnly =
+            Object.keys(updates).length === 1 &&
+            updates.receipts !== undefined;
+
+          if (
+            !receiptSyncOnly &&
+            existing.updateCount >= 2
+          ) {
             throw new Error('This transaction has already reached the 2 edit limit');
           }
 
@@ -215,7 +246,9 @@ export const useFinanceActions = (): FinanceActions => {
                     receipts: updates.receipts || transaction.receipts || [],
                     // A transaction keeps the name captured when it was categorized.
                     categoryName: categoryChanged ? category?.name || transaction.categoryName : transaction.categoryName,
-                    updateCount: transaction.updateCount + 1,
+                    updateCount:
+                      transaction.updateCount +
+                      (receiptSyncOnly ? 0 : 1),
                     updatedAt: new Date().toISOString(),
                   }
                 : transaction
@@ -453,6 +486,7 @@ export const useFinanceActions = (): FinanceActions => {
       resetRemotePassword,
       setData,
       setError,
+      setWorkspaceMeta,
       signupRemote,
     ]
   );

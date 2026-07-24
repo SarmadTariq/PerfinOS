@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo } from 'react';
-import { AppData, Budget, Category, RecurringExpense, Report, SavingsGoal, Transaction, User } from '../models/finance';
+import { AppData, Budget, Category, NewTransactionInput, RecurringExpense, Report, SavingsGoal, Transaction, User } from '../models/finance';
 import { generateSpendingInsights } from '../services/financeAnalytics';
 import { getMonthKey } from '../utils/format';
 import { useFinanceWorkspace } from '../hooks/useFinanceWorkspace';
@@ -20,7 +20,7 @@ interface FinanceContextValue {
   logout: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
   completeOnboarding: (updates: Partial<User>) => Promise<void>;
-  addTransaction: (input: Omit<Transaction, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'updateCount'>) => Promise<void>;
+  addTransaction: (input: NewTransactionInput) => Promise<void>;
   updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   addCategory: (input: Omit<Category, 'id' | 'isDefault'>) => Promise<void>;

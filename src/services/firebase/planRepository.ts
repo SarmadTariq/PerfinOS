@@ -10,6 +10,9 @@ import type {
 } from '../../models/planning';
 import { db } from './client';
 import {
+  getUserSingletonDocumentRef,
+} from './entityPaths';
+import {
   getUserPlanDocumentRef,
   getUserPlanReservationDocumentRef,
   getUserPlansCollectionRef,
@@ -306,6 +309,11 @@ export const createPlan = async (
     plan.id,
     initialVersion.id
   );
+  const workspaceMetaRef = getUserSingletonDocumentRef(
+    userId,
+    'workspaceMeta'
+  );
+  let savedVersion = initialVersion;
 
   await runTransaction(
     requireFirestore(),
@@ -316,6 +324,9 @@ export const createPlan = async (
 
       const versionSnapshot = await transaction.get(
         versionRef
+      );
+      const workspaceMetaSnapshot = await transaction.get(
+        workspaceMetaRef
       );
 
       if (planSnapshot.exists()) {
@@ -330,6 +341,14 @@ export const createPlan = async (
         );
       }
 
+      savedVersion = {
+        ...initialVersion,
+        workspaceRevision:
+          workspaceMetaSnapshot.exists()
+            ? Number(workspaceMetaSnapshot.data().revision)
+            : 0,
+      };
+
       transaction.set(
         planRef,
         toJsonSafeValue(plan) as DocumentData
@@ -337,14 +356,14 @@ export const createPlan = async (
 
       transaction.set(
         versionRef,
-        toJsonSafeValue(initialVersion) as DocumentData
+        toJsonSafeValue(savedVersion) as DocumentData
       );
     }
   );
 
   return {
     plan,
-    version: initialVersion,
+    version: savedVersion,
   };
 };
 
@@ -372,6 +391,10 @@ export const createPlanVersion = async (
     planId,
     version.id
   );
+  const workspaceMetaRef = getUserSingletonDocumentRef(
+    userId,
+    'workspaceMeta'
+  );
 
   return runTransaction(
     requireFirestore(),
@@ -382,6 +405,9 @@ export const createPlanVersion = async (
 
       const versionSnapshot = await transaction.get(
         versionRef
+      );
+      const workspaceMetaSnapshot = await transaction.get(
+        workspaceMetaRef
       );
 
       if (!planSnapshot.exists()) {
@@ -424,10 +450,17 @@ export const createPlanVersion = async (
         versionCount: expectedVersionNumber,
         updatedAt: version.createdAt,
       };
+      const savedVersion: PlanVersion = {
+        ...version,
+        workspaceRevision:
+          workspaceMetaSnapshot.exists()
+            ? Number(workspaceMetaSnapshot.data().revision)
+            : 0,
+      };
 
       transaction.set(
         versionRef,
-        toJsonSafeValue(version) as DocumentData
+        toJsonSafeValue(savedVersion) as DocumentData
       );
 
       transaction.update(
@@ -444,7 +477,7 @@ export const createPlanVersion = async (
 
       return {
         plan: updatedPlan,
-        version,
+        version: savedVersion,
       };
     }
   );

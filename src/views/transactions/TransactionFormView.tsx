@@ -1,7 +1,7 @@
 /**
  * TransactionFormView - shared add/edit form for transactions.
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Image,
@@ -32,10 +32,19 @@ import { useColors } from '../../context/ThemeContext';
 import { AppData, Category, ReceiptAttachment, Transaction } from '../../models/finance';
 import { BrandColors, Colors, Radius, Spacing, Typography } from '../../theme';
 import { todayIso } from '../../utils/format';
+import { createClientEntityId } from '../../utils/ids';
 import { getTransactionCategoryOptions } from '../../utils/categories';
 import { MAX_RECEIPTS_PER_TRANSACTION, MAX_RECEIPT_BYTES, parseMoney, sanitizeMoneyInput, SUPPORTED_RECEIPT_MIME_TYPES } from '../../utils/validation';
 import { getCurrentLocation, getLocationSuggestions } from '../../services/locationService';
-import { createLocalReceiptAttachment, receiptUploadConfigured, uploadReceiptToWorker } from '../../services/receiptService';
+import {
+  createLocalReceiptAttachment,
+  deleteReceiptFromWorker,
+  receiptUploadConfigured,
+  uploadReceiptToWorker,
+} from '../../services/receiptService';
+import {
+  persistedReceiptAttachments,
+} from '../../services/receiptPersistence';
 import {
   hasPlaceChanged,
   initialPlaceDisclosureOpen,
@@ -570,7 +579,7 @@ const ReceiptsSection = ({
             {receiptsEnabled
               ? receiptBackendReady
                 ? `Attach up to ${MAX_RECEIPTS_PER_TRANSACTION} receipt or payment images.`
-                : 'Receipt backend is not configured yet. Images stay as pending placeholders.'
+                : 'Receipt uploads are unavailable until the secured backend is configured.'
               : 'Receipt uploads require a signed-in account.'}
           </Text>
         </View>
@@ -580,8 +589,8 @@ const ReceiptsSection = ({
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.receiptScroller}>
           {receipts.map((receipt) => (
             <View key={receipt.id} style={[styles.receiptPreview, { borderColor: colors.border, backgroundColor: colors.bgSecondary }]}>
-              {receipt.uri ? (
-                <Image source={{ uri: receipt.uri }} style={styles.receiptImage} />
+              {receipt.localUri ? (
+                <Image source={{ uri: receipt.localUri }} style={styles.receiptImage} />
               ) : (
                 <MaterialIcons name="receipt" size={30} color={colors.primary} />
               )}
@@ -608,10 +617,21 @@ const ReceiptsSection = ({
       ) : null}
 
       <Button
-        label={receiptsEnabled ? 'Add Receipt Images' : 'Login to Add Receipts'}
+        label={
+          !receiptsEnabled
+            ? 'Login to Add Receipts'
+            : receiptBackendReady
+              ? 'Add Receipt Images'
+              : 'Receipt Upload Unavailable'
+        }
         variant="secondary"
         onPress={onPickReceipts}
-        disabled={!receiptsEnabled || receipts.length >= MAX_RECEIPTS_PER_TRANSACTION}
+        disabled={
+          !receiptsEnabled ||
+          !receiptBackendReady ||
+          receipts.length >=
+            MAX_RECEIPTS_PER_TRANSACTION
+        }
         style={{ marginTop: Spacing.md }}
       />
     </Card>
@@ -717,6 +737,13 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
   const { addTransaction, updateTransaction, canUseFeature, isGuest } = useFinance();
 
   const existing = data.transactions.find((item) => item.id === route.params?.transactionId);
+  const transactionIdRef = useRef(
+    existing?.id ||
+    createClientEntityId('tx')
+  );
+  const transactionPersistedRef = useRef(
+    mode === 'edit' && !!existing
+  );
 
   const initialType = existing?.type || 'expense';
   const initialCategories = getVisibleCategories(data.categories, initialType, existing?.categoryId, !!existing);
@@ -988,6 +1015,13 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
       return;
     }
 
+    if (!receiptBackendReady) {
+      setError(
+        'Receipt uploads are unavailable until the secured backend is configured.'
+      );
+      return;
+    }
+
     if (receipts.length >= MAX_RECEIPTS_PER_TRANSACTION) {
       setError(`Attach up to ${MAX_RECEIPTS_PER_TRANSACTION} receipt images per transaction.`);
       return;
@@ -1016,9 +1050,6 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
 
     setReceipts((current) => [...current, ...nextReceipts].slice(0, MAX_RECEIPTS_PER_TRANSACTION));
 
-    if (!receiptBackendReady) {
-      setError('Receipt upload backend is not configured yet. Images are saved as pending placeholders.');
-    }
   };
 
   const removeReceipt = (receiptId: string) => {
@@ -1039,6 +1070,12 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
       const locationPayload =
         toLocationPayload(selectedPlace);
 
+      const transactionId =
+        transactionIdRef.current;
+      const remoteReceipts =
+        persistedReceiptAttachments(
+          receipts
+        );
       const payload = {
         type,
         amount: parsedAmount,
@@ -1050,19 +1087,23 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
         location: locationPayload,
         paymentMethod,
         isRecurring,
-        receipts,
+        receipts: remoteReceipts,
       };
 
-      if (mode === 'edit' && existing) {
-        await updateTransaction(existing.id, payload);
+      if (transactionPersistedRef.current) {
+        await updateTransaction(transactionId, payload);
       } else {
-        await addTransaction(payload);
+        await addTransaction({
+          ...payload,
+          id: transactionId,
+        });
+        transactionPersistedRef.current = true;
       }
 
       const pendingReceipts = receipts.filter(
         (receipt) =>
           receipt.status === 'local' &&
-          receipt.uri
+          receipt.localUri
       );
 
       if (
@@ -1070,22 +1111,78 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
         receiptsEnabled &&
         receiptBackendReady
       ) {
-        Promise.all(
-          pendingReceipts.map(uploadReceiptToWorker)
-        ).then((uploaded) => {
-          const patched = receipts.map(
+        const uploaded = await Promise.all(
+          pendingReceipts.map(
             (receipt) =>
-              uploaded.find(
-                (item) => item.id === receipt.id
-              ) || receipt
+              uploadReceiptToWorker(
+                transactionId,
+                receipt
+              )
+          )
+        );
+        const uploadedRemote =
+          persistedReceiptAttachments(
+            [
+              ...remoteReceipts,
+              ...uploaded,
+            ]
           );
 
-          if (mode === 'edit' && existing) {
-            updateTransaction(existing.id, {
-              receipts: patched,
-            });
+        await updateTransaction(
+          transactionId,
+          {
+            receipts: uploadedRemote,
           }
-        });
+        );
+
+        const failedUploads =
+          uploaded.filter(
+            (receipt) =>
+              receipt.status === 'error'
+          );
+
+        if (failedUploads.length) {
+          setReceipts([
+            ...uploadedRemote,
+            ...failedUploads,
+          ]);
+          throw new Error(
+            failedUploads[0].error ||
+            'A receipt upload failed'
+          );
+        }
+      }
+
+      const removedRemoteReceipts =
+        (existing?.receipts || [])
+          .filter(
+            (receipt) =>
+              receipt.status === 'uploaded' &&
+              !receipts.some(
+                (candidate) =>
+                  candidate.id === receipt.id
+              )
+          );
+      const cleanupResults =
+        await Promise.allSettled(
+          removedRemoteReceipts.map(
+            (receipt) =>
+              deleteReceiptFromWorker(
+                transactionId,
+                receipt
+              )
+          )
+        );
+
+      if (
+        cleanupResults.some(
+          (result) =>
+            result.status === 'rejected'
+        )
+      ) {
+        throw new Error(
+          'The transaction was saved, but one removed receipt still needs storage cleanup'
+        );
       }
 
       if (mode === 'edit' && existing) {

@@ -223,6 +223,7 @@ const version = (
   createdAt: now,
   createdBy: 'ai_assisted',
   sourceRevision: revisionFor(currentPlan, currentData),
+  workspaceRevision: 0,
   evidenceSummary: null,
   generation: null,
   summary: 'Review proposals.',
@@ -285,6 +286,56 @@ const seed = async (proposals: PlanActionProposal[]) => {
         currentData
       ),
       setDoc(
+        doc(firestore, 'users', 'alice', 'profile', 'main'),
+        {
+          id: currentData.user.id,
+          name: currentData.user.name,
+          email: currentData.user.email,
+          phone: currentData.user.phone,
+          createdAt: currentData.user.createdAt,
+        }
+      ),
+      setDoc(
+        doc(firestore, 'users', 'alice', 'private', 'preferences'),
+        {
+          currency: currentData.user.currency,
+          monthlyIncome: currentData.user.monthlyIncome,
+          monthlyBudget: currentData.user.monthlyBudget,
+          onboarded: currentData.onboarded,
+          updatedAt: now,
+        }
+      ),
+      setDoc(
+        doc(firestore, 'users', 'alice', 'private', 'workspaceMeta'),
+        {
+          schemaVersion: 1,
+          revision: 0,
+          lastMutationId: 'migration-bootstrap',
+          updatedAt: now,
+        }
+      ),
+      setDoc(
+        doc(firestore, 'users', 'alice', 'private', 'migration'),
+        {
+          schemaVersion: 1,
+          status: 'completed',
+          sourceSchemaVersion: 1,
+          targetSchemaVersion: 1,
+          attemptCount: 1,
+          lastCompletedChunk: 0,
+          sourceCounts: {},
+          targetCounts: {},
+          sourceChecksum: 'test',
+          targetChecksum: 'test',
+          fallbackAllowed: true,
+          conflicts: [],
+          failureCode: null,
+          startedAt: now,
+          updatedAt: now,
+          completedAt: now,
+        }
+      ),
+      setDoc(
         doc(
           firestore,
           'users',
@@ -345,12 +396,20 @@ const apply = async ({
     'alice',
     currentPlan.id
   );
+  const aliceDb = testEnvironment.authenticatedContext('alice').firestore();
+  const workspaceMetaSnapshot = await getDoc(
+    doc(aliceDb, 'users', 'alice', 'private', 'workspaceMeta')
+  );
+  const workspaceRevision = Number(
+    workspaceMetaSnapshot.data()?.revision
+  );
   const preview = buildPlanActionPreview({
     userId: 'alice',
     plan: currentPlan,
     version: currentVersion,
     proposal: currentProposal,
     data: currentData,
+    workspaceRevision,
     selection,
     acceptedEvidenceRevision:
       state?.sourceVersionId === currentVersion.id
@@ -439,7 +498,7 @@ describe('Plan action transaction', () => {
     expect(
       (appDataSnapshot.data() as AppData).budgets[0]
     ).toMatchObject({
-      totalBudget: 2_250,
+      totalBudget: 2_000,
       categoryBudgets: {
         'cat-food': 500,
         'cat-other': 300,
@@ -511,7 +570,7 @@ describe('Plan action transaction', () => {
     expect((appDataSnapshot.data() as AppData).budgets[0]).toMatchObject({
       totalBudget: 2_000,
       categoryBudgets: {
-        'cat-food': 625,
+        'cat-food': 500,
         'cat-other': 300,
       },
     });
@@ -589,7 +648,8 @@ describe('Plan action transaction', () => {
     });
 
     expect(result).toMatchObject({
-      legacyEntityIndex: 0,
+      workspaceRevision: 0,
+      postWorkspaceRevision: 1,
       beforeValueMajor: 500,
       changeValueMajor: 125,
       proposedValueMajor: 625,
@@ -608,7 +668,6 @@ describe('Plan action transaction', () => {
     expect(
       (appDataSnapshot.data() as AppData).budgets[0].categoryBudgets
     ).toEqual({
-      'cat-food': 625,
       'cat-other': 300,
     });
   });
@@ -631,10 +690,15 @@ describe('Plan action transaction', () => {
     });
 
     const aliceDb = testEnvironment.authenticatedContext('alice').firestore();
-    const afterFirstSnapshot = await getDoc(
-      doc(aliceDb, 'users', 'alice', 'private', 'appData')
+    const afterFirstBudgetSnapshot = await getDoc(
+      doc(aliceDb, 'users', 'alice', 'budgets', 'budget-2026-07')
     );
-    const afterFirst = afterFirstSnapshot.data() as AppData;
+    const afterFirst: AppData = {
+      ...seeded.currentData,
+      budgets: [
+        afterFirstBudgetSnapshot.data() as AppData['budgets'][number],
+      ],
+    };
     await apply({
       currentData: afterFirst,
       currentPlan: seeded.currentPlan,
@@ -658,12 +722,12 @@ describe('Plan action transaction', () => {
         'plan-1-v1'
       )
     );
-    const finalDataSnapshot = await getDoc(
-      doc(aliceDb, 'users', 'alice', 'private', 'appData')
+    const finalBudgetSnapshot = await getDoc(
+      doc(aliceDb, 'users', 'alice', 'budgets', 'budget-2026-07')
     );
     const state = await repository.getPlanActionState('alice', 'plan-1');
     expect(versionSnapshot.data()).toEqual(originalVersion);
-    expect((finalDataSnapshot.data() as AppData).budgets[0]).toMatchObject({
+    expect(finalBudgetSnapshot.data()).toMatchObject({
       totalBudget: 2_250,
       categoryBudgets: {
         'cat-food': 625,
@@ -695,10 +759,15 @@ describe('Plan action transaction', () => {
     });
 
     const aliceDb = testEnvironment.authenticatedContext('alice').firestore();
-    const currentDataSnapshot = await getDoc(
-      doc(aliceDb, 'users', 'alice', 'private', 'appData')
+    const currentBudgetSnapshot = await getDoc(
+      doc(aliceDb, 'users', 'alice', 'budgets', 'budget-2026-07')
     );
-    const currentData = currentDataSnapshot.data() as AppData;
+    const currentData: AppData = {
+      ...seeded.currentData,
+      budgets: [
+        currentBudgetSnapshot.data() as AppData['budgets'][number],
+      ],
+    };
     const nextPlan: FinancialPlan = {
       ...seeded.currentPlan,
       currentVersionId: 'plan-1-v2',
@@ -717,6 +786,7 @@ describe('Plan action transaction', () => {
     nextVersion.id = 'plan-1-v2';
     nextVersion.versionNumber = 2;
     nextVersion.createdAt = '2026-07-23T14:00:00.000Z';
+    nextVersion.workspaceRevision = 1;
 
     await testEnvironment.withSecurityRulesDisabled(async (context) => {
       const firestore = context.firestore();
@@ -769,119 +839,45 @@ describe('Plan action transaction', () => {
     expect(firstVersionSnapshot.data()).toEqual(originalVersion);
   });
 
-  it('blocks divergent unrelated budget and savings mirror fields', async () => {
-    const budgetProposal = proposal();
-    const budgetSeed = await seed([budgetProposal]);
+  it('treats entity documents as authoritative and leaves a divergent legacy blob unchanged', async () => {
+    const currentProposal = proposal();
+    const seeded = await seed([currentProposal]);
+    const divergentLegacy = structuredClone(seeded.currentData);
+    divergentLegacy.budgets[0].totalBudget = 9_999;
+
     await testEnvironment.withSecurityRulesDisabled(async (context) => {
-      await updateDoc(
+      await setDoc(
         doc(
           context.firestore(),
           'users',
           'alice',
-          'budgets',
-          'budget-2026-07'
+          'private',
+          'appData'
         ),
-        { 'categoryBudgets.cat-other': 999 }
+        divergentLegacy
       );
     });
+
     await expect(
       apply({
-        ...budgetSeed,
-        currentProposal: budgetProposal,
+        ...seeded,
+        currentProposal,
         selection: { actionType: 'total_budget_update' },
-        applicationId: 'application-divergent-budget',
+        applicationId: 'application-entity-authority',
       })
-    ).rejects.toThrow('workspace mirror disagree');
+    ).resolves.toMatchObject({
+      beforeValueMajor: 2_000,
+      proposedValueMajor: 2_250,
+    });
 
-    await testEnvironment.clearFirestore();
-    const savingsProposal = proposal({
-      id: 'proposal-divergent-savings',
-      type: 'savings_contribution',
-      proposedAmount: 500,
-    });
-    const savingsSeed = await seed([savingsProposal]);
-    await testEnvironment.withSecurityRulesDisabled(async (context) => {
-      await updateDoc(
-        doc(
-          context.firestore(),
-          'users',
-          'alice',
-          'savingsGoals',
-          'goal-emergency'
-        ),
-        { name: 'Divergent entity name' }
-      );
-    });
-    await expect(
-      apply({
-        ...savingsSeed,
-        currentProposal: savingsProposal,
-        selection: {
-          actionType: 'savings_goal_update',
-          goalId: 'goal-emergency',
-        },
-        applicationId: 'application-divergent-savings',
-      })
-    ).rejects.toThrow('workspace mirror disagree');
-    await expect(
-      repository.listPlanActionResults('alice', 'plan-1')
-    ).resolves.toEqual([]);
-
-    await testEnvironment.clearFirestore();
-    const categoryProposal = proposal({
-      id: 'proposal-divergent-category',
-      targetEntityId: 'cat-food',
-      proposedAmount: 625,
-    });
-    const categorySeed = await seed([categoryProposal]);
-    await testEnvironment.withSecurityRulesDisabled(async (context) => {
-      await updateDoc(
-        doc(
-          context.firestore(),
-          'users',
-          'alice',
-          'categories',
-          'cat-food'
-        ),
-        { monthlyBudget: 525 }
-      );
-    });
-    await expect(
-      apply({
-        ...categorySeed,
-        currentProposal: categoryProposal,
-        selection: {
-          actionType: 'category_budget_update',
-          categoryId: 'cat-food',
-        },
-        applicationId: 'application-divergent-category',
-      })
-    ).rejects.toThrow('category entity and workspace mirror disagree');
-    await expect(
-      repository.listPlanActionResults('alice', 'plan-1')
-    ).resolves.toEqual([]);
-    await testEnvironment.withSecurityRulesDisabled(async (context) => {
-      await deleteDoc(
-        doc(
-          context.firestore(),
-          'users',
-          'alice',
-          'categories',
-          'cat-food'
+    const aliceDb = testEnvironment.authenticatedContext('alice').firestore();
+    expect(
+      (
+        await getDoc(
+          doc(aliceDb, 'users', 'alice', 'private', 'appData')
         )
-      );
-    });
-    await expect(
-      apply({
-        ...categorySeed,
-        currentProposal: categoryProposal,
-        selection: {
-          actionType: 'category_budget_update',
-          categoryId: 'cat-food',
-        },
-        applicationId: 'application-missing-category',
-      })
-    ).rejects.toThrow('category entity no longer exists');
+      ).data()
+    ).toEqual(divergentLegacy);
   });
 
   it('creates and updates savings goals with absolute reviewed values', async () => {
@@ -964,6 +960,7 @@ describe('Plan action transaction', () => {
       version: seeded.currentVersion,
       proposal: currentProposal,
       data: seeded.currentData,
+      workspaceRevision: 0,
       selection,
     });
     const request = {
@@ -1110,7 +1107,7 @@ describe('Plan action transaction', () => {
         selection: { actionType: 'total_budget_update' },
         applicationId: 'application-stale',
       })
-    ).rejects.toThrow('workspace mirror disagree');
+    ).rejects.toThrow('reviewed action changed');
 
     const aliceDb = testEnvironment.authenticatedContext('alice').firestore();
     const appDataSnapshot = await getDoc(
@@ -1278,6 +1275,21 @@ describe('Plan action transaction', () => {
           ),
           changedData.budgets[0]
         ),
+        setDoc(
+          doc(
+            firestore,
+            'users',
+            'alice',
+            'private',
+            'workspaceMeta'
+          ),
+          {
+            schemaVersion: 1,
+            revision: 1,
+            lastMutationId: 'finance:test-stale',
+            updatedAt: '2026-07-23T13:00:00.000Z',
+          }
+        ),
       ]);
     });
     const blocked = await repository.recordPlanActionOutcome({
@@ -1341,7 +1353,8 @@ describe('Plan action transaction', () => {
       targetId: 'budget-2026-07',
       financeDocumentId: 'budget-2026-07',
       targetMonth: '2026-07',
-      legacyEntityIndex: 0,
+      workspaceRevision: 0,
+      postWorkspaceRevision: 1,
       status: 'success',
       failureCode: null,
       retryable: false,
@@ -1371,6 +1384,27 @@ describe('Plan action transaction', () => {
       lastApplicationId: applicationId,
       updatedAt: serverTimestamp(),
     });
+    const writeForgedMeta = (
+      batch: ReturnType<typeof writeBatch>,
+      applicationId: string,
+      lastMutationId = `plan:${applicationId}`
+    ) => {
+      batch.update(
+        doc(
+          aliceDb,
+          'users',
+          'alice',
+          'private',
+          'workspaceMeta'
+        ),
+        {
+          schemaVersion: 1,
+          revision: 1,
+          lastMutationId,
+          updatedAt: now,
+        }
+      );
+    };
 
     const missingWrite = writeBatch(aliceDb);
     missingWrite.set(
@@ -1381,10 +1415,14 @@ describe('Plan action transaction', () => {
       statePath,
       forgedState('forged-missing-write', currentProposal.id)
     );
+    writeForgedMeta(
+      missingWrite,
+      'forged-missing-write'
+    );
     await assertFails(missingWrite.commit());
 
-    const omittedLegacyMirror = writeBatch(aliceDb);
-    omittedLegacyMirror.update(
+    const wrongMutationId = writeBatch(aliceDb);
+    wrongMutationId.update(
       doc(
         aliceDb,
         'users',
@@ -1394,15 +1432,20 @@ describe('Plan action transaction', () => {
       ),
       { totalBudget: 2_250 }
     );
-    omittedLegacyMirror.set(
-      resultPath('forged-omitted-legacy'),
-      forgedResult('forged-omitted-legacy', currentProposal.id)
+    wrongMutationId.set(
+      resultPath('forged-wrong-mutation'),
+      forgedResult('forged-wrong-mutation', currentProposal.id)
     );
-    omittedLegacyMirror.set(
+    wrongMutationId.set(
       statePath,
-      forgedState('forged-omitted-legacy', currentProposal.id)
+      forgedState('forged-wrong-mutation', currentProposal.id)
     );
-    await assertFails(omittedLegacyMirror.commit());
+    writeForgedMeta(
+      wrongMutationId,
+      'forged-wrong-mutation',
+      'finance:forged'
+    );
+    await assertFails(wrongMutationId.commit());
 
     const mismatchedData = structuredClone(seeded.currentData);
     mismatchedData.budgets[0].totalBudget = 2_300;
@@ -1416,10 +1459,6 @@ describe('Plan action transaction', () => {
         'budget-2026-07'
       ),
       mismatchedData.budgets[0]
-    );
-    mismatchedProposal.set(
-      doc(aliceDb, 'users', 'alice', 'private', 'appData'),
-      mismatchedData
     );
     mismatchedProposal.set(
       resultPath('forged-proposal-amount'),
@@ -1437,6 +1476,10 @@ describe('Plan action transaction', () => {
     mismatchedProposal.set(
       statePath,
       forgedState('forged-proposal-amount', currentProposal.id)
+    );
+    writeForgedMeta(
+      mismatchedProposal,
+      'forged-proposal-amount'
     );
     await assertFails(mismatchedProposal.commit());
 
@@ -1458,10 +1501,6 @@ describe('Plan action transaction', () => {
       wrongMonthData.budgets[0]
     );
     wrongMonth.set(
-      doc(aliceDb, 'users', 'alice', 'private', 'appData'),
-      wrongMonthData
-    );
-    wrongMonth.set(
       resultPath('forged-wrong-month'),
       {
         ...forgedResult(
@@ -1474,6 +1513,10 @@ describe('Plan action transaction', () => {
     wrongMonth.set(
       statePath,
       forgedState('forged-wrong-month', currentProposal.id)
+    );
+    writeForgedMeta(
+      wrongMonth,
+      'forged-wrong-month'
     );
     await assertFails(wrongMonth.commit());
 
@@ -1495,6 +1538,10 @@ describe('Plan action transaction', () => {
     unknownProposal.set(
       statePath,
       forgedState('forged-unknown-proposal', 'unknown-proposal')
+    );
+    writeForgedMeta(
+      unknownProposal,
+      'forged-unknown-proposal'
     );
     await assertFails(unknownProposal.commit());
   });
@@ -1528,7 +1575,8 @@ describe('Plan action transaction', () => {
         targetId: 'budget-2026-07',
         financeDocumentId: 'budget-2026-07',
         targetMonth: '2026-07',
-        legacyEntityIndex: 0,
+        workspaceRevision: 0,
+        postWorkspaceRevision: 1,
         status: 'success',
         failureCode: null,
         retryable: false,
@@ -1565,6 +1613,33 @@ describe('Plan action transaction', () => {
         appliedProposalIds: [noOpProposal.id],
         lastApplicationId: 'forged-no-op',
         updatedAt: serverTimestamp(),
+      }
+    );
+    batch.update(
+      doc(
+        aliceDb,
+        'users',
+        'alice',
+        'private',
+        'workspaceMeta'
+      ),
+      {
+        schemaVersion: 1,
+        revision: 1,
+        lastMutationId: 'plan:forged-no-op',
+        updatedAt: now,
+      }
+    );
+    batch.update(
+      doc(
+        aliceDb,
+        'users',
+        'alice',
+        'budgets',
+        'budget-2026-07'
+      ),
+      {
+        totalBudget: 2_000,
       }
     );
 

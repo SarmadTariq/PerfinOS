@@ -3,8 +3,12 @@ import { db } from './client';
 import {
   FIRESTORE_ROOT_COLLECTIONS,
   LEGACY_APP_DATA_DOCUMENT,
+  USER_PROFILE_COLLECTION,
+  USER_PROFILE_DOCUMENT,
   USER_ENTITY_COLLECTIONS,
   USER_PRIVATE_COLLECTION,
+  USER_SINGLETON_DOCUMENTS,
+  type UserSingletonKey,
   type UserEntityCollectionKey,
   type UserEntityCollectionName,
 } from './schema';
@@ -62,3 +66,31 @@ export const getUserEntityDocumentRef = <TCollection extends UserEntityCollectio
     userEntityCollectionName(collectionKey),
     entityId
   );
+
+export const userSingletonDocumentPath = <TSingleton extends UserSingletonKey>(
+  userId: string,
+  singletonKey: TSingleton
+) =>
+  singletonKey === 'profile'
+    ? `${userRootPath(userId)}/${USER_PROFILE_COLLECTION}/${USER_PROFILE_DOCUMENT}`
+    : `${userPrivatePath(userId)}/${USER_SINGLETON_DOCUMENTS[singletonKey]}`;
+
+export const getUserSingletonDocumentRef = <TSingleton extends UserSingletonKey>(
+  userId: string,
+  singletonKey: TSingleton
+): DocumentReference<DocumentData> =>
+  singletonKey === 'profile'
+    ? doc(
+        requireFirestore(),
+        FIRESTORE_ROOT_COLLECTIONS.users,
+        userId,
+        USER_PROFILE_COLLECTION,
+        USER_PROFILE_DOCUMENT
+      )
+    : doc(
+        requireFirestore(),
+        FIRESTORE_ROOT_COLLECTIONS.users,
+        userId,
+        USER_PRIVATE_COLLECTION,
+        USER_SINGLETON_DOCUMENTS[singletonKey]
+      );

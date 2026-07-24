@@ -50,6 +50,7 @@ export interface PlanActionPreviewInput {
   version: PlanVersion;
   proposal: PlanActionProposal;
   data: AppData;
+  workspaceRevision?: number;
   selection: PlanActionSelection;
   acceptedEvidenceRevision?: string | null;
 }
@@ -70,6 +71,7 @@ export interface PlanActionPreview {
   expectedEffect: string;
   reversibility: string;
   sourceEvidenceRevision: string;
+  workspaceRevision: number | null;
   currentEvidenceRevision: string;
   previewRevision: string;
   previewFingerprint: string;
@@ -243,7 +245,11 @@ const ownedGoal = (
   return goal;
 };
 
-const currentEvidenceRevision = (
+export const workspaceRevisionToken = (
+  revision: number
+): string => `workspace-r${revision}`;
+
+const legacyEvidenceRevision = (
   plan: FinancialPlan,
   data: AppData
 ): string =>
@@ -288,6 +294,7 @@ const blockedPreview = (
     expectedEffect: 'No financial data will change while this action is blocked.',
     reversibility: 'Not applicable.',
     sourceEvidenceRevision: input.version.sourceRevision,
+    workspaceRevision: input.workspaceRevision ?? null,
     currentEvidenceRevision: '',
     previewRevision: '',
     previewFingerprint: '',
@@ -359,10 +366,29 @@ export const buildPlanActionPreview = (
       );
     }
 
-    const currentRevision = currentEvidenceRevision(input.plan, input.data);
+    const usesWorkspaceRevision =
+      input.workspaceRevision !== undefined;
+    if (
+      usesWorkspaceRevision &&
+      input.version.workspaceRevision === undefined
+    ) {
+      throw new PlanActionValidationError(
+        'stale_evidence',
+        'This legacy Plan version does not contain workspace revision evidence. Recalculate before applying.'
+      );
+    }
+    const currentRevision = usesWorkspaceRevision
+      ? workspaceRevisionToken(input.workspaceRevision as number)
+      : legacyEvidenceRevision(input.plan, input.data);
     const acceptedRevision =
       input.acceptedEvidenceRevision ||
-      input.version.sourceRevision;
+      (
+        usesWorkspaceRevision
+          ? workspaceRevisionToken(
+              input.version.workspaceRevision as number
+            )
+          : input.version.sourceRevision
+      );
     if (acceptedRevision !== currentRevision) {
       throw new PlanActionValidationError(
         'stale_evidence',
@@ -554,6 +580,7 @@ export const buildPlanActionPreview = (
         changeValueMinor,
         currency,
         sourceEvidenceRevision: input.version.sourceRevision,
+        workspaceRevision: input.workspaceRevision ?? null,
       })
     );
     const previewFingerprint = deterministicHash(
@@ -579,6 +606,7 @@ export const buildPlanActionPreview = (
       expectedEffect,
       reversibility,
       sourceEvidenceRevision: input.version.sourceRevision,
+      workspaceRevision: input.workspaceRevision ?? null,
       currentEvidenceRevision: currentRevision,
       previewRevision,
       previewFingerprint,

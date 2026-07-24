@@ -18,12 +18,78 @@ export interface User {
   createdAt: string;
 }
 
+export interface Profile {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  createdAt: string;
+}
+
+export interface FinancePreferences {
+  currency: string;
+  monthlyIncome: number;
+  monthlyBudget: number;
+  onboarded: boolean;
+  updatedAt: string;
+}
+
+export type PersistedPlanName = Exclude<UserPlanName, 'guest'>;
+
+export interface Entitlement {
+  plan: PersistedPlanName;
+  features: Record<FeatureKey, boolean>;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface UserPlan {
   plan: UserPlanName;
   isGuest: boolean;
   features: Record<FeatureKey, boolean>;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface WorkspaceMeta {
+  schemaVersion: 1;
+  revision: number;
+  lastMutationId: string;
+  updatedAt: string;
+}
+
+export type MigrationStatus =
+  | 'not_started'
+  | 'preflight'
+  | 'copying'
+  | 'verifying'
+  | 'completed'
+  | 'failed'
+  | 'legacy_retired';
+
+export interface MigrationConflict {
+  collection: string;
+  entityId: string;
+  reason: 'existing_document_mismatch';
+}
+
+export interface MigrationState {
+  schemaVersion: 1;
+  status: MigrationStatus;
+  sourceSchemaVersion: number;
+  targetSchemaVersion: number;
+  attemptCount: number;
+  lastCompletedChunk: number;
+  sourceCounts: Record<string, number>;
+  targetCounts: Record<string, number>;
+  sourceChecksum: string | null;
+  targetChecksum: string | null;
+  fallbackAllowed: boolean;
+  conflicts: MigrationConflict[];
+  failureCode: string | null;
+  startedAt: string | null;
+  updatedAt: string;
+  completedAt: string | null;
 }
 
 export interface ExpenseLocation {
@@ -46,7 +112,7 @@ export interface ReceiptAttachment {
   sizeBytes: number;
   uploadedAt: string;
   status: ReceiptStatus;
-  uri?: string;
+  localUri?: string;
   error?: string;
 }
 
@@ -68,6 +134,18 @@ export interface Transaction {
   createdAt: string;
   updatedAt: string;
 }
+
+export type NewTransactionInput =
+  Omit<
+    Transaction,
+    | 'id'
+    | 'userId'
+    | 'createdAt'
+    | 'updatedAt'
+    | 'updateCount'
+  > & {
+    id?: string;
+  };
 
 export interface Category {
   id: string;
@@ -154,7 +232,7 @@ export interface ReportCoverage {
   generatedThrough: string;
 }
 
-export interface AppData {
+export interface FinanceWorkspaceState {
   user: User;
   entitlement: UserPlan;
   transactions: Transaction[];
@@ -165,6 +243,8 @@ export interface AppData {
   reports: Report[];
   onboarded: boolean;
 }
+
+export type AppData = FinanceWorkspaceState;
 
 export interface TransactionFilters {
   query?: string;

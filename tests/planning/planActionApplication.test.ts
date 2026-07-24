@@ -11,6 +11,7 @@ import {
 import {
   buildPlanActionPreview,
   isPlanActionProposalSupported,
+  workspaceRevisionToken,
 } from '../../src/planning/planActionApplication';
 import {
   planEvidenceHorizonForSavedPlan,
@@ -186,6 +187,9 @@ const previewInput = (
       overrides.version ||
       version(currentPlan, currentData),
     proposal: overrides.proposal || proposal(),
+    workspaceRevision: overrides.workspaceRevision,
+    acceptedEvidenceRevision:
+      overrides.acceptedEvidenceRevision,
     selection:
       overrides.selection || {
         actionType: 'total_budget_update' as const,
@@ -567,5 +571,99 @@ describe('Plan action preview', () => {
 
     expect(duplicate.previewFingerprint).toBe(first.previewFingerprint);
     expect(different.previewFingerprint).not.toBe(first.previewFingerprint);
+  });
+
+  it('uses workspace revision as the action concurrency token', () => {
+    const currentPlan = plan();
+    const currentData = data();
+    const currentVersion = version(currentPlan, currentData, {
+      workspaceRevision: 7,
+    });
+    const preview = buildPlanActionPreview(
+      previewInput({
+        plan: currentPlan,
+        data: currentData,
+        version: currentVersion,
+        workspaceRevision: 7,
+      })
+    );
+
+    expect(preview).toMatchObject({
+      blocked: false,
+      workspaceRevision: 7,
+      currentEvidenceRevision: workspaceRevisionToken(7),
+    });
+  });
+
+  it('blocks the same evidence content after the workspace revision changes', () => {
+    const currentPlan = plan();
+    const currentData = data();
+    const currentVersion = version(currentPlan, currentData, {
+      workspaceRevision: 7,
+    });
+
+    expect(
+      buildPlanActionPreview(
+        previewInput({
+          plan: currentPlan,
+          data: currentData,
+          version: currentVersion,
+          workspaceRevision: 8,
+        })
+      )
+    ).toMatchObject({
+      blocked: true,
+      stale: true,
+      failureCode: 'stale_evidence',
+    });
+  });
+
+  it('does not use whole-workspace content equality as the revision token', () => {
+    const currentPlan = plan();
+    const currentData = data({
+      transactions: [
+        {
+          ...data().transactions[0],
+          notes: 'Descriptive evidence changed',
+        },
+      ],
+    });
+    const currentVersion = version(currentPlan, data(), {
+      workspaceRevision: 7,
+    });
+
+    expect(
+      buildPlanActionPreview(
+        previewInput({
+          plan: currentPlan,
+          data: currentData,
+          version: currentVersion,
+          workspaceRevision: 7,
+        })
+      )
+    ).toMatchObject({
+      blocked: false,
+      currentEvidenceRevision: workspaceRevisionToken(7),
+    });
+  });
+
+  it('keeps legacy versions without workspace revision evidence read-only', () => {
+    const currentPlan = plan();
+    const currentData = data();
+    const legacyVersion = version(currentPlan, currentData);
+
+    expect(
+      buildPlanActionPreview(
+        previewInput({
+          plan: currentPlan,
+          data: currentData,
+          version: legacyVersion,
+          workspaceRevision: 0,
+        })
+      )
+    ).toMatchObject({
+      blocked: true,
+      failureCode: 'stale_evidence',
+    });
   });
 });
