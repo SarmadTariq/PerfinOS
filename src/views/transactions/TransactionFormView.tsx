@@ -35,22 +35,17 @@ import { todayIso } from '../../utils/format';
 import { MAX_RECEIPTS_PER_TRANSACTION, MAX_RECEIPT_BYTES, parseMoney, sanitizeMoneyInput, SUPPORTED_RECEIPT_MIME_TYPES } from '../../utils/validation';
 import { getCurrentLocation, getLocationSuggestions } from '../../services/locationService';
 import { createLocalReceiptAttachment, receiptUploadConfigured, uploadReceiptToWorker } from '../../services/receiptService';
+import {
+  hasPlaceChanged,
+  initialPlaceDisclosureOpen,
+  limitPlaceSuggestions,
+  shouldSearchPlaceSuggestions,
+  toLocationPayload,
+  toPlaceSelection,
+} from './transactionPlaceDisclosure';
+import type { PlaceSelection } from './transactionPlaceDisclosure';
 
 type TransactionFormMode = 'add' | 'edit';
-
-type LocationOption = {
-  latitude: number;
-  longitude: number;
-  address: string;
-  neighborhood?: string;
-};
-
-type PlaceOption = LocationOption & {
-  name: string;
-  formattedAddress: string;
-  placeId?: string;
-  placeType?: string;
-};
 
 const PAYMENT_METHOD_OPTIONS = [
   'Debit card',
@@ -140,7 +135,7 @@ const buildPreviewTransaction = ({
   date,
   userId,
 }: {
-  selectedPlace: PlaceOption;
+  selectedPlace: PlaceSelection;
   selectedCategory?: Category;
   type: 'income' | 'expense';
   amount: number;
@@ -165,7 +160,11 @@ const buildPreviewTransaction = ({
     longitude: selectedPlace.longitude,
     address: selectedPlace.formattedAddress || selectedPlace.address,
     neighborhood: selectedPlace.neighborhood || selectedPlace.name,
-    source: selectedPlace.placeId ? 'google_place' : 'current_location',
+    source:
+      selectedPlace.source ||
+      (selectedPlace.placeId
+        ? 'google_place'
+        : 'current_location'),
     placeType: selectedPlace.placeType,
   },
   paymentMethod: 'Preview',
@@ -342,6 +341,7 @@ const CategorySelector = ({
 const LocationSection = ({
   data,
   selectedPlace,
+  isChangingPlace,
   selectedCategory,
   type,
   amount,
@@ -352,10 +352,13 @@ const LocationSection = ({
   selectedSuggestions,
   onSelectPlace,
   onUseCurrentLocation,
+  onChangeLocation,
+  onCancelChange,
   onClearLocation,
 }: {
   data: AppData;
-  selectedPlace: PlaceOption | null;
+  selectedPlace: PlaceSelection | null;
+  isChangingPlace: boolean;
   selectedCategory?: Category;
   type: 'income' | 'expense';
   amount: string;
@@ -363,14 +366,17 @@ const LocationSection = ({
   date: string;
   placeQuery: string;
   setPlaceQuery: (value: string) => void;
-  selectedSuggestions: PlaceOption[];
-  onSelectPlace: (place: PlaceOption) => void;
+  selectedSuggestions: PlaceSelection[];
+  onSelectPlace: (place: PlaceSelection) => void;
   onUseCurrentLocation: () => void;
+  onChangeLocation: () => void;
+  onCancelChange: () => void;
   onClearLocation: () => void;
 }) => {
   const colors = useColors();
   const parsedAmount = Number.parseFloat(amount);
-  const previewTransaction = selectedPlace
+  const showSearch = !selectedPlace || isChangingPlace;
+  const previewTransaction = selectedPlace && !isChangingPlace
     ? buildPreviewTransaction({
       selectedPlace,
       selectedCategory,
@@ -387,109 +393,122 @@ const LocationSection = ({
       <SectionHeader
         icon="place"
         title="Place"
-        subtitle="Optional. Add a place only when it helps explain the transaction."
+        subtitle="Optional. Add a place for Map review and neighborhood context."
       />
 
-      <Field
-        label="Place search"
-        value={placeQuery}
-        onChangeText={setPlaceQuery}
-        placeholder="Search business, store, address, or area"
-      />
-
-      {selectedSuggestions.length > 0 ? (
-        <View style={styles.suggestionList}>
-          {selectedSuggestions.map((location) => (
-            <TouchableOpacity
-              key={`${location.placeId || location.address}-${location.latitude}`}
-              accessibilityRole="button"
-              onPress={() => onSelectPlace(location)}
-              style={[styles.suggestionRow, { borderColor: colors.border, backgroundColor: colors.bgSecondary }]}
-            >
-              <View style={[styles.suggestionIcon, { backgroundColor: colors.primarySoft }]}>
-                <MaterialIcons name="place" size={17} color={colors.primary} />
-              </View>
-
-              <View style={{ flex: 1 }}>
-                <Text variant="body" style={{ fontWeight: '800' }} numberOfLines={1}>
-                  {location.name}
-                </Text>
-                <Text variant="caption" color="secondary" numberOfLines={1} style={{ marginTop: Spacing.xs }}>
-                  {location.formattedAddress || location.address}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-      ) : null}
-
-      {selectedPlace ? (
-        <View
-          style={[
-            styles.selectedPlaceBox,
-            { backgroundColor: colors.primarySoft },
-          ]}
-        >
-          <MaterialIcons
-            name="check-circle"
-            size={16}
-            color={colors.primary}
+      {showSearch ? (
+        <>
+          <Field
+            label="Place search"
+            value={placeQuery}
+            onChangeText={setPlaceQuery}
+            placeholder="Search business, store, address, or area"
           />
 
-          <Text
-            variant="caption"
-            style={{ color: colors.primary, fontWeight: '800' }}
-          >
-            Selected
-          </Text>
+          {selectedSuggestions.length > 0 ? (
+            <View style={styles.suggestionList}>
+              {selectedSuggestions.map((location) => (
+                <TouchableOpacity
+                  key={`${location.placeId || location.address}-${location.latitude}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Select ${location.name}, ${location.formattedAddress || location.address}`}
+                  onPress={() => onSelectPlace(location)}
+                  style={[styles.suggestionRow, { borderColor: colors.border, backgroundColor: colors.bgSecondary }]}
+                >
+                  <View style={[styles.suggestionIcon, { backgroundColor: colors.primarySoft }]}>
+                    <MaterialIcons name="place" size={17} color={colors.primary} />
+                  </View>
 
-          <Text
-            variant="caption"
-            color="secondary"
-            numberOfLines={1}
-            style={{ flexShrink: 1 }}
-          >
-            {selectedPlace.name ||
-              selectedPlace.formattedAddress ||
-              selectedPlace.address}
-          </Text>
-        </View>
-      ) : null}
-
-      {selectedPlace ? (
-        <View style={styles.cardActions}>
-          <Button
-            label="Change"
-            variant="secondary"
-            onPress={() => {
-              const selectedName =
-                selectedPlace.name ||
-                selectedPlace.formattedAddress ||
-                selectedPlace.address;
-
-              onClearLocation();
-              setPlaceQuery(selectedName);
-            }}
-            style={{ flex: 1 }}
-          />
+                  <View style={{ flex: 1 }}>
+                    <Text variant="body" style={{ fontWeight: '800' }} numberOfLines={1}>
+                      {location.name}
+                    </Text>
+                    <Text variant="caption" color="secondary" numberOfLines={2} style={{ marginTop: Spacing.xs }}>
+                      {location.formattedAddress || location.address}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : null}
 
           <Button
-            label="Remove"
+            label="Use current location"
             variant="secondary"
-            onPress={onClearLocation}
-            style={{ flex: 1 }}
+            onPress={onUseCurrentLocation}
           />
-        </View>
-      ) : (
-        <Button
-          label="Use my location"
-          variant="secondary"
-          onPress={onUseCurrentLocation}
-        />
-      )}
 
-      <View style={[styles.mapFrame, { borderColor: colors.border, backgroundColor: colors.bgSecondary }]}>
-        {previewTransaction ? (
+          {isChangingPlace ? (
+            <Button
+              label="Cancel change"
+              variant="secondary"
+              onPress={onCancelChange}
+              style={{ marginTop: Spacing.sm }}
+            />
+          ) : null}
+        </>
+      ) : selectedPlace ? (
+        <>
+          <View
+            style={[
+              styles.selectedPlaceBox,
+              {
+                borderColor: colors.border,
+                backgroundColor: colors.bgSecondary,
+              },
+            ]}
+          >
+            <View style={[styles.suggestionIcon, { backgroundColor: colors.primarySoft }]}>
+              <MaterialIcons
+                name="check-circle"
+                size={18}
+                color={colors.primary}
+              />
+            </View>
+
+            <View style={styles.selectedPlaceCopy}>
+              <Text
+                variant="body"
+                style={{ fontWeight: '800' }}
+                numberOfLines={1}
+              >
+                {selectedPlace.name ||
+                  selectedPlace.formattedAddress ||
+                  selectedPlace.address}
+              </Text>
+
+              <Text
+                variant="caption"
+                color="secondary"
+                numberOfLines={2}
+                style={{ marginTop: Spacing.xs }}
+              >
+                {selectedPlace.formattedAddress ||
+                  selectedPlace.address}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.cardActions}>
+            <Button
+              label="Change"
+              variant="secondary"
+              onPress={onChangeLocation}
+              style={{ flex: 1 }}
+            />
+
+            <Button
+              label="Remove"
+              variant="secondary"
+              onPress={onClearLocation}
+              style={{ flex: 1 }}
+            />
+          </View>
+        </>
+      ) : null}
+
+      {previewTransaction ? (
+        <View style={[styles.mapFrame, { borderColor: colors.border, backgroundColor: colors.bgSecondary }]}>
           <MapCanvas
             transactions={[previewTransaction]}
             categories={data.categories}
@@ -497,17 +516,11 @@ const LocationSection = ({
             onSelect={() => undefined}
             mode="pins"
             currency={data.user.currency}
+            showsUserLocation={false}
             style={styles.mapPreview}
           />
-        ) : (
-          <View style={styles.mapEmptyState}>
-            <MaterialIcons name="location-searching" size={28} color={colors.textTertiary} />
-            <Text variant="bodySmall" color="secondary" style={{ marginTop: Spacing.sm, textAlign: 'center' }}>
-              Search for a place or use current location to preview it on the map.
-            </Text>
-          </View>
-        )}
-      </View>
+        </View>
+      ) : null}
     </Card>
   );
 };
@@ -700,6 +713,7 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
 
   const initialType = existing?.type || 'expense';
   const initialCategories = getVisibleCategories(data.categories, initialType, existing?.categoryId);
+  const initialPlace = toPlaceSelection(existing?.location);
 
   const [type, setType] = useState<'income' | 'expense'>(initialType);
   const [amount, setAmount] = useState(existing ? String(existing.amount) : '');
@@ -710,25 +724,25 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [date, setDate] = useState(existing?.date || todayIso());
   const [notes, setNotes] = useState(existing?.notes || '');
-  const [placeQuery, setPlaceQuery] = useState(existing?.location.name || existing?.location.address || '');
-  const [selectedPlace, setSelectedPlace] = useState<PlaceOption | null>(
-    existing
-      ? {
-        latitude: existing.location.latitude,
-        longitude: existing.location.longitude,
-        address: existing.location.address,
-        formattedAddress: existing.location.formattedAddress || existing.location.address,
-        name: existing.location.name || existing.merchant,
-        neighborhood: existing.location.neighborhood,
-        placeId: existing.location.placeId,
-        placeType: existing.location.placeType,
-      }
-      : null
+  const [placeQuery, setPlaceQuery] = useState(
+    initialPlace?.name ||
+    initialPlace?.formattedAddress ||
+    initialPlace?.address ||
+    ''
   );
+  const [selectedPlace, setSelectedPlace] = useState<PlaceSelection | null>(initialPlace);
+  const [showPlaceDisclosure, setShowPlaceDisclosure] = useState(
+    initialPlaceDisclosureOpen(
+      mode,
+      existing?.location
+    )
+  );
+  const [isChangingPlace, setIsChangingPlace] = useState(false);
+  const [hasEditedPlaceQuery, setHasEditedPlaceQuery] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState(existing?.paymentMethod || 'Debit card');
   const [isRecurring, setRecurring] = useState(existing?.isRecurring || false);
   const [error, setError] = useState<string | null>(null);
-  const [remoteLocations, setRemoteLocations] = useState<PlaceOption[]>([]);
+  const [remoteLocations, setRemoteLocations] = useState<PlaceSelection[]>([]);
   const [receipts, setReceipts] = useState<ReceiptAttachment[]>(existing?.receipts || []);
   const [showOptionalDetails, setShowOptionalDetails] = useState(
     mode === 'edit' &&
@@ -755,18 +769,6 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
     !editLocked &&
     !isSubmitting;
 
-  const existingPlaceKey = existing
-    ? existing.location.placeId ||
-      existing.location.formattedAddress ||
-      existing.location.name
-    : '';
-
-  const selectedPlaceKey = selectedPlace
-    ? selectedPlace.placeId ||
-      selectedPlace.formattedAddress ||
-      selectedPlace.name
-    : '';
-
   const isDirty = existing
     ? type !== existing.type ||
       amount !== String(existing.amount) ||
@@ -777,7 +779,10 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
       paymentMethod !== existing.paymentMethod ||
       isRecurring !== existing.isRecurring ||
       receipts.length !== existing.receipts.length ||
-      selectedPlaceKey !== existingPlaceKey
+      hasPlaceChanged(
+        existing.location,
+        selectedPlace
+      )
     : Boolean(
       amount ||
       merchant.trim() ||
@@ -823,22 +828,29 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
     );
   };
 
-  const addressSuggestions = useMemo(() => remoteLocations.slice(0, 5), [remoteLocations]);
+  const addressSuggestions = useMemo(
+    () => limitPlaceSuggestions(remoteLocations),
+    [remoteLocations]
+  );
 
   const useDeviceLocation = async () => {
     try {
       const location = await getCurrentLocation();
-      const current: PlaceOption = {
+      const current: PlaceSelection = {
         latitude: location.latitude,
         longitude: location.longitude,
         address: location.address,
         formattedAddress: location.formattedAddress,
         name: location.name || 'Current location',
         neighborhood: location.address.split(',')[0] || 'Current location',
+        source: 'current_location',
       };
 
       setSelectedPlace(current);
       setPlaceQuery(current.name);
+      setRemoteLocations([]);
+      setIsChangingPlace(false);
+      setHasEditedPlaceQuery(false);
     } catch (err: any) {
       setError(
         err.message ||
@@ -850,7 +862,16 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
   useEffect(() => {
     const query = placeQuery.trim();
 
-    if (query.length < 3) {
+    if (
+      !shouldSearchPlaceSuggestions({
+        isDisclosureOpen: showPlaceDisclosure,
+        hasActiveSelection:
+          Boolean(selectedPlace) &&
+          !isChangingPlace,
+        hasEditedQuery: hasEditedPlaceQuery,
+        query,
+      })
+    ) {
       setRemoteLocations([]);
       return undefined;
     }
@@ -875,17 +896,79 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
       active = false;
       clearTimeout(timer);
     };
-  }, [placeQuery]);
+  }, [
+    hasEditedPlaceQuery,
+    isChangingPlace,
+    placeQuery,
+    selectedPlace,
+    showPlaceDisclosure,
+  ]);
 
-  const applyLocation = (location: PlaceOption) => {
+  const applyLocation = (location: PlaceSelection) => {
     setSelectedPlace(location);
     setPlaceQuery(location.name || location.formattedAddress || location.address);
     setRemoteLocations([]);
+    setIsChangingPlace(false);
+    setHasEditedPlaceQuery(false);
   };
 
   const updatePlaceSearch = (value: string) => {
     setPlaceQuery(value);
+    setRemoteLocations([]);
+    setHasEditedPlaceQuery(true);
+  };
+
+  const changePlace = () => {
+    if (!selectedPlace) {
+      return;
+    }
+
+    setPlaceQuery(
+      selectedPlace.name ||
+      selectedPlace.formattedAddress ||
+      selectedPlace.address
+    );
+    setRemoteLocations([]);
+    setIsChangingPlace(true);
+    setHasEditedPlaceQuery(false);
+  };
+
+  const cancelPlaceChange = () => {
+    setPlaceQuery(
+      selectedPlace?.name ||
+      selectedPlace?.formattedAddress ||
+      selectedPlace?.address ||
+      ''
+    );
+    setRemoteLocations([]);
+    setIsChangingPlace(false);
+    setHasEditedPlaceQuery(false);
+  };
+
+  const clearPlace = () => {
     setSelectedPlace(null);
+    setPlaceQuery('');
+    setRemoteLocations([]);
+    setIsChangingPlace(false);
+    setHasEditedPlaceQuery(false);
+  };
+
+  const togglePlaceDisclosure = () => {
+    const next = !showPlaceDisclosure;
+
+    if (!next) {
+      setPlaceQuery(
+        selectedPlace?.name ||
+        selectedPlace?.formattedAddress ||
+        selectedPlace?.address ||
+        ''
+      );
+      setRemoteLocations([]);
+      setIsChangingPlace(false);
+      setHasEditedPlaceQuery(false);
+    }
+
+    setShowPlaceDisclosure(next);
   };
 
   const updateAmount = (value: string) => {
@@ -946,35 +1029,8 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
     try {
       const parsedAmount = parseMoney(amount);
 
-      const locationPayload = selectedPlace
-        ? {
-          placeId: selectedPlace.placeId,
-          name: selectedPlace.name,
-          formattedAddress:
-            selectedPlace.formattedAddress ||
-            selectedPlace.address,
-          latitude: selectedPlace.latitude,
-          longitude: selectedPlace.longitude,
-          address:
-            selectedPlace.formattedAddress ||
-            selectedPlace.address,
-          neighborhood:
-            selectedPlace.neighborhood ||
-            selectedPlace.name,
-          source: selectedPlace.placeId
-            ? 'google_place' as const
-            : 'current_location' as const,
-          placeType: selectedPlace.placeType,
-        }
-        : {
-          name: 'No place',
-          formattedAddress: '',
-          latitude: 0,
-          longitude: 0,
-          address: '',
-          neighborhood: undefined,
-          source: 'imported' as const,
-        };
+      const locationPayload =
+        toLocationPayload(selectedPlace);
 
       const payload = {
         type,
@@ -1187,31 +1243,6 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
             />
           </Card>
 
-
-          <LocationSection
-            data={data}
-            selectedPlace={selectedPlace}
-            selectedCategory={selected}
-            type={type}
-            amount={amount}
-            merchant={merchant}
-            date={date}
-            placeQuery={placeQuery}
-            setPlaceQuery={updatePlaceSearch}
-            selectedSuggestions={
-              addressSuggestions
-            }
-            onSelectPlace={applyLocation}
-            onUseCurrentLocation={
-              useDeviceLocation
-            }
-            onClearLocation={() => {
-              setSelectedPlace(null);
-              setPlaceQuery('');
-              setRemoteLocations([]);
-            }}
-          />
-
           <Card style={styles.sectionCard}>
             <SectionHeader
               icon="category"
@@ -1235,6 +1266,99 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
               onChange={setPaymentMethod}
             />
           </Card>
+
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={
+              showPlaceDisclosure
+                ? 'Hide Place details'
+                : selectedPlace
+                  ? 'Show selected Place details'
+                  : 'Add a place'
+            }
+            accessibilityHint="Place is optional and supports Map review and neighborhood context."
+            accessibilityState={{
+              expanded: showPlaceDisclosure,
+            }}
+            aria-expanded={showPlaceDisclosure}
+            activeOpacity={0.76}
+            onPress={togglePlaceDisclosure}
+            style={[
+              styles.optionalDisclosure,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <View style={styles.optionalDisclosureIcon}>
+              <MaterialIcons
+                name={
+                  selectedPlace
+                    ? 'where-to-vote'
+                    : 'add-location-alt'
+                }
+                size={20}
+                color={colors.textSecondary}
+              />
+            </View>
+
+            <View style={styles.optionalDisclosureCopy}>
+              <Text variant="h4">
+                {selectedPlace
+                  ? 'Place added'
+                  : 'Add a place'}
+              </Text>
+
+              <Text
+                variant="bodySmall"
+                color="secondary"
+                numberOfLines={2}
+                style={{ marginTop: Spacing.xs }}
+              >
+                {selectedPlace
+                  ? selectedPlace.name ||
+                    selectedPlace.formattedAddress ||
+                    selectedPlace.address
+                  : 'Optional. Supports Map review and neighborhood context.'}
+              </Text>
+            </View>
+
+            <MaterialIcons
+              name={
+                showPlaceDisclosure
+                  ? 'expand-less'
+                  : 'expand-more'
+              }
+              size={24}
+              color={colors.textSecondary}
+            />
+          </TouchableOpacity>
+
+          {showPlaceDisclosure ? (
+            <LocationSection
+              data={data}
+              selectedPlace={selectedPlace}
+              isChangingPlace={isChangingPlace}
+              selectedCategory={selected}
+              type={type}
+              amount={amount}
+              merchant={merchant}
+              date={date}
+              placeQuery={placeQuery}
+              setPlaceQuery={updatePlaceSearch}
+              selectedSuggestions={
+                addressSuggestions
+              }
+              onSelectPlace={applyLocation}
+              onUseCurrentLocation={
+                useDeviceLocation
+              }
+              onChangeLocation={changePlace}
+              onCancelChange={cancelPlaceChange}
+              onClearLocation={clearPlace}
+            />
+          ) : null}
 
           <TouchableOpacity
             accessibilityRole="button"
@@ -1575,15 +1699,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   selectedPlaceBox: {
-    alignSelf: 'flex-start',
-    maxWidth: '100%',
-    borderRadius: 999,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
+    borderWidth: 1,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
+    alignItems: 'flex-start',
+    gap: Spacing.md,
     marginBottom: Spacing.md,
+  },
+  selectedPlaceCopy: {
+    flex: 1,
+    minWidth: 0,
   },
   cardActions: {
     flexDirection: 'row',
@@ -1594,16 +1720,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: Radius.lg,
     overflow: 'hidden',
-    minHeight: 220,
+    minHeight: 156,
   },
   mapPreview: {
-    height: 220,
-  },
-  mapEmptyState: {
-    minHeight: 220,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.xl,
+    height: 156,
+    minHeight: 156,
   },
   receiptStatusBox: {
     borderWidth: 1,
