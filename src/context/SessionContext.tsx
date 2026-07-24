@@ -24,7 +24,7 @@ interface SessionContextValue {
   loginRemote: (email: string, password: string) => Promise<RemoteSessionUser>;
   signupRemote: (name: string, email: string, password: string) => Promise<RemoteSessionUser>;
   forgotPassword: (email: string) => Promise<void>;
-  logoutSession: (onError?: (message: string) => void) => void;
+  logoutSession: () => Promise<void>;
 }
 
 const SessionContext = createContext<SessionContextValue | undefined>(undefined);
@@ -99,9 +99,9 @@ export const SessionProvider = ({ children }: { children: React.ReactNode }) => 
   }, []);
 
   const logoutSession = useCallback(
-    (onError?: (message: string) => void) => {
+    async () => {
       if (!isGuestSession && firebaseConfigured) {
-        logoutRemote().catch((err) => onError?.(err.message || 'Logout failed'));
+        await logoutRemote();
       }
 
       setRemoteUserId(null);

@@ -16,6 +16,7 @@ type MoreItem = {
   label: string;
   description: string;
   route: string;
+  params?: Record<string, unknown>;
   icon: React.ComponentProps<typeof MaterialIcons>['name'];
 };
 
@@ -124,7 +125,7 @@ export const MoreScreen = () => {
                     key={item.route}
                     accessibilityRole="button"
                     accessibilityLabel={`Open ${item.label}`}
-                    onPress={() => navigation.navigate(item.route)}
+                    onPress={() => navigation.navigate(item.route, item.params)}
                     activeOpacity={0.76}
                     style={[
                       styles.row,

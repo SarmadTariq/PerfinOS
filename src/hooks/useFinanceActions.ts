@@ -19,7 +19,7 @@ export interface FinanceActions {
   loginWithEmail: (email: string, password: string, options?: AuthOptions) => Promise<void>;
   signupWithEmail: (name: string, email: string, password: string, options?: AuthOptions) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
   completeOnboarding: (updates: Partial<User>) => Promise<void>;
   addTransaction: (input: Omit<Transaction, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'updateCount'>) => Promise<void>;
@@ -124,9 +124,18 @@ export const useFinanceActions = (): FinanceActions => {
       forgotPassword: async (email) => {
         await resetRemotePassword(email);
       },
-      logout: () => {
-        logoutSession((message) => setError(message));
-        clearWorkspace();
+      logout: async () => {
+        try {
+          await logoutSession();
+          clearWorkspace();
+        } catch (caught) {
+          const message =
+            caught instanceof Error
+              ? caught.message
+              : 'Logout failed';
+          setError(message);
+          throw new Error(message);
+        }
       },
       updateUser: async (updates) => {
         await persist((current) => ({ ...current, user: { ...current.user, ...updates } }));
