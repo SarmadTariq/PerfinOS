@@ -741,21 +741,21 @@ setSaveMessage(null);
 setSavedPlanId(null);
 setGenerationMessage(null);
 
-        setState(
-          (current) =>
-            setPlanCreationHorizon(
-              current,
-              {
-                kind:
-                  'selected_month',
+        const nextState =
+          setPlanCreationHorizon(
+            state,
+            {
+              kind:
+                'selected_month',
 
-                selectedMonth:
-                  selectedMonthDraft,
+              selectedMonth:
+                selectedMonthDraft,
 
-                latestAllowedMonth,
-              }
-            )
-        );
+              latestAllowedMonth,
+            }
+          );
+
+        setState(nextState);
       } catch {
         setLocalError(
           'Enter a valid current or past month using YYYY-MM.'

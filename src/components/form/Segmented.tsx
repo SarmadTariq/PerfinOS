@@ -25,12 +25,16 @@ export const Segmented = ({
   const colors = scheme === 'dark' ? Colors.dark : Colors.light;
 
   return (
-    <View style={[styles.segmented, { backgroundColor: colors.bgTertiary }]}>
+    <View
+      accessibilityRole="tablist"
+      style={[styles.segmented, { backgroundColor: colors.bgTertiary }]}
+    >
       {options.map((option) => (
         <TouchableOpacity
           key={option}
-          accessibilityRole="button"
+          accessibilityRole="tab"
           accessibilityState={{ selected: option === value }}
+          aria-selected={option === value}
           onPress={() => onChange(option)}
           style={[styles.segment, option === value && { backgroundColor: colors.bgSecondary }]}
         >
