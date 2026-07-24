@@ -58,7 +58,25 @@ export const validateDate = (date: string) => {
   }
 };
 
+export const isNoPlaceCompatibilityLocation = (
+  location?: ExpenseLocation | null
+) =>
+  Boolean(
+    location &&
+      location.source === 'imported' &&
+      location.name === 'No place' &&
+      !location.placeId &&
+      !location.formattedAddress &&
+      !location.address &&
+      location.latitude === 0 &&
+      location.longitude === 0
+  );
+
 export const validateLocation = (location?: ExpenseLocation) => {
+  if (isNoPlaceCompatibilityLocation(location)) {
+    return;
+  }
+
   if (!location?.name?.trim()) throw new Error('Select a location before saving');
   if (!location.formattedAddress?.trim() && !location.address?.trim()) throw new Error('Location address is required');
   if (

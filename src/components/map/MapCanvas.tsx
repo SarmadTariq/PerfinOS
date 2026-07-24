@@ -37,6 +37,7 @@ type MapCanvasProps = {
   mode: 'pins' | 'heatmap';
   zoom?: number;
   currency?: string;
+  showsUserLocation?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -51,6 +52,7 @@ export const MapCanvas = ({
   mode,
   zoom = 1,
   currency = 'USD',
+  showsUserLocation = true,
   style,
 }: MapCanvasProps) => {
   const scheme = useThemeScheme();
@@ -102,6 +104,7 @@ export const MapCanvas = ({
         mode={mode}
         zoom={zoom}
         onSelect={onSelect}
+        showsUserLocation={showsUserLocation}
         style={style}
       />
     );
@@ -116,9 +119,11 @@ export const MapCanvas = ({
 
         <View style={styles.mapWater} />
 
-        <View style={styles.currentLocationDot}>
-          <MaterialIcons name="my-location" size={18} color="#FFFFFF" />
-        </View>
+        {showsUserLocation ? (
+          <View style={styles.currentLocationDot}>
+            <MaterialIcons name="my-location" size={18} color="#FFFFFF" />
+          </View>
+        ) : null}
 
         {mode === 'heatmap'
           ? heatGroups.map((group) => {

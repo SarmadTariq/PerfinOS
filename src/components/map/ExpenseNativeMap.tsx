@@ -19,6 +19,7 @@ interface ExpenseNativeMapProps {
   mode: 'pins' | 'heatmap';
   zoom: number;
   onSelect: (transaction: Transaction) => void;
+  showsUserLocation?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -35,6 +36,7 @@ export const ExpenseNativeMap = ({
   mode,
   zoom,
   onSelect,
+  showsUserLocation = true,
   style,
 }: ExpenseNativeMapProps) => {
   const topHeat = [...heatGroups].sort((a, b) => b.amount - a.amount)[0];
@@ -90,8 +92,8 @@ export const ExpenseNativeMap = ({
       style={[styles.map, style]}
       region={region}
       onRegionChangeComplete={setRegion}
-      showsUserLocation
-      showsMyLocationButton
+      showsUserLocation={showsUserLocation}
+      showsMyLocationButton={showsUserLocation}
     >
       {mode === 'heatmap'
         ? heatGroups.map((group) => {
