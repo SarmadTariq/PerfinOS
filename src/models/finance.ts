@@ -134,6 +134,24 @@ export interface Report {
   budgetStatus: string;
   savingsProgress: number;
   generatedAt: string;
+  /** Optional PF-198 metadata. Older persisted reports remain valid without it. */
+  periodStart?: string;
+  periodEnd?: string;
+  periodLabel?: string;
+  source?: 'deterministic';
+  coverage?: ReportCoverage;
+}
+
+export type ReportCoverageClassification = 'empty' | 'partial' | 'complete';
+
+export interface ReportCoverage {
+  classification: ReportCoverageClassification;
+  transactionCount: number;
+  validTransactionCount: number;
+  excludedTransactionCount: number;
+  observedDays: number;
+  daysInPeriod: number;
+  generatedThrough: string;
 }
 
 export interface AppData {

@@ -8,14 +8,17 @@
  * The old file is kept as a re-export shim for backward compatibility.
  */
 import { Budget, Category, Insight, RecurringExpense, Report, SavingsGoal, Transaction, TransactionFilters, TransactionSortKey } from '../models/finance';
+import { generateCanonicalMonthlyReport, isDateInMonthlyReportPeriod, parseMonthlyReportPeriod } from '../reporting';
 import { getMonthKey } from '../utils/format';
 
 /** @internal Generates a unique short ID for insights and computed records. */
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
 /** @internal Returns true when a transaction falls within the given month key (YYYY-MM). */
-const inMonth = (transaction: Transaction, month = getMonthKey()) =>
-  transaction.date.startsWith(month);
+const inMonth = (transaction: Transaction, month = getMonthKey()) => {
+  const period = parseMonthlyReportPeriod(month);
+  return period ? isDateInMonthlyReportPeriod(transaction.date, period) : false;
+};
 
 /**
  * Calculates income, expenses, net cash flow, and averages for a given month.
@@ -96,7 +99,11 @@ export const calculateBudgetHealth = (
   const monthlyExpenses = transactions
     .filter((t) => t.type === 'expense' && inMonth(t, month))
     .reduce((sum, t) => sum + t.amount, 0);
-  const totalBudget = budget?.totalBudget || categories.reduce((sum, c) => sum + c.monthlyBudget, 0);
+  const totalBudget =
+    budget?.totalBudget ??
+    categories
+      .filter((category) => category.type === 'expense')
+      .reduce((sum, c) => sum + c.monthlyBudget, 0);
   const usedPercent = totalBudget === 0 ? 0 : Math.round((monthlyExpenses / totalBudget) * 100);
 
   return {
@@ -104,7 +111,14 @@ export const calculateBudgetHealth = (
     spent: monthlyExpenses,
     remaining: totalBudget - monthlyExpenses,
     usedPercent,
-    status: usedPercent >= 100 ? 'over budget' : usedPercent >= 85 ? 'watch' : 'healthy',
+    status:
+      totalBudget === 0 && monthlyExpenses > 0
+        ? 'unbudgeted spending'
+        : usedPercent >= 100
+          ? 'over budget'
+          : usedPercent >= 85
+            ? 'watch'
+            : 'healthy',
   };
 };
 
@@ -300,22 +314,14 @@ export const generateMonthlyReport = (
   budget?: Budget,
   month = getMonthKey()
 ): Report => {
-  const summary = calculateMonthlySummary(transactions, month);
-  const breakdown = calculateCategoryBreakdown(transactions, categories, month);
-  const health = calculateBudgetHealth(transactions, budget, categories, month);
-  const savings = calculateSavingsProgress(goals);
-
-  return {
-    id: `report-${month}`,
+  return generateCanonicalMonthlyReport({
     userId,
+    transactions,
+    categories,
+    goals,
+    budget,
     month,
-    totalIncome: summary.income,
-    totalExpense: summary.expenses,
-    topCategory: breakdown[0]?.categoryName || 'None yet',
-    budgetStatus: health.status,
-    savingsProgress: savings.percentage,
-    generatedAt: new Date().toISOString(),
-  };
+  });
 };
 
 /**

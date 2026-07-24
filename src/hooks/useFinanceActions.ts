@@ -33,6 +33,8 @@ export interface FinanceActions {
   updateSavingsGoal: (id: string, updates: Partial<SavingsGoal>) => Promise<void>;
   deleteSavingsGoal: (id: string) => Promise<void>;
   updateRecurringExpense: (id: string, updates: Partial<RecurringExpense>) => Promise<void>;
+  previewReport: (month?: string) => Promise<Report>;
+  saveReport: (report: Report) => Promise<void>;
   generateReport: (month?: string) => Promise<Report>;
   canUseFeature: (feature: keyof AppData['entitlement']['features']) => boolean;
 }
@@ -369,6 +371,36 @@ export const useFinanceActions = (): FinanceActions => {
           ),
         }));
       },
+      previewReport: async (month = getMonthKey()) => {
+        if (!data) throw new Error('PerFin OS data is still loading');
+
+        const budget = data.budgets.find((item) => item.month === month);
+        return generateMonthlyReport(
+          data.user.id,
+          data.transactions,
+          data.categories,
+          data.savingsGoals,
+          budget,
+          month
+        );
+      },
+      saveReport: async (report) => {
+        await persist((current) => {
+          if (report.userId !== current.user.id) {
+            throw new Error('Report owner does not match the active workspace');
+          }
+
+          return {
+            ...current,
+            reports: [
+              report,
+              ...current.reports.filter(
+                (item) => item.id !== report.id
+              ),
+            ],
+          };
+        });
+      },
       generateReport: async (month = getMonthKey()) => {
         if (!data) throw new Error('PerFin OS data is still loading');
 
@@ -382,10 +414,21 @@ export const useFinanceActions = (): FinanceActions => {
           month
         );
 
-        await persist((current) => ({
-          ...current,
-          reports: [report, ...current.reports.filter((item) => item.id !== report.id)],
-        }));
+        await persist((current) => {
+          if (report.userId !== current.user.id) {
+            throw new Error('Report owner does not match the active workspace');
+          }
+
+          return {
+            ...current,
+            reports: [
+              report,
+              ...current.reports.filter(
+                (item) => item.id !== report.id
+              ),
+            ],
+          };
+        });
 
         return report;
       },
