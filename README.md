@@ -52,7 +52,7 @@ Copy `.env.example` to a local `.env` file and provide the values required for t
 
 The public template includes Firebase client configuration, the PerFin API URL, Google Maps configuration, optional native application identifiers and build versions, and server-side Cloudflare, R2, and Gemini variable names.
 
-Native development, preview, and production builds use the profiles in `eas.json`. Firebase service files can be supplied through `GOOGLE_SERVICES_PLIST` and `GOOGLE_SERVICESES_JSON` file environment variables.
+Native development, preview, and production builds use the profiles in `eas.json`. Firebase service files can be supplied through `GOOGLE_SERVICES_PLIST` and `GOOGLE_SERVICES_JSON` file environment variables.
 
 ## Repository structure
 
