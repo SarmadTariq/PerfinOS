@@ -13,27 +13,28 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "PerFin OS uses your location to set the default place for new expenses.",
         "NSCameraUsageDescription": "PerFin OS uses the camera to attach receipt or payment images to expenses.",
         "NSPhotoLibraryUsageDescription": "PerFin OS uses your photo library to attach receipt or payment images to expenses."
       },
-      "bundleIdentifier": "com.anonymous.perfin-os"
+      "bundleIdentifier": "com.anonymous.perfin-os",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff",
-        "package": "com.sarmad.perfinos",
-        "googleServicesFile": "./google-services.json"
+        "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION"
-      ]
+      ],
+      "package": "com.sarmad.perfinos",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -48,7 +49,8 @@
           "microphonePermission": false
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-font"
     ]
   }
 }
