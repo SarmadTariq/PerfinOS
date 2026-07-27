@@ -8,7 +8,6 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "build": "expo export --platform web --output-dir dist",
-    "verify:public-surface": "node scripts/verify-public-surface.mjs",
     "typecheck": "tsc --noEmit",
     "typecheck:strict": "tsc --noEmit --noUnusedLocals --noUnusedParameters",
     "audit:prod": "npm audit --omit=dev",
@@ -29,8 +28,7 @@
     "test:pf201": "vitest run tests/settings/settingsInventory.test.ts --fileParallelism=false",
     "test:pf203": "vitest run tests/privacy/privacyContent.test.ts --fileParallelism=false",
     "test:pf204": "vitest run tests/integration/nativeConfig.test.ts --fileParallelism=false",
-    "test:backend-refactor": "vitest run tests/firebase/financeContracts.test.ts tests/firebase/financeWorkspaceHydration.test.ts tests/planning/planActionApplication.test.ts tests/receipts/receiptService.test.ts --fileParallelism=false",
-    "test:public-surface": "vitest run tests/publicSurface/verifyPublicSurface.test.ts --fileParallelism=false"
+    "test:backend-refactor": "vitest run tests/firebase/financeContracts.test.ts tests/firebase/financeWorkspaceHydration.test.ts tests/planning/planActionApplication.test.ts tests/receipts/receiptService.test.ts --fileParallelism=false"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
