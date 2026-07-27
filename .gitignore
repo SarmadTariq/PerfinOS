@@ -53,15 +53,3 @@ workers/**/.dev.vars
 *.mobileprovision
 GoogleService-Info.plist
 google-services.json
-
-# Nested local repo artifact; publish the current folder as the GitHub repo.
-spendsight-react-finance-dashboard/
-.claude/
-
-# Local AI and execution state
-.zeref/
-.zeref-memory/
-.codex/
-.superpowers/
-memory/
-.local/
