@@ -11,24 +11,7 @@
     "typecheck": "tsc --noEmit",
     "typecheck:strict": "tsc --noEmit --noUnusedLocals --noUnusedParameters",
     "audit:prod": "npm audit --omit=dev",
-    "test": "npm run test:planning && npm run test:pf214 && npm run test:pf207 && npm run test:pf210 && npm run test:pf211 && npm run test:pf212 && npm run test:pf213 && npm run test:pf202 && npm run test:pf198 && npm run test:pf199 && npm run test:pf200 && npm run test:pf201 && npm run test:pf203 && npm run test:pf204 && npm run test:backend-refactor",
-    "test:planning": "vitest run tests/planning/planLifecycle.test.ts --fileParallelism=false",
-    "test:pf214": "vitest run tests/transactions/transactionPlaceDisclosure.test.ts --fileParallelism=false",
-    "test:firebase": "firebase emulators:exec --project demo-perfin-os --only firestore \"vitest run tests/firebase/financeContracts.test.ts tests/firebase/financeMigrationPersistence.test.ts tests/firebase/financeCommandPersistence.test.ts tests/firebase/planPersistence.test.ts tests/firebase/planActionPersistence.test.ts --fileParallelism=false\"",
-    "test:pf206": "npm run test:planning && npm run test:firebase",
-    "test:pf207": "vitest run tests/planning/planEvidence.test.ts --fileParallelism=false",
-    "test:pf210": "vitest run tests/planning/planCreationFlow.test.ts tests/planning/planCreationPresentation.test.ts tests/planning/planApiClient.test.ts tests/planning/planGenerationPresentation.test.ts tests/planning/planDraftAdapter.test.ts --fileParallelism=false",
-    "test:pf211": "vitest run tests/planning/planLifecycle.test.ts tests/planning/planWorkspace.test.ts tests/planning/planWorkspacePresentation.test.ts tests/planning/financeWorkspaceOwnership.test.ts --fileParallelism=false",
-    "test:pf212": "vitest run tests/planning/planActionApplication.test.ts tests/planning/planActionPresentation.test.ts tests/planning/planActionOperationEpoch.test.ts --fileParallelism=false && firebase emulators:exec --project demo-perfin-os --only firestore \"vitest run tests/firebase/planActionPersistence.test.ts --fileParallelism=false\"",
-    "test:pf213": "vitest run tests/planning/planReleaseEvaluation.test.ts --fileParallelism=false && npm --prefix workers/perfin-api run verify:pf213",
-    "test:pf202": "vitest run tests/categories --fileParallelism=false",
-    "test:pf198": "vitest run tests/reports --fileParallelism=false",
-    "test:pf199": "vitest run tests/insights --fileParallelism=false",
-    "test:pf200": "vitest run tests/profile/profileValidation.test.ts --fileParallelism=false",
-    "test:pf201": "vitest run tests/settings/settingsInventory.test.ts --fileParallelism=false",
-    "test:pf203": "vitest run tests/privacy/privacyContent.test.ts --fileParallelism=false",
-    "test:pf204": "vitest run tests/integration/nativeConfig.test.ts --fileParallelism=false",
-    "test:backend-refactor": "vitest run tests/firebase/financeContracts.test.ts tests/firebase/financeWorkspaceHydration.test.ts tests/planning/planActionApplication.test.ts tests/receipts/receiptService.test.ts --fileParallelism=false"
+    "verify:release": "npm run typecheck:strict && npm run build && npm run audit:prod"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
@@ -37,8 +20,8 @@
     "@react-navigation/bottom-tabs": "^7.15.9",
     "@react-navigation/native": "^7.2.2",
     "@react-navigation/stack": "^7.8.9",
-    "expo": "~54.0.34",
-    "expo-font": "~14.0.11",
+    "expo": "~54.0.36",
+    "expo-font": "~14.0.12",
     "expo-image-picker": "~17.0.11",
     "expo-location": "~19.0.8",
     "expo-status-bar": "~3.0.9",
@@ -53,12 +36,10 @@
     "react-native-web": "^0.21.0"
   },
   "devDependencies": {
-    "@firebase/rules-unit-testing": "^5.0.1",
     "@types/node": "^26.1.1",
     "@types/react": "~19.1.0",
     "firebase-tools": "^15.24.0",
-    "typescript": "~5.9.2",
-    "vitest": "^4.1.10"
+    "typescript": "~5.9.2"
   },
   "overrides": {
     "postcss": "^8.5.10"

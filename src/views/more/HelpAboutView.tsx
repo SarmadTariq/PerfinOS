@@ -335,7 +335,8 @@ export const HelpAboutScreen = () => (
                   Cloudflare runs the app
                   gateway and optional receipt
                   storage. Google Places
-                  supports place search. Gemini
+                  supports place search. The
+                  protected planning service
                   supports optional Plan
                   generation.
                 </Text>

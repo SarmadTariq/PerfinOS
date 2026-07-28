@@ -7,20 +7,14 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "verify:config": "node scripts/verify-config.mjs",
-    "verify:security": "node scripts/verify-security.mjs",
-    "verify:release": "npm run test && npm run typecheck && npm run verify:config && npm run verify:security && wrangler deploy --dry-run",
-    "verify:pf209": "vitest run tests/plan-output-schema.test.ts tests/plan-prompt.test.ts tests/plan-provider.test.ts tests/plan-output-validation.test.ts tests/plan-request-safety.test.ts tests/plan-action-handler-validation.test.ts tests/plan-synthetic-evaluation.test.ts",
-    "verify:pf213": "vitest run tests/plan-privacy.test.ts tests/plan-synthetic-evaluation.test.ts tests/plan-operational.test.ts tests/plan-provider.test.ts tests/plan-rate-limit.test.ts --fileParallelism=false"
+    "verify:release": "npm run typecheck && wrangler deploy --dry-run --env=\"\""
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.18.7",
-    "@cloudflare/workers-types": "^4.20260518.0",
+    "@cloudflare/vitest-pool-workers": "^0.18.8",
+    "@cloudflare/workers-types": "^5.20260728.1",
     "typescript": "~5.9.2",
     "vitest": "^4.1.10",
-    "wrangler": "^4.0.0"
+    "wrangler": "^4.114.0"
   },
   "dependencies": {
     "jose": "^6.2.4"

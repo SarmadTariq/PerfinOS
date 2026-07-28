@@ -9,8 +9,6 @@ bucket_name = "perfin-bucket"
 [vars]
 PLAN_ENV = "local"
 FIREBASE_PROJECT_ID = "perfin-os-a9f2d"
-GEMINI_MODEL = "gemini-3.5-flash"
-GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 
 [observability]
 enabled = true
@@ -65,12 +63,12 @@ name = "perfin-os"
 [env.production.vars]
 PLAN_ENV = "production"
 FIREBASE_PROJECT_ID = "perfin-os-a9f2d"
-GEMINI_MODEL = "gemini-3.5-flash"
-GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 
 [env.production.secrets]
 required = [
-  "GEMINI_API_KEY",
+  "PLAN_PROVIDER_API_KEY",
+  "PLAN_PROVIDER_MODEL",
+  "PLAN_PROVIDER_API_BASE",
   "FIREBASE_PROJECT_NUMBER",
   "ALLOWED_ORIGINS"
 ]

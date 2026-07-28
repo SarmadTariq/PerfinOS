@@ -1285,7 +1285,7 @@ setGenerationMessage(null);
                       color="secondary"
                       style={styles.bodySpacing}
                     >
-                      PerFin OS calculates the period, recorded totals, budget context, recurring commitments, savings progress, and eligible coarse location signals before any AI request.
+                      PerFin OS calculates the period, recorded totals, budget context, recurring commitments, savings progress, and eligible coarse location signals before any planning-service request.
                     </Text>
                   </View>
                 </View>

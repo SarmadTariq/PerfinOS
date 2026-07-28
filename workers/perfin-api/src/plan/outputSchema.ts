@@ -400,7 +400,7 @@ export const PLAN_STRUCTURED_OUTPUT_JSON_SCHEMA = {
   ],
 } as const;
 
-export const PLAN_GEMINI_RESPONSE_FORMAT = {
+export const PLAN_PROVIDER_RESPONSE_FORMAT = {
   text: {
     mimeType:
       'application/json',
