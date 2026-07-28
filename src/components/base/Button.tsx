@@ -7,9 +7,9 @@ import {
   ViewStyle,
 } from 'react-native';
 import {
+  BrandColors,
   Colors,
   ControlSize,
-  getButtonColorTokens,
   Radius,
   Spacing,
   Typography,
@@ -41,7 +41,24 @@ export const Button: React.FC<ButtonProps> = ({
   const isDark = scheme === 'dark';
   const colors = isDark ? Colors.dark : Colors.light;
   const unavailable = disabled || loading;
-  const colorTokens = getButtonColorTokens(colors, variant, unavailable);
+
+  const variantColor = {
+    primary: colors.primary,
+    secondary: colors.bgSecondary,
+    danger: colors.danger,
+    success: colors.success,
+  }[variant];
+
+  const enabledTextColor =
+    variant === 'secondary'
+      ? colors.text
+      : variant === 'primary' && isDark
+        ? BrandColors.ink
+        : BrandColors.paper;
+
+  const textColor = unavailable
+    ? colors.textTertiary
+    : enabledTextColor;
 
   const sizeStyles = {
     sm: {
@@ -88,8 +105,14 @@ export const Button: React.FC<ButtonProps> = ({
         styles.button,
         sizeStyles[size],
         {
-          backgroundColor: colorTokens.background,
-          borderColor: colorTokens.border,
+          backgroundColor: unavailable
+            ? colors.bgTertiary
+            : variantColor,
+          borderColor: unavailable
+            ? colors.border
+            : variant === 'secondary'
+              ? colors.border
+              : variantColor,
           borderWidth: variant === 'secondary' || unavailable ? 1 : 0,
           opacity: unavailable ? 0.72 : 1,
         },
@@ -97,13 +120,13 @@ export const Button: React.FC<ButtonProps> = ({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={colorTokens.foreground} size="small" />
+        <ActivityIndicator color={textColor} size="small" />
       ) : (
         <Text
           style={[
             textSizes[size],
             {
-              color: colorTokens.foreground,
+              color: textColor,
               fontWeight: Typography.label.fontWeight,
             },
           ]}

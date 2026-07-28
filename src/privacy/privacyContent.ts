@@ -103,7 +103,7 @@ export const getPrivacyContent = (
             ? 'Signed-in account required'
             : 'Available when configured',
         detail:
-          'Plan generation can send bounded financial evidence and the planning text you enter through the app service to Gemini. Do not enter account numbers, credentials, addresses, tax identifiers, or receipt contents.',
+          'Plan generation can send bounded financial evidence and the planning text you enter through the protected planning service. Do not enter account numbers, credentials, addresses, tax identifiers, or receipt contents.',
       },
       {
         id: 'plan-output',
@@ -178,7 +178,7 @@ export const getHelpTopics = (
     id: 'plan',
     title: 'Plan',
     detail:
-      'Plan can use Gemini for an editable planning draft. Saved Plans retain versions. Opening Plan never silently replaces an active Plan, and proposals require confirmation before supported finance-data changes.',
+      'Plan can use a protected planning service for an editable draft. Saved Plans retain versions. Opening Plan never silently replaces an active Plan, and proposals require confirmation before supported finance-data changes.',
     recovery:
       'Saved Plans remain readable during a provider outage. If generation is unavailable, retry later or continue using deterministic Activity, Budgets, Reports, and Insights.',
   },

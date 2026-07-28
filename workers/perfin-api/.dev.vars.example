@@ -1,4 +1,5 @@
-GEMINI_API_KEY="replace-with-a-local-development-key"
-FIREBASE_PROJECT_ID="demo-perfin-os"
+PLAN_PROVIDER_API_KEY="replace-with-a-local-development-key"
+PLAN_PROVIDER_MODEL="replace-with-a-provider-model"
+PLAN_PROVIDER_API_BASE="https://provider.example/v1"
 FIREBASE_PROJECT_NUMBER="replace-with-your-firebase-project-number"
 ALLOWED_ORIGINS="http://localhost:8081,http://localhost:19006"

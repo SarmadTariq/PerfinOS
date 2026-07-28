@@ -4,13 +4,11 @@ compatibility_date = "2026-05-19"
 
 [[r2_buckets]]
 binding = "RECEIPTS"
-bucket_name = "perfin-os-receipts-local"
+bucket_name = "perfin-bucket"
 
 [vars]
 PLAN_ENV = "local"
-FIREBASE_PROJECT_ID = "demo-perfin-os"
-GEMINI_MODEL = "gemini-3.5-flash"
-GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
+FIREBASE_PROJECT_ID = "perfin-os-a9f2d"
 
 [observability]
 enabled = true
@@ -29,7 +27,7 @@ head_sampling_rate = 0.1
 
 [[ratelimits]]
 name = "PLAN_SESSION_RATE_LIMITER"
-namespace_id = "30701"
+namespace_id = "20801"
 
   [ratelimits.simple]
   limit = 10
@@ -37,7 +35,7 @@ namespace_id = "30701"
 
 [[ratelimits]]
 name = "PLAN_TURN_RATE_LIMITER"
-namespace_id = "30702"
+namespace_id = "20802"
 
   [ratelimits.simple]
   limit = 30
@@ -45,7 +43,7 @@ namespace_id = "30702"
 
 [[ratelimits]]
 name = "PLAN_GENERATE_RATE_LIMITER"
-namespace_id = "30703"
+namespace_id = "20803"
 
   [ratelimits.simple]
   limit = 6
@@ -53,62 +51,9 @@ namespace_id = "30703"
 
 [[ratelimits]]
 name = "PLAN_REVISE_RATE_LIMITER"
-namespace_id = "30704"
+namespace_id = "20804"
 
   [ratelimits.simple]
-  limit = 6
-  period = 60
-
-[env.preview]
-name = "perfin-os-preview"
-
-[env.preview.vars]
-PLAN_ENV = "preview"
-GEMINI_MODEL = "gemini-3.5-flash"
-GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
-
-[env.preview.secrets]
-required = [
-  "GEMINI_API_KEY",
-  "FIREBASE_PROJECT_ID",
-  "FIREBASE_PROJECT_NUMBER",
-  "ALLOWED_ORIGINS",
-  "GOOGLE_PLACES_API_KEY"
-]
-
-[[env.preview.r2_buckets]]
-binding = "RECEIPTS"
-bucket_name = "perfin-os-receipts-preview"
-
-[[env.preview.ratelimits]]
-name = "PLAN_SESSION_RATE_LIMITER"
-namespace_id = "40701"
-
-  [env.preview.ratelimits.simple]
-  limit = 10
-  period = 60
-
-[[env.preview.ratelimits]]
-name = "PLAN_TURN_RATE_LIMITER"
-namespace_id = "40702"
-
-  [env.preview.ratelimits.simple]
-  limit = 30
-  period = 60
-
-[[env.preview.ratelimits]]
-name = "PLAN_GENERATE_RATE_LIMITER"
-namespace_id = "40703"
-
-  [env.preview.ratelimits.simple]
-  limit = 6
-  period = 60
-
-[[env.preview.ratelimits]]
-name = "PLAN_REVISE_RATE_LIMITER"
-namespace_id = "40704"
-
-  [env.preview.ratelimits.simple]
   limit = 6
   period = 60
 
@@ -117,25 +62,24 @@ name = "perfin-os"
 
 [env.production.vars]
 PLAN_ENV = "production"
-GEMINI_MODEL = "gemini-3.5-flash"
-GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
+FIREBASE_PROJECT_ID = "perfin-os-a9f2d"
 
 [env.production.secrets]
 required = [
-  "GEMINI_API_KEY",
-  "FIREBASE_PROJECT_ID",
+  "PLAN_PROVIDER_API_KEY",
+  "PLAN_PROVIDER_MODEL",
+  "PLAN_PROVIDER_API_BASE",
   "FIREBASE_PROJECT_NUMBER",
-  "ALLOWED_ORIGINS",
-  "GOOGLE_PLACES_API_KEY"
+  "ALLOWED_ORIGINS"
 ]
 
 [[env.production.r2_buckets]]
 binding = "RECEIPTS"
-bucket_name = "perfin-os-receipts-production"
+bucket_name = "perfin-bucket"
 
 [[env.production.ratelimits]]
 name = "PLAN_SESSION_RATE_LIMITER"
-namespace_id = "50701"
+namespace_id = "20801"
 
   [env.production.ratelimits.simple]
   limit = 10
@@ -143,7 +87,7 @@ namespace_id = "50701"
 
 [[env.production.ratelimits]]
 name = "PLAN_TURN_RATE_LIMITER"
-namespace_id = "50702"
+namespace_id = "20802"
 
   [env.production.ratelimits.simple]
   limit = 30
@@ -151,7 +95,7 @@ namespace_id = "50702"
 
 [[env.production.ratelimits]]
 name = "PLAN_GENERATE_RATE_LIMITER"
-namespace_id = "50703"
+namespace_id = "20803"
 
   [env.production.ratelimits.simple]
   limit = 6
@@ -159,7 +103,7 @@ namespace_id = "50703"
 
 [[env.production.ratelimits]]
 name = "PLAN_REVISE_RATE_LIMITER"
-namespace_id = "50704"
+namespace_id = "20804"
 
   [env.production.ratelimits.simple]
   limit = 6

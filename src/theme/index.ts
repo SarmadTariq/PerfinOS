@@ -9,6 +9,5 @@
  * import { Colors, Spacing, Typography, Radius, Shadows } from '../../theme';
  */
 export { BrandColors, Colors, getThemeColor } from './colors';
-export { getButtonColorTokens, getToastColorTokens } from './componentTokens';
 export { Typography } from './typography';
 export { Spacing, Radius, Shadows, Container, ControlSize } from './spacing';

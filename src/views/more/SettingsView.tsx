@@ -610,7 +610,7 @@ export const SettingsScreen = () => (
             />
             <InfoRow
               icon="summarize"
-              title="AI report interpretation"
+              title="Report interpretation"
               value={
                 !isGuest &&
                 data.entitlement.features
@@ -618,7 +618,7 @@ export const SettingsScreen = () => (
                   ? 'Entitled, not active here'
                   : 'Unavailable'
               }
-              description="Monthly Reports are deterministic. This Settings screen does not enable an AI report provider."
+              description="Monthly Reports are deterministic. Planning stays separate from report settings."
             />
           </Section>
 

@@ -4,6 +4,5 @@
  * from the split theme modules so existing imports keep working during migration.
  */
 export { BrandColors, Colors, getThemeColor } from './theme/colors';
-export { getButtonColorTokens, getToastColorTokens } from './theme/componentTokens';
 export { Typography } from './theme/typography';
 export { Spacing, Radius, Shadows, Container, ControlSize } from './theme/spacing';
