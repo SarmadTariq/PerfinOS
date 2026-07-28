@@ -1,5 +1,5 @@
 import type {
-  AppCheck,
+  AppCheck as WebAppCheck,
 } from 'firebase/app-check';
 
 import {
@@ -14,6 +14,14 @@ export type PlanAppCheckAvailability =
   | 'available'
   | 'not_configured'
   | 'unsupported_platform';
+
+type NativeAppCheckInstance = {
+  getToken: (
+    forceRefresh?: boolean
+  ) => Promise<{
+    token: string;
+  }>;
+};
 
 export class PlanAppCheckUnavailableError
   extends Error {
@@ -31,6 +39,10 @@ export class PlanAppCheckUnavailableError
 const env =
   process.env || {};
 
+const unsupportedPlatform:
+  PlanAppCheckAvailability =
+  'unsupported_platform';
+
 const webSiteKey =
   env
     .EXPO_PUBLIC_FIREBASE_APP_CHECK_SITE_KEY
@@ -38,29 +50,50 @@ const webSiteKey =
   null;
 
 let webAppCheckPromise:
-  Promise<AppCheck> | null =
+  Promise<WebAppCheck> | null =
   null;
+
+let nativeAppCheckPromise:
+  Promise<NativeAppCheckInstance> | null =
+  null;
+
+const isNativeAppCheckPlatform =
+  () =>
+    Platform.OS === 'ios' ||
+    Platform.OS === 'android';
+
+const isDevelopmentBuild =
+  () =>
+    typeof __DEV__ !==
+      'undefined' &&
+    __DEV__;
 
 export const getPlanAppCheckAvailability =
   (): PlanAppCheckAvailability => {
     if (
-      Platform.OS !== 'web'
+      Platform.OS === 'web'
     ) {
-      return 'unsupported_platform';
+      if (
+        !app ||
+        !webSiteKey
+      ) {
+        return 'not_configured';
+      }
+
+      return 'available';
     }
 
     if (
-      !app ||
-      !webSiteKey
+      isNativeAppCheckPlatform()
     ) {
-      return 'not_configured';
+      return 'available';
     }
 
-    return 'available';
+    return unsupportedPlatform;
   };
 
 const getWebAppCheck =
-  async (): Promise<AppCheck> => {
+  async (): Promise<WebAppCheck> => {
     const availability =
       getPlanAppCheckAvailability();
 
@@ -100,23 +133,93 @@ const getWebAppCheck =
     return webAppCheckPromise;
   };
 
+const getNativeAppCheck =
+  async (): Promise<NativeAppCheckInstance> => {
+    const availability =
+      getPlanAppCheckAvailability();
+
+    if (
+      availability !==
+      'available'
+    ) {
+      throw new PlanAppCheckUnavailableError(
+        availability
+      );
+    }
+
+    if (!nativeAppCheckPromise) {
+      nativeAppCheckPromise =
+        Promise.all([
+          import(
+            '@react-native-firebase/app'
+          ),
+          import(
+            '@react-native-firebase/app-check'
+          ),
+        ]).then(
+          async ([
+            appModule,
+            appCheckModule,
+          ]) => {
+            const provider =
+              new appCheckModule.ReactNativeFirebaseAppCheckProvider();
+
+            provider.configure({
+              android: {
+                provider:
+                  isDevelopmentBuild()
+                    ? 'debug'
+                    : 'playIntegrity',
+              },
+              apple: {
+                provider:
+                  isDevelopmentBuild()
+                    ? 'debug'
+                    : 'appAttestWithDeviceCheckFallback',
+              },
+            });
+
+            const nativeAppCheck =
+              await appCheckModule.initializeAppCheck(
+                appModule.getApp(),
+                {
+                  provider,
+                  isTokenAutoRefreshEnabled:
+                    true,
+                }
+              );
+
+            return nativeAppCheck as unknown as NativeAppCheckInstance;
+          }
+        );
+    }
+
+    return nativeAppCheckPromise;
+  };
+
 export const getRemoteAppCheckToken =
   async (): Promise<string> => {
-    const appCheck =
-      await getWebAppCheck();
-
-    const {
-      getToken,
-    } =
-      await import(
-        'firebase/app-check'
-      );
-
     const result =
-      await getToken(
-        appCheck,
-        false
-      );
+      Platform.OS === 'web'
+        ? await import(
+            'firebase/app-check'
+          ).then(
+            async ({
+              getToken,
+            }) => {
+              const appCheck =
+                await getWebAppCheck();
+
+              return getToken(
+                appCheck,
+                false
+              );
+            }
+          )
+        : await getNativeAppCheck().then(
+            (appCheck) =>
+              appCheck.getToken(false)
+          );
 
     const token =
       result.token.trim();
