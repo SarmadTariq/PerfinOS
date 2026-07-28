@@ -22,11 +22,10 @@
       "bundleIdentifier": "com.anonymous.perfin-os"
     },
     "android": {
+      "package": "com.sarmad.perfinos",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff",
-        "package": "com.sarmad.perfinos",
-        "googleServicesFile": "./google-services.json"
+        "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -48,7 +47,8 @@
           "microphonePermission": false
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-font"
     ]
   }
 }
