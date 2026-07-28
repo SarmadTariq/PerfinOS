@@ -28,7 +28,7 @@ import {
 } from './receipt/gateway';
 
 import {
-  createGeminiPlanProvider,
+  createPlanProvider,
   createInMemoryPlanCircuitBreaker,
 } from './plan/provider';
 
@@ -89,7 +89,7 @@ const planProviderCircuitBreaker =
   createInMemoryPlanCircuitBreaker();
 
 const planProvider =
-  createGeminiPlanProvider({
+  createPlanProvider({
     circuitBreaker:
       planProviderCircuitBreaker,
   });

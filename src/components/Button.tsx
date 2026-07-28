@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ViewStyle, ActivityIndicator } from 'react-native';
-import { Colors, ControlSize, getButtonColorTokens, Radius, Spacing, Typography } from '../theme';
+import { Colors, Spacing, Radius, Typography } from '../theme';
 import { useThemeScheme } from '../context/ThemeContext';
 
 interface ButtonProps {
@@ -26,8 +26,16 @@ export const Button: React.FC<ButtonProps> = ({
 }) => {
   const scheme = useThemeScheme();
   const colors = scheme === 'dark' ? Colors.dark : Colors.light;
-  const unavailable = disabled || loading;
-  const colorTokens = getButtonColorTokens(colors, variant, unavailable);
+
+  const variantColor = {
+    primary: colors.primary,
+    secondary: colors.bgSecondary,
+    danger: colors.danger,
+    success: colors.success,
+  }[variant];
+
+  const isTextVariant = variant === 'secondary';
+  const textColor = isTextVariant ? colors.text : '#FFFFFF';
 
   const sizeStyles = {
     sm: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
@@ -51,15 +59,16 @@ export const Button: React.FC<ButtonProps> = ({
     <TouchableOpacity
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel || label}
-      accessibilityState={{ disabled: unavailable, busy: loading }}
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
       onPress={handlePress}
-      disabled={unavailable}
+      disabled={disabled || loading}
       style={[
         styles.button,
         {
-          backgroundColor: colorTokens.background,
-          borderColor: colorTokens.border,
-          borderWidth: variant === 'secondary' || unavailable ? 1 : 0,
+          backgroundColor: disabled ? colors.textTertiary : variantColor,
+          borderColor: variant === 'secondary' ? colors.border : variantColor,
+          borderWidth: variant === 'secondary' ? 1 : 0,
+          borderRadius: Radius.md,
           ...sizeStyles[size],
         },
         style,
@@ -67,9 +76,9 @@ export const Button: React.FC<ButtonProps> = ({
       activeOpacity={0.7}
     >
       {loading ? (
-        <ActivityIndicator color={colorTokens.foreground} size="small" />
+        <ActivityIndicator color={textColor} size="small" />
       ) : (
-        <Text style={[textSizes[size], { color: colorTokens.foreground, fontWeight: '600' }]}>
+        <Text style={[textSizes[size], { color: textColor, fontWeight: '600' }]}>
           {label}
         </Text>
       )}
@@ -81,7 +90,6 @@ const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: ControlSize.minimumTouchTarget,
-    borderRadius: Radius.sm,
+    minHeight: 46,
   },
 });

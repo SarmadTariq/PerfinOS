@@ -100,7 +100,7 @@ export interface PlanProviderFetch {
   ): Promise<Response>;
 }
 
-export interface GeminiPlanProviderOptions {
+export interface PlanProviderOptions {
   readonly fetcher?:
     PlanProviderFetch;
 
@@ -131,9 +131,6 @@ export interface PlanCircuitBreakerOptions {
   readonly now?:
     () => number;
 }
-
-const DEFAULT_GEMINI_API_BASE =
-  'https://generativelanguage.googleapis.com/v1beta';
 
 const PROVIDER_FAILURE_THRESHOLD =
   3;
@@ -187,7 +184,7 @@ const validateModelName = (
   const model =
     requireConfiguredValue(
       value,
-      'GEMINI_MODEL'
+      'PLAN_PROVIDER_MODEL'
     );
 
   if (
@@ -208,9 +205,9 @@ const validateApiBase = (
   value: string | undefined
 ): string => {
   const candidate =
-    (
-      value?.trim() ||
-      DEFAULT_GEMINI_API_BASE
+    requireConfiguredValue(
+      value,
+      'PLAN_PROVIDER_API_BASE'
     ).replace(
       /\/+$/,
       ''
@@ -562,10 +559,10 @@ export const createInMemoryPlanCircuitBreaker =
     };
   };
 
-export const createGeminiPlanProvider =
+export const createPlanProvider =
   (
     options:
-      GeminiPlanProviderOptions = {}
+      PlanProviderOptions = {}
   ): PlanProvider => {
     const fetcher =
       options.fetcher ??
@@ -623,18 +620,18 @@ export const createGeminiPlanProvider =
         ) => {
           const apiKey =
             requireConfiguredValue(
-              env.GEMINI_API_KEY,
-              'GEMINI_API_KEY'
+              env.PLAN_PROVIDER_API_KEY,
+              'PLAN_PROVIDER_API_KEY'
             );
 
           const model =
             validateModelName(
-              env.GEMINI_MODEL
+              env.PLAN_PROVIDER_MODEL
             );
 
           const apiBase =
             validateApiBase(
-              env.GEMINI_API_BASE
+              env.PLAN_PROVIDER_API_BASE
             );
 
           const endpoint =

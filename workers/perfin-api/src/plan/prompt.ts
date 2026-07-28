@@ -9,7 +9,7 @@ import {
 } from './outputContracts';
 
 import {
-  PLAN_GEMINI_RESPONSE_FORMAT,
+  PLAN_PROVIDER_RESPONSE_FORMAT,
 } from './outputSchema';
 
 import type {
@@ -136,7 +136,7 @@ export const createPlanProviderBody =
           PLAN_PROVIDER_MAX_OUTPUT_TOKENS,
 
         responseFormat:
-          PLAN_GEMINI_RESPONSE_FORMAT,
+          PLAN_PROVIDER_RESPONSE_FORMAT,
       },
     };
   };

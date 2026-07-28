@@ -342,7 +342,7 @@ export const PlanHomeScreen = ({
               color="secondary"
               style={styles.sectionCopy}
             >
-              Saved history stays readable without an AI provider request.
+              Saved history stays readable without a planning-service request.
             </Text>
           </View>
 

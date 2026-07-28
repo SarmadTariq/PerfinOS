@@ -1,58 +1,30 @@
-# Dependencies
 node_modules/
+**/node_modules/
 
-# Expo and React Native outputs
 .expo/
+.expo-shared/
 dist/
-build/
 web-build/
 coverage/
-expo-env.d.ts
-.metro-health-check*
+.cache/
 
-# Generated native folders
-/ios/
-/android/
-
-# Local environment files
 .env
 .env.*
 !.env.example
-!.env.development.example
-!.env.preview.example
-!.env.production.example
+!.env.*.example
 
-# Logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+workers/perfin-api/.dev.vars
+workers/perfin-api/.wrangler/
 
-# TypeScript
-*.tsbuildinfo
-
-# Editors and OS files
-.DS_Store
-.vscode/
-.idea/
-
-# Deployment provider folders
-.vercel/
-.netlify/
-.wrangler/
-/.firebase/
-workers/**/.dev.vars
-
-# Native/mobile signing material
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.pem
-*.mobileprovision
-GoogleService-Info.plist
 google-services.json
+GoogleService-Info.plist
+credentials.json
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+
+*.log
+.DS_Store

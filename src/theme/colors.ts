@@ -32,21 +32,9 @@ export type ThemeColors = {
   borderLight: string;
   primary: string;
   primarySoft: string;
-  primaryControl: string;
-  onPrimary: string;
   success: string;
-  successControl: string;
-  onSuccess: string;
   danger: string;
-  dangerControl: string;
-  onDanger: string;
   warning: string;
-  warningControl: string;
-  onWarning: string;
-  income: string;
-  incomeSoft: string;
-  expense: string;
-  expenseSoft: string;
   card: string;
   surfaceWarm: string;
   surfaceBlue: string;
@@ -66,21 +54,9 @@ export const Colors: Record<ThemeScheme, ThemeColors> = {
     borderLight: '#EEEEEE',
     primary: BrandColors.blue,
     primarySoft: '#E8F2FF',
-    primaryControl: '#5860D6',
-    onPrimary: BrandColors.paper,
     success: '#34C759',
-    successControl: '#246B45',
-    onSuccess: BrandColors.paper,
     danger: '#FF3B30',
-    dangerControl: '#B42318',
-    onDanger: BrandColors.paper,
     warning: '#FF9500',
-    warningControl: '#A15C00',
-    onWarning: BrandColors.paper,
-    income: '#1E8E5A',
-    incomeSoft: '#DFF4E9',
-    expense: '#B42318',
-    expenseSoft: '#FDE7E4',
     card: '#FFFFFF',
     surfaceWarm: '#F2F2F2',
     surfaceBlue: '#E8F2FF',
@@ -96,21 +72,9 @@ export const Colors: Record<ThemeScheme, ThemeColors> = {
     borderLight: '#282828',
     primary: BrandColors.blueLight,
     primarySoft: '#1A2E44',
-    primaryControl: BrandColors.blueLight,
-    onPrimary: BrandColors.ink,
     success: '#32D74B',
-    successControl: '#58D981',
-    onSuccess: BrandColors.ink,
     danger: '#FF453A',
-    dangerControl: '#FF8A82',
-    onDanger: BrandColors.ink,
     warning: '#FF9F0A',
-    warningControl: '#FFC266',
-    onWarning: BrandColors.ink,
-    income: '#58D981',
-    incomeSoft: '#123525',
-    expense: '#FF8A82',
-    expenseSoft: '#3F1714',
     card: '#171717',
     surfaceWarm: '#202020',
     surfaceBlue: '#1A2E44',

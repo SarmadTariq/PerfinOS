@@ -9,8 +9,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppData } from '../models/finance';
 import { createDemoAppData, createEmptyAppData } from '../services/initialData';
 
-/** AsyncStorage key for guest workspace data. Versioned to allow future migrations. */
-const GUEST_STORAGE_KEY = 'perfin-os.guest.v1';
+/** AsyncStorage namespace for guest workspace data. Versioned to allow future migrations. */
+const GUEST_STORAGE_NAMESPACE = 'perfin-os.guest.v1';
 
 /**
  * Loads guest app data from AsyncStorage.
@@ -19,7 +19,7 @@ const GUEST_STORAGE_KEY = 'perfin-os.guest.v1';
  * @returns Hydrated AppData with all required fields normalised
  */
 export const loadGuestAppData = async (): Promise<AppData> => {
-  const raw = await AsyncStorage.getItem(GUEST_STORAGE_KEY);
+  const raw = await AsyncStorage.getItem(GUEST_STORAGE_NAMESPACE);
   if (!raw) {
     const demo = createDemoAppData();
     await saveGuestAppData(demo);
@@ -58,7 +58,7 @@ export const loadGuestAppData = async (): Promise<AppData> => {
  * @param data - The full AppData object to save
  */
 export const saveGuestAppData = async (data: AppData) => {
-  await AsyncStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(data));
+  await AsyncStorage.setItem(GUEST_STORAGE_NAMESPACE, JSON.stringify(data));
 };
 
 /**
@@ -66,5 +66,5 @@ export const saveGuestAppData = async (data: AppData) => {
  * Called on sign-in when the user chooses "Start Fresh".
  */
 export const clearGuestAppData = async () => {
-  await AsyncStorage.removeItem(GUEST_STORAGE_KEY);
+  await AsyncStorage.removeItem(GUEST_STORAGE_NAMESPACE);
 };

@@ -47,7 +47,7 @@ export const PLAN_CREATION_STEP_PRESENTATION:
         'Review the financial context',
 
       description:
-        'These values are calculated by PerFin OS before any AI request. Gemini cannot replace them.',
+        'These values are calculated by PerFin OS before any planning-service request. The planning service cannot replace them.',
     },
 
     data_use: {

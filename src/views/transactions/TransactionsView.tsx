@@ -416,7 +416,7 @@ const SummaryStrip = ({
   currency: string;
 }) => {
   const colors = useColors();
-  const netColor = net >= 0 ? colors.income : colors.expense;
+  const netColor = net >= 0 ? colors.success : colors.danger;
 
   return (
     <Card style={styles.summaryCard}>
@@ -426,13 +426,13 @@ const SummaryStrip = ({
             <View
               style={[
                 styles.summaryIcon,
-                { backgroundColor: `${colors.income}1F` },
+                { backgroundColor: `${colors.success}1F` },
               ]}
             >
               <MaterialIcons
                 name="south"
                 size={17}
-                color={colors.income}
+                color={colors.success}
               />
             </View>
 
@@ -447,7 +447,7 @@ const SummaryStrip = ({
 
           <Text
             variant="h4"
-            style={{ color: colors.income }}
+            style={{ color: colors.success }}
             numberOfLines={1}
             adjustsFontSizeToFit
           >
@@ -460,13 +460,13 @@ const SummaryStrip = ({
             <View
               style={[
                 styles.summaryIcon,
-                { backgroundColor: `${colors.expense}1F` },
+                { backgroundColor: `${colors.danger}1F` },
               ]}
             >
               <MaterialIcons
                 name="north"
                 size={17}
-                color={colors.expense}
+                color={colors.danger}
               />
             </View>
 
@@ -481,7 +481,7 @@ const SummaryStrip = ({
 
           <Text
             variant="h4"
-            style={{ color: colors.expense }}
+            style={{ color: colors.danger }}
             numberOfLines={1}
             adjustsFontSizeToFit
           >
@@ -1301,7 +1301,7 @@ const DateHeader = ({
   currency: string;
 }) => {
   const colors = useColors();
-  const amountColor = net >= 0 ? colors.income : colors.expense;
+  const amountColor = net >= 0 ? colors.success : colors.danger;
 
   return (
     <View style={styles.dateHeader}>
@@ -1349,7 +1349,7 @@ const TransactionCard = ({
 }) => {
   const colors = useColors();
   const category = categories.find((item) => item.id === transaction.categoryId);
-  const amountColor = transaction.type === 'income' ? colors.income : colors.expense;
+  const amountColor = transaction.type === 'income' ? colors.success : colors.danger;
   const receiptCount = transaction.receipts?.length || 0;
   const placeLabel =
     transaction.location?.neighborhood ||

@@ -11,4 +11,3 @@
 export { useDashboardViewModel } from './useDashboardViewModel';
 export { useTransactionViewModel } from './useTransactionViewModel';
 export { useMapViewModel } from './useMapViewModel';
-export { useReportsViewModel } from './useReportsViewModel';
