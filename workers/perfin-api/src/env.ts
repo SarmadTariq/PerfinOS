@@ -1,6 +1,7 @@
 export interface Env {
   PLAN_ENV?:
     | 'local'
+    | 'preview'
     | 'production';
 
   RECEIPTS: R2Bucket;

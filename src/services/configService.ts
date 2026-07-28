@@ -1,3 +1,7 @@
+import {
+  appEnvironment,
+} from './environment';
+
 /**
  * Application runtime configuration.
  * Values are injected via Expo public environment variables at build time.
@@ -7,6 +11,8 @@ const env = process.env || {};
 
 /** Base URLs and API keys resolved from environment variables. */
 export const appConfig = {
+  /** Runtime environment for source-level gating and diagnostics. */
+  environment: appEnvironment,
   /** PerFin OS Cloudflare Worker base URL (e.g. https://api.perfin-os.workers.dev) */
   apiBaseUrl: env.EXPO_PUBLIC_PERFIN_API_BASE_URL || '',
   /** Google Maps / Places API key for location search */
@@ -15,6 +21,7 @@ export const appConfig = {
 
 /** Flags indicating which external integrations are configured at runtime. */
 export const integrationStatus = {
+  appEnvironment,
   hasPerFinApi: !!appConfig.apiBaseUrl,
   hasGoogleMapsKey: !!appConfig.googleMapsApiKey,
 };
