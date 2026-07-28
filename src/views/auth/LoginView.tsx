@@ -3,8 +3,9 @@
  * Extracted from PerFinOSScreens.tsx (LoginScreen).
  */
 import React, { useState } from 'react';
-import { Alert, TouchableOpacity } from 'react-native';
+import { Alert, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { BrandLockup } from '../../brand/BrandIdentity';
 import { Button, Card, Text } from '../../components/base';
 import { ScreenHeader } from '../../components/finance';
 import { Field } from '../../components/form/Field';
@@ -40,6 +41,7 @@ export const LoginScreen = () => {
 
   return (
     <AppScroll>
+      <BrandLockup style={styles.brandLockup} />
       <ScreenHeader title="Login" subtitle="Access your PerFin OS workspace." />
       <Card shadow="sm">
         <Field label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" />
@@ -55,3 +57,10 @@ export const LoginScreen = () => {
     </AppScroll>
   );
 };
+
+const styles = StyleSheet.create({
+  brandLockup: {
+    alignSelf: 'center',
+    marginBottom: Spacing.xl,
+  },
+});

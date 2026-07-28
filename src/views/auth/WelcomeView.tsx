@@ -1,42 +1,21 @@
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { BrandLockup } from '../../brand/BrandIdentity';
 import { Button, Text } from '../../components/base';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { useFinance } from '../../context/FinanceContext';
-import { useColors } from '../../context/ThemeContext';
-import { ControlSize, Radius, Spacing } from '../../theme';
+import { ControlSize, Spacing } from '../../theme';
 
 export const WelcomeScreen = () => {
   const navigation = useNavigation<any>();
-  const colors = useColors();
   const { continueAsGuest } = useFinance();
 
   return (
     <AppScroll>
       <View style={styles.screen}>
         <View style={styles.content}>
-          <View style={styles.brandRow}>
-            <View
-              style={[
-                styles.brandMark,
-                {
-                  backgroundColor: colors.primarySoft,
-                  borderColor: colors.borderLight,
-                },
-              ]}
-            >
-              <MaterialIcons
-                name="query-stats"
-                size={22}
-                color={colors.primary}
-                accessible={false}
-              />
-            </View>
-
-            <Text variant="h4">PerFin OS</Text>
-          </View>
+          <BrandLockup style={styles.brandLockup} />
 
           <View style={styles.hero}>
             <Text variant="h1" style={styles.title}>
@@ -109,18 +88,8 @@ const styles = StyleSheet.create({
   content: {
     width: '100%',
   },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  brandMark: {
-    width: ControlSize.iconButton,
-    height: ControlSize.iconButton,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+  brandLockup: {
+    alignSelf: 'flex-start',
   },
   hero: {
     marginTop: Spacing.xxxl,

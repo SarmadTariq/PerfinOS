@@ -10,6 +10,7 @@ import {
   Card,
   Text,
 } from '../../components/base';
+import { BrandLockup } from '../../brand/BrandIdentity';
 import {
   IconButton,
   ScreenHeader,
@@ -156,6 +157,8 @@ export const HelpAboutScreen = () => (
               )
             }
           />
+
+          <BrandLockup style={styles.aboutBrand} />
 
           <View
             style={[
@@ -424,6 +427,10 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     padding: Spacing.lg,
     marginBottom: Spacing.xl,
+  },
+  aboutBrand: {
+    alignSelf: 'flex-start',
+    marginBottom: Spacing.lg,
   },
   bannerIcon: {
     width: 44,
