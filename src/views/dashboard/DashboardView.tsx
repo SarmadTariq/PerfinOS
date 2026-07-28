@@ -484,7 +484,7 @@ const TransactionRow = ({
   const colors = useColors();
   const categoryColor = category?.color || colors.textTertiary;
   const amountColor =
-    transaction.type === 'income' ? colors.success : colors.danger;
+    transaction.type === 'income' ? colors.income : colors.expense;
 
   return (
     <TouchableOpacity

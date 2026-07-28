@@ -1,14 +1,21 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Colors, Radius, Spacing } from '../../theme';
+import { getToastColorTokens, Radius, Spacing } from '../../theme';
+import { useColors } from '../../context/ThemeContext';
 import { Text } from '../base';
 
 /** Floating toast notification. Renders nothing when `message` is null. */
 export const Toast = ({ message, tone = 'success' }: { message: string | null; tone?: 'success' | 'danger' }) => {
+  const colors = useColors();
   if (!message) return null;
+  const colorTokens = getToastColorTokens(colors, tone);
   return (
-    <View style={[styles.toast, { backgroundColor: tone === 'success' ? Colors.light.success : Colors.light.danger }]}>
-      <Text variant="bodySmall" style={{ color: '#FFFFFF', fontWeight: '700' }}>{message}</Text>
+    <View
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
+      style={[styles.toast, { backgroundColor: colorTokens.background }]}
+    >
+      <Text variant="bodySmall" style={{ color: colorTokens.foreground, fontWeight: '700' }}>{message}</Text>
     </View>
   );
 };
