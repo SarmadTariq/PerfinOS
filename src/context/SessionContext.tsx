@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import {
+  deleteCurrentRemoteUser,
   firebaseConfigured,
   logoutRemote,
   sendRemotePasswordReset,
@@ -25,6 +26,7 @@ interface SessionContextValue {
   signupRemote: (name: string, email: string, password: string) => Promise<RemoteSessionUser>;
   forgotPassword: (email: string) => Promise<void>;
   logoutSession: () => Promise<void>;
+  deleteRemoteAccountSession: () => Promise<void>;
 }
 
 const SessionContext = createContext<SessionContextValue | undefined>(undefined);
@@ -111,6 +113,22 @@ export const SessionProvider = ({ children }: { children: React.ReactNode }) => 
     [isGuestSession]
   );
 
+  const deleteRemoteAccountSession =
+    useCallback(async () => {
+      requireRemoteReady();
+
+      if (isGuestSession) {
+        throw new Error(
+          'Guest workspaces do not have a remote account to delete'
+        );
+      }
+
+      await deleteCurrentRemoteUser();
+      setRemoteUserId(null);
+      setAuthenticated(false);
+      setGuestSession(false);
+    }, [isGuestSession]);
+
   const value = useMemo<SessionContextValue>(
     () => ({
       isAuthenticated,
@@ -121,8 +139,10 @@ export const SessionProvider = ({ children }: { children: React.ReactNode }) => 
       signupRemote,
       forgotPassword,
       logoutSession,
+      deleteRemoteAccountSession,
     }),
     [
+      deleteRemoteAccountSession,
       forgotPassword,
       isAuthenticated,
       isGuestSession,

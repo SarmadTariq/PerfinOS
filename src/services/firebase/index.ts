@@ -7,6 +7,7 @@ export {
 } from './client';
 
 export {
+  deleteCurrentRemoteUser,
   getRemoteIdToken,
   logoutRemote,
   sendRemotePasswordReset,
@@ -14,6 +15,11 @@ export {
   signUpRemote,
   subscribeToAuth,
 } from './auth';
+
+export {
+  accountDeletionRequestPath,
+  requestRemoteAccountDeletion,
+} from './accountDeletionRepository';
 
 export {
   getPlanAppCheckAvailability,

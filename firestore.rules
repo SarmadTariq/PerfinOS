@@ -105,6 +105,35 @@ service cloud.firestore {
         && request.resource.data.updatedAt is string;
     }
 
+    function validAccountDeletionRequest(userId) {
+      return request.resource.data.keys().hasOnly([
+          'schemaVersion',
+          'userId',
+          'email',
+          'status',
+          'requestedAt',
+          'updatedAt',
+          'source',
+          'receiptObjectKeys',
+          'associatedCollections',
+          'retryCount',
+          'failureCode'
+        ])
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.userId == userId
+        && request.resource.data.email is string
+        && request.resource.data.status == 'requested'
+        && request.resource.data.requestedAt is string
+        && request.resource.data.updatedAt is string
+        && request.resource.data.source == 'in_app'
+        && request.resource.data.receiptObjectKeys is list
+        && request.resource.data.receiptObjectKeys.size() <= 500
+        && request.resource.data.associatedCollections is list
+        && request.resource.data.associatedCollections.size() == 19
+        && request.resource.data.retryCount == 0
+        && request.resource.data.failureCode == null;
+    }
+
     function migrationAllowsTargetCreateOrUpdate(userId) {
       let migrationPath = /databases/$(database)/documents/users/$(userId)/private/migration;
       return (
@@ -598,6 +627,16 @@ service cloud.firestore {
         allow read: if isOwner(userId);
         allow create, update: if isOwner(userId)
           && validMigrationState();
+        allow delete: if false;
+      }
+
+      match /private/accountDeletion {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && validAccountDeletionRequest(userId);
+        allow update: if isOwner(userId)
+          && validAccountDeletionRequest(userId)
+          && request.resource.data.requestedAt == resource.data.requestedAt;
         allow delete: if false;
       }
 

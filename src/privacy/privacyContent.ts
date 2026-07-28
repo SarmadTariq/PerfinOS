@@ -128,7 +128,7 @@ export const getDataRemovalGuidance = (
 ) =>
   isGuest
     ? 'Leaving guest mode does not delete stored guest data. To remove all guest workspace data, clear PerFin OS app storage in device or browser settings. Individual supported records can be removed from their product screens.'
-    : 'Logging out does not delete cloud data. Individual supported records can be removed from their product screens. This build does not provide verified account-wide deletion or a support request form.';
+    : 'Logging out does not delete cloud data. Profile includes a typed account-wide deletion request that covers the signed-in Firebase account, workspace records, saved Plans, migration metadata, and uploaded receipt object keys. Completion still depends on a verified remote processor and recent Firebase authentication.';
 
 export const getHelpTopics = (
   isGuest: boolean
@@ -156,7 +156,7 @@ export const getHelpTopics = (
     detail:
       'Receipt selection is optional. Signed-in upload can store the image remotely when the service is configured. Transaction records keep receipt metadata and upload state.',
     recovery:
-      'If camera or photo access is denied, enable it in system settings or continue without a receipt. Remote receipt deletion is not verified from the app workflow.',
+      'If camera or photo access is denied, enable it in system settings or continue without a receipt. Account deletion includes uploaded receipt object keys for remote deletion processing.',
   },
   {
     id: 'location',
@@ -202,7 +202,7 @@ export const getHelpTopics = (
     id: 'contact',
     title: 'Contact',
     detail:
-      'This build does not include an in-app support form or verified account-deletion request route.',
+      'This build includes an in-app account-deletion request path. It does not include a general in-app support form.',
     recovery:
       'Use the support channel provided with the build or distribution source. Do not send passwords, tokens, account numbers, or receipt images in a support message.',
   },

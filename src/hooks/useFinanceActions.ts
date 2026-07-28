@@ -1,8 +1,16 @@
 import { useMemo } from 'react';
 import { AppData, Budget, Category, NewTransactionInput, RecurringExpense, Report, SavingsGoal, Transaction, User } from '../models/finance';
 import { detectRecurringExpenses, generateMonthlyReport } from '../services/financeAnalytics';
-import { importFinanceWorkspace } from '../services/firebaseService';
+import {
+  importFinanceWorkspace,
+  requestRemoteAccountDeletion,
+} from '../services/firebaseService';
 import { createEmptyAppData } from '../services/initialData';
+import {
+  buildAccountDeletionPlan,
+  validateAccountDeletionConfirmation,
+  type AccountDeletionPlan,
+} from '../services/accountDeletion';
 import { getMonthKey } from '../utils/format';
 import {
   getCategoryRemovalDecision,
@@ -20,6 +28,7 @@ export interface FinanceActions {
   signupWithEmail: (name: string, email: string, password: string, options?: AuthOptions) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: (confirmation: string) => Promise<AccountDeletionPlan>;
   updateUser: (updates: Partial<User>) => Promise<void>;
   completeOnboarding: (updates: Partial<User>) => Promise<void>;
   addTransaction: (input: NewTransactionInput) => Promise<void>;
@@ -102,6 +111,7 @@ export const useFinanceActions = (): FinanceActions => {
     signupRemote,
     forgotPassword: resetRemotePassword,
     logoutSession,
+    deleteRemoteAccountSession,
   } = useSession();
 
   return useMemo<FinanceActions>(
@@ -146,6 +156,43 @@ export const useFinanceActions = (): FinanceActions => {
           setError(message);
           throw new Error(message);
         }
+      },
+      deleteAccount: async (confirmation) => {
+        if (!data) {
+          throw new Error(
+            'PerFin OS data is still loading'
+          );
+        }
+
+        if (data.entitlement.isGuest) {
+          throw new Error(
+            'Guest workspaces do not have a remote account to delete'
+          );
+        }
+
+        if (
+          !validateAccountDeletionConfirmation(
+            confirmation
+          )
+        ) {
+          throw new Error(
+            'Type DELETE to request account deletion'
+          );
+        }
+
+        const plan =
+          buildAccountDeletionPlan({
+            data,
+            now: new Date().toISOString(),
+          });
+
+        await requestRemoteAccountDeletion(
+          plan.request
+        );
+        await deleteRemoteAccountSession();
+        clearWorkspace();
+
+        return plan;
       },
       updateUser: async (updates) => {
         await persist((current) => ({ ...current, user: { ...current.user, ...updates } }));
@@ -479,6 +526,7 @@ export const useFinanceActions = (): FinanceActions => {
     [
       clearWorkspace,
       data,
+      deleteRemoteAccountSession,
       loadGuestWorkspace,
       loginRemote,
       logoutSession,

@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useMemo } from 'react';
 import { AppData, Budget, Category, NewTransactionInput, RecurringExpense, Report, SavingsGoal, Transaction, User } from '../models/finance';
+import type {
+  AccountDeletionPlan,
+} from '../services/accountDeletion';
 import { generateSpendingInsights } from '../services/financeAnalytics';
 import { getMonthKey } from '../utils/format';
 import { useFinanceWorkspace } from '../hooks/useFinanceWorkspace';
@@ -18,6 +21,9 @@ interface FinanceContextValue {
   signupWithEmail: (name: string, email: string, password: string, options?: AuthOptions) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: (
+    confirmation: string
+  ) => Promise<AccountDeletionPlan>;
   updateUser: (updates: Partial<User>) => Promise<void>;
   completeOnboarding: (updates: Partial<User>) => Promise<void>;
   addTransaction: (input: NewTransactionInput) => Promise<void>;

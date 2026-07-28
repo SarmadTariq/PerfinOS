@@ -1,6 +1,7 @@
 import {
   User as FirebaseUser,
   createUserWithEmailAndPassword,
+  deleteUser,
   getIdToken,
   onAuthStateChanged,
   sendPasswordResetEmail,
@@ -62,3 +63,16 @@ export const getRemoteIdToken =
 export const logoutRemote = async () => {
   if (auth?.currentUser) await signOut(auth);
 };
+
+export const deleteCurrentRemoteUser =
+  async () => {
+    const user = auth?.currentUser;
+
+    if (!user) {
+      throw new Error(
+        'Firebase authentication is required'
+      );
+    }
+
+    await deleteUser(user);
+  };

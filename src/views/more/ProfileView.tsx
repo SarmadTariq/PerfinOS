@@ -30,6 +30,10 @@ import {
   validateProfileDraft,
 } from '../../profile';
 import {
+  ACCOUNT_DELETION_CONFIRMATION,
+  validateAccountDeletionConfirmation,
+} from '../../services/accountDeletion';
+import {
   Radius,
   Spacing,
 } from '../../theme';
@@ -137,6 +141,7 @@ export const ProfileScreen = () => (
         isGuest,
         updateUser,
         logout,
+        deleteAccount,
       } = useFinance();
       const navigation = useNavigation<any>();
       const colors = useColors();
@@ -158,6 +163,14 @@ export const ProfileScreen = () => (
         useState(false);
       const [loggingOut, setLoggingOut] =
         useState(false);
+      const [
+        deleteConfirmation,
+        setDeleteConfirmation,
+      ] = useState('');
+      const [
+        deletingAccount,
+        setDeletingAccount,
+      ] = useState(false);
 
       const validation = useMemo(
         () =>
@@ -212,6 +225,41 @@ export const ProfileScreen = () => (
             );
           } finally {
             setLoggingOut(false);
+          }
+        };
+
+      const confirmDeleteAccountAction =
+        async () => {
+          if (
+            deletingAccount ||
+            !validateAccountDeletionConfirmation(
+              deleteConfirmation
+            )
+          ) {
+            return;
+          }
+
+          setDeletingAccount(true);
+          setError(null);
+          setNotice(null);
+          try {
+            await deleteAccount(
+              deleteConfirmation
+            );
+          } catch (caught) {
+            const message =
+              caught instanceof Error
+                ? caught.message
+                : 'Account deletion could not be requested.';
+            setError(
+              message.includes(
+                'requires-recent-login'
+              )
+                ? 'Sign in again, then retry account deletion.'
+                : message
+            );
+          } finally {
+            setDeletingAccount(false);
           }
         };
 
@@ -510,6 +558,66 @@ export const ProfileScreen = () => (
             />
           </View>
 
+          {!isGuest ? (
+            <View
+              style={[
+                styles.deleteAccount,
+                {
+                  borderColor:
+                    colors.danger,
+                },
+              ]}
+            >
+              <Text
+                variant="h3"
+                color="danger"
+              >
+                Delete account
+              </Text>
+              <Text
+                variant="bodySmall"
+                color="secondary"
+                style={styles.sectionCopy}
+              >
+                Requests deletion for the signed-in
+                Firebase account, workspace data,
+                saved Plans, migration metadata, and
+                uploaded receipt objects. The request
+                is saved before Firebase Auth deletion
+                is attempted.
+              </Text>
+              <Field
+                label={`Type ${ACCOUNT_DELETION_CONFIRMATION}`}
+                value={deleteConfirmation}
+                onChangeText={
+                  setDeleteConfirmation
+                }
+                placeholder={
+                  ACCOUNT_DELETION_CONFIRMATION
+                }
+              />
+              <Button
+                label={
+                  deletingAccount
+                    ? 'Requesting deletion'
+                    : 'Delete account'
+                }
+                variant="danger"
+                loading={deletingAccount}
+                disabled={
+                  deletingAccount ||
+                  !validateAccountDeletionConfirmation(
+                    deleteConfirmation
+                  )
+                }
+                onPress={
+                  confirmDeleteAccountAction
+                }
+                style={styles.sectionAction}
+              />
+            </View>
+          ) : null}
+
           <ConfirmModal
             visible={confirmLogout}
             title={
@@ -637,6 +745,12 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   accountActions: {
+    marginBottom: Spacing.xl,
+  },
+  deleteAccount: {
+    borderWidth: 1,
+    borderRadius: Radius.sm,
+    padding: Spacing.lg,
     marginBottom: Spacing.xl,
   },
 });
