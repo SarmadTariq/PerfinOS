@@ -59,6 +59,14 @@ namespace_id = "20804"
   limit = 6
   period = 60
 
+[[ratelimits]]
+name = "PLACES_SEARCH_RATE_LIMITER"
+namespace_id = "20805"
+
+  [ratelimits.simple]
+  limit = 30
+  period = 60
+
 [env.production]
 name = "perfin-os"
 
@@ -71,6 +79,7 @@ GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 [env.production.secrets]
 required = [
   "GEMINI_API_KEY",
+  "GOOGLE_PLACES_API_KEY",
   "FIREBASE_PROJECT_NUMBER",
   "ALLOWED_ORIGINS"
 ]
@@ -109,4 +118,12 @@ namespace_id = "20804"
 
   [env.production.ratelimits.simple]
   limit = 6
+  period = 60
+
+[[env.production.ratelimits]]
+name = "PLACES_SEARCH_RATE_LIMITER"
+namespace_id = "20805"
+
+  [env.production.ratelimits.simple]
+  limit = 30
   period = 60

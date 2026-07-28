@@ -1,5 +1,9 @@
 import * as Location from 'expo-location';
 import { appConfig } from './configService';
+import {
+  auth,
+  getRemoteAppCheckToken,
+} from './firebaseService';
 
 export const getCurrentLocation = async (): Promise<{ latitude: number; longitude: number; address: string; name: string; formattedAddress: string }> => {
   try {
@@ -51,10 +55,29 @@ export const getLocationSuggestions = async (query: string): Promise<Array<{ lat
 
   if (appConfig.apiBaseUrl) {
     try {
-      const response = await fetch(`${appConfig.apiBaseUrl}/places/search?query=${encodeURIComponent(query.trim())}`);
+      const idToken =
+        await auth?.currentUser?.getIdToken();
+
+      if (!idToken) {
+        throw new Error(
+          'Sign in to use protected place search'
+        );
+      }
+
+      const appCheckToken =
+        await getRemoteAppCheckToken();
+
+      const response = await fetch(`${appConfig.apiBaseUrl}/places/search?query=${encodeURIComponent(query.trim())}`, {
+        headers: {
+          Authorization:
+            `Bearer ${idToken}`,
+          'X-Firebase-AppCheck':
+            appCheckToken,
+        },
+      });
       if (response.ok) return await response.json();
     } catch {
-      return [];
+      // Fall back to device geocoding when the protected Worker route is unavailable.
     }
   }
 

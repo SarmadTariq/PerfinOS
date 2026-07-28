@@ -28,6 +28,11 @@ import {
 } from './receipt/gateway';
 
 import {
+  createCloudflarePlacesRateLimiter,
+  createPlacesGateway,
+} from './places/gateway';
+
+import {
   createGeminiPlanProvider,
   createInMemoryPlanCircuitBreaker,
 } from './plan/provider';
@@ -48,42 +53,11 @@ const notConfigured = (feature: string) =>{
   return json({ error: `${feature} is not configured`, placeholder: true }, 503);
 };
 
-// ── Google Places proxy ────────────────────────────────────────────────────
-
-const handlePlaces = async (request: Request, env: Env): Promise<Response> => {
-  if (!env.GOOGLE_PLACES_API_KEY) return notConfigured('Google Places');
-  const url = new URL(request.url);
-  const query = url.searchParams.get('query')?.trim();
-  if (!query) return json([]);
-
-  const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Goog-Api-Key': env.GOOGLE_PLACES_API_KEY,
-      'X-Goog-FieldMask':
-        'places.id,places.displayName,places.formattedAddress,places.location,places.primaryType',
-    },
-    body: JSON.stringify({ textQuery: query, maxResultCount: 5 }),
-  });
-
-  if (!response.ok) return json({ error: 'Place search failed' }, response.status);
-  const payload = (await response.json()) as any;
-  return json(
-    (payload.places || []).map((place: any) => ({
-      placeId: place.id,
-      name: place.displayName?.text || place.formattedAddress,
-      address: place.formattedAddress,
-      formattedAddress: place.formattedAddress,
-      latitude: place.location?.latitude,
-      longitude: place.location?.longitude,
-      placeType: place.primaryType,
-    }))
-  );
-};
-
 const planRateLimiter =
   createCloudflarePlanRateLimiter();
+
+const placesRateLimiter =
+  createCloudflarePlacesRateLimiter();
 
 const planProviderCircuitBreaker =
   createInMemoryPlanCircuitBreaker();
@@ -136,6 +110,16 @@ const receiptGateway =
       verifyFirebaseAppCheckToken,
   });
 
+const placesGateway =
+  createPlacesGateway({
+    verifyIdToken:
+      verifyFirebaseIdToken,
+    verifyAppCheckToken:
+      verifyFirebaseAppCheckToken,
+    rateLimiter:
+      placesRateLimiter,
+  });
+
 // ── Main router ────────────────────────────────────────────────────────────
 
 export default {
@@ -164,14 +148,21 @@ export default {
         return receiptResponse;
       }
 
+      const placesResponse =
+        await placesGateway(
+          request,
+          env
+        );
+
+      if (placesResponse) {
+        return placesResponse;
+      }
+
       if (
         request.method ===
         'OPTIONS'
       ) {
         return json({});
-      }
-      if (url.pathname === '/places/search' && request.method === 'GET') {
-        return handlePlaces(request, env);
       }
       if (
         (
