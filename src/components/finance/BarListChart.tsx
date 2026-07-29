@@ -1,56 +1,170 @@
 import { useState } from 'react';
-import { Pressable, View, StyleSheet } from 'react-native';
-import { useThemeScheme } from '../../context/ThemeContext';
-import { Colors, Radius, Spacing } from '../../theme';
+import {
+  Pressable,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { useColors } from '../../context/ThemeContext';
+import {
+  Radius,
+  Spacing,
+  Typography,
+} from '../../theme';
 import { formatCurrency } from '../../utils/format';
-import { EmptyState } from './EmptyState';
 import { Text } from '../base';
+import { EmptyState } from './EmptyState';
 
-/**
- * Horizontal bar chart rendered as a list.
- * Each bar is tappable to reveal a secondary detail row.
- */
-export const BarListChart = ({
-  data, currency, emptyMessage = 'No chart data yet.',
-}: {
-  data: { label: string; value: number; color?: string; secondary?: string }[];
+export interface BarListChartItem {
+  label: string;
+  value: number;
+  color?: string;
+  secondary?: string;
+}
+
+export interface BarListChartProps {
+  data: BarListChartItem[];
   currency?: string;
   emptyMessage?: string;
-}) => {
-  const [selected, setSelected] = useState<string | null>(null);
-  const scheme = useThemeScheme();
-  const colors = scheme === 'dark' ? Colors.dark : Colors.light;
-  const max = Math.max(...data.map((item) => item.value), 0);
+}
+
+/**
+ * Horizontal bar chart rendered as a selectable list.
+ */
+export const BarListChart = ({
+  data,
+  currency,
+  emptyMessage = 'No chart data yet.',
+}: BarListChartProps) => {
+  const colors = useColors();
+
+  const [selected, setSelected] =
+    useState<string | null>(null);
+
+  const max = Math.max(
+    ...data.map((item) => item.value),
+    0,
+  );
 
   if (data.length === 0 || max === 0) {
-    return <EmptyState title="No chart data" message={emptyMessage} icon="bar-chart" />;
+    return (
+      <EmptyState
+        title="No chart data"
+        message={emptyMessage}
+        icon="bar-chart"
+      />
+    );
   }
 
   return (
     <View>
       {data.map((item) => {
-        const width = max === 0 ? 0 : (item.value / max) * 100;
-        const isSelected = selected === item.label;
+        const width =
+          (item.value / max) * 100;
+
+        const isSelected =
+          selected === item.label;
+
+        const itemColor =
+          item.color ?? colors.actionPrimary;
+
         return (
           <Pressable
             key={item.label}
-            onPress={() => setSelected(isSelected ? null : item.label)}
             accessibilityRole="button"
-            accessibilityLabel={`${item.label}, ${formatCurrency(item.value, currency)}`}
-            style={[styles.item, { backgroundColor: isSelected ? colors.bgTertiary : 'transparent', borderColor: isSelected ? colors.border : 'transparent' }]}
+            accessibilityLabel={
+              `${item.label}, ` +
+              formatCurrency(
+                item.value,
+                currency,
+              )
+            }
+            accessibilityState={{
+              selected: isSelected,
+            }}
+            onPress={() =>
+              setSelected(
+                isSelected
+                  ? null
+                  : item.label,
+              )
+            }
+            style={[
+              styles.item,
+              {
+                backgroundColor:
+                  isSelected
+                    ? colors.backgroundSubtle
+                    : colors.backgroundElevated,
+                borderColor:
+                  isSelected
+                    ? colors.borderDefault
+                    : colors.borderSubtle,
+              },
+            ]}
           >
             <View style={styles.row}>
               <View style={styles.labelGroup}>
-                <View style={[styles.dot, { backgroundColor: item.color || colors.primary }]} />
-                <Text variant="bodySmall" style={{ flex: 1, fontWeight: '700' }} numberOfLines={1}>{item.label}</Text>
+                <View
+                  style={[
+                    styles.dot,
+                    {
+                      backgroundColor:
+                        itemColor,
+                    },
+                  ]}
+                />
+
+                <Text
+                  variant="bodySmall"
+                  numberOfLines={1}
+                  style={styles.label}
+                >
+                  {item.label}
+                </Text>
               </View>
-              <Text variant="bodySmall" color="secondary" style={{ fontWeight: '700' }}>{formatCurrency(item.value, currency)}</Text>
+
+              <Text
+                variant="bodySmall"
+                color="secondary"
+                style={styles.value}
+              >
+                {formatCurrency(
+                  item.value,
+                  currency,
+                )}
+              </Text>
             </View>
-            <View style={[styles.track, { backgroundColor: colors.bgTertiary }]}>
-              <View style={[styles.bar, { width: `${Math.max(width, 4)}%`, backgroundColor: item.color || colors.primary }]} />
+
+            <View
+              style={[
+                styles.track,
+                {
+                  backgroundColor:
+                    colors.backgroundSubtle,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.bar,
+                  {
+                    width:
+                      `${Math.max(width, 4)}%`,
+                    backgroundColor:
+                      itemColor,
+                  },
+                ]}
+              />
             </View>
+
             {isSelected && item.secondary ? (
-              <Text variant="caption" color="secondary" style={{ marginTop: Spacing.xs }}>{item.secondary}</Text>
+              <Text
+                variant="caption"
+                color="secondary"
+                style={styles.secondary}
+              >
+                {item.secondary}
+              </Text>
             ) : null}
           </Pressable>
         );
@@ -60,10 +174,55 @@ export const BarListChart = ({
 };
 
 const styles = StyleSheet.create({
-  item: { marginBottom: Spacing.md, padding: Spacing.sm, borderWidth: 1, borderRadius: Radius.lg },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.md, marginBottom: Spacing.xs },
-  labelGroup: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  dot: { width: 9, height: 9, borderRadius: Radius.round },
-  track: { height: 13, borderRadius: Radius.round, overflow: 'hidden' },
-  bar: { height: '100%', borderRadius: Radius.round },
+  item: {
+    marginBottom: Spacing.md,
+    padding: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: Radius.lg,
+  },
+
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+    marginBottom: Spacing.xs,
+  },
+
+  labelGroup: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+
+  dot: {
+    width: Spacing.sm,
+    height: Spacing.sm,
+    borderRadius: Radius.round,
+  },
+
+  label: {
+    flex: 1,
+    fontWeight: Typography.label.fontWeight,
+  },
+
+  value: {
+    fontWeight: Typography.label.fontWeight,
+  },
+
+  track: {
+    height: Spacing.md,
+    borderRadius: Radius.round,
+    overflow: 'hidden',
+  },
+
+  bar: {
+    height: '100%',
+    borderRadius: Radius.round,
+  },
+
+  secondary: {
+    marginTop: Spacing.xs,
+  },
 });

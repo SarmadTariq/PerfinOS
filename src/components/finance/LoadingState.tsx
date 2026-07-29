@@ -1,20 +1,68 @@
-import { ActivityIndicator, View, StyleSheet } from 'react-native';
-import { useThemeScheme } from '../../context/ThemeContext';
-import { Colors, Radius, Spacing } from '../../theme';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { useColors } from '../../context/ThemeContext';
+import {
+  Radius,
+  Spacing,
+} from '../../theme';
 import { Text } from '../base';
 
-/** Centered spinner with a descriptive loading label. */
-export const LoadingState = ({ label = 'Loading PerFin OS data...' }: { label?: string }) => {
-  const scheme = useThemeScheme();
-  const colors = scheme === 'dark' ? Colors.dark : Colors.light;
+export interface LoadingStateProps {
+  label?: string;
+}
+
+/**
+ * Centered spinner with a descriptive loading label.
+ */
+export const LoadingState = ({
+  label = 'Loading PerFin OS data...',
+}: LoadingStateProps) => {
+  const colors = useColors();
+
   return (
-    <View style={styles.box} accessibilityRole="progressbar">
-      <ActivityIndicator color={colors.primary} />
-      <Text variant="body" color="secondary" style={{ marginTop: Spacing.md }}>{label}</Text>
+    <View
+      accessibilityRole="progressbar"
+      accessibilityLabel={label}
+      style={[
+        styles.box,
+        {
+          borderColor: colors.borderSubtle,
+        },
+      ]}
+    >
+      <ActivityIndicator
+        color={colors.actionPrimary}
+      />
+
+      <Text
+        variant="body"
+        color="secondary"
+        style={styles.label}
+      >
+        {label}
+      </Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  box: { minHeight: 220, alignItems: 'center', justifyContent: 'center', padding: Spacing.xl, borderRadius: Radius.lg, borderWidth: 1 },
+  box: {
+    minHeight:
+      Spacing.section * 3 +
+      Spacing.xxl +
+      Spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.xl,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+  },
+
+  label: {
+    marginTop: Spacing.md,
+    textAlign: 'center',
+  },
 });

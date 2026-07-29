@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors } from '../theme/colors';
-import type { ThemeColors } from '../theme/colors';
+import { getThemeColor } from '../theme/colors';
+import type { ThemeColors } from '../theme/types';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 
@@ -59,11 +59,11 @@ export const useThemeScheme = (): 'light' | 'dark' => {
 
 /**
  * Returns the active color palette object for the current theme.
- * Convenience hook: avoids repeating the `scheme === 'dark' ? Colors.dark : Colors.light` pattern.
+ * Convenience hook that returns the active semantic palette for the resolved theme.
  *
  * @returns Light or dark color token object from `src/theme/colors.ts`
  */
 export const useColors = (): ThemeColors => {
   const scheme = useThemeScheme();
-  return scheme === 'dark' ? Colors.dark : Colors.light;
+  return getThemeColor(scheme);
 };

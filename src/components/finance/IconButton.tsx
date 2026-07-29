@@ -1,32 +1,70 @@
 import React from 'react';
-import { TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useThemeScheme } from '../../context/ThemeContext';
-import { Colors, Radius } from '../../theme';
+import {
+  StyleSheet,
+  TouchableOpacity,
+} from 'react-native';
+import type {
+  StyleProp,
+  ViewStyle,
+} from 'react-native';
+import { useColors } from '../../context/ThemeContext';
+import {
+  ControlSize,
+  Radius,
+  Spacing,
+} from '../../theme';
 
-/** Square icon-only button with primary-soft background. Used for toolbar actions (back, send, edit). */
-export const IconButton = ({
-  icon, label, onPress, style,
-}: {
-  icon: React.ComponentProps<typeof MaterialIcons>['name'];
+export interface IconButtonProps {
+  icon: React.ComponentProps<
+    typeof MaterialIcons
+  >['name'];
   label: string;
   onPress: () => void;
-  style?: ViewStyle;
-}) => {
-  const scheme = useThemeScheme();
-  const colors = scheme === 'dark' ? Colors.dark : Colors.light;
+  style?: StyleProp<ViewStyle>;
+}
+
+/**
+ * Icon-only control for secondary toolbar actions.
+ */
+export const IconButton = ({
+  icon,
+  label,
+  onPress,
+  style,
+}: IconButtonProps) => {
+  const colors = useColors();
+
   return (
     <TouchableOpacity
       accessibilityRole="button"
       accessibilityLabel={label}
+      activeOpacity={0.82}
       onPress={onPress}
-      style={[styles.btn, { backgroundColor: colors.primarySoft }, style]}
+      style={[
+        styles.button,
+        {
+          backgroundColor:
+            colors.actionPrimarySoft,
+        },
+        style,
+      ]}
     >
-      <MaterialIcons name={icon} size={21} color={colors.primary} />
+      <MaterialIcons
+        name={icon}
+        size={Spacing.xl}
+        color={colors.actionPrimary}
+      />
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  btn: { width: 42, height: 42, borderRadius: Radius.lg, alignItems: 'center', justifyContent: 'center' },
+  button: {
+    width: ControlSize.minimumTouchTarget,
+    height: ControlSize.minimumTouchTarget,
+    borderRadius: Radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

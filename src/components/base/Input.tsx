@@ -1,11 +1,25 @@
 import React, { useState } from 'react';
-import { TextInput, StyleSheet, ViewStyle, TextInputProps } from 'react-native';
-import { Colors, Radius, Typography } from '../../theme';
-import { useThemeScheme } from '../../context/ThemeContext';
+import {
+  StyleSheet,
+  TextInput,
+} from 'react-native';
+import type {
+  StyleProp,
+  TextInputProps,
+  TextStyle,
+} from 'react-native';
+import {
+  ControlSize,
+  Radius,
+  Spacing,
+  Typography,
+} from '../../theme';
+import { useColors } from '../../context/ThemeContext';
 
-interface InputProps extends TextInputProps {
+export interface InputProps
+  extends Omit<TextInputProps, 'style'> {
   placeholder: string;
-  style?: ViewStyle;
+  style?: StyleProp<TextStyle>;
   error?: boolean;
 }
 
@@ -13,10 +27,11 @@ export const Input: React.FC<InputProps> = ({
   placeholder,
   style,
   error = false,
+  onBlur,
+  onFocus,
   ...props
 }) => {
-  const scheme = useThemeScheme();
-  const colors = scheme === 'dark' ? Colors.dark : Colors.light;
+  const colors = useColors();
   const [focused, setFocused] = useState(false);
 
   return (
@@ -24,21 +39,25 @@ export const Input: React.FC<InputProps> = ({
       {...props}
       onBlur={(event) => {
         setFocused(false);
-        props.onBlur?.(event);
+        onBlur?.(event);
       }}
       onFocus={(event) => {
         setFocused(true);
-        props.onFocus?.(event);
+        onFocus?.(event);
       }}
       placeholder={placeholder}
-      placeholderTextColor={colors.textTertiary}
-      selectionColor={colors.primary}
+      placeholderTextColor={colors.textMuted}
+      selectionColor={colors.actionPrimary}
       style={[
         styles.input,
         {
-          color: colors.text,
-          borderColor: error ? colors.danger : focused ? colors.primary : colors.border,
-          backgroundColor: colors.bgSecondary,
+          color: colors.textPrimary,
+          borderColor: error
+            ? colors.statusCritical
+            : focused
+              ? colors.focusRing
+              : colors.borderDefault,
+          backgroundColor: colors.backgroundSurface,
         },
         style,
       ]}
@@ -49,10 +68,10 @@ export const Input: React.FC<InputProps> = ({
 const styles = StyleSheet.create({
   input: {
     ...Typography.input,
-    minHeight: 50,
-    paddingHorizontal: 14,
+    minHeight: ControlSize.input,
+    paddingHorizontal: Spacing.lg,
     borderRadius: Radius.lg,
     borderWidth: 1,
-    marginBottom: 10,
+    marginBottom: Spacing.md,
   },
 });

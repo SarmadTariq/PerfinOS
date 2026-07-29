@@ -14,12 +14,17 @@
         "NSPhotoLibraryUsageDescription": "PerFin OS uses your photo library to attach receipt or payment images to expenses."
       },
       "bundleIdentifier": "com.yashkanadhia.perfinos",
-      "buildNumber": "1"
+      "buildNumber": "1",
+      "icon": {
+        "light": "./assets/icon-light.png",
+        "dark": "./assets/icon.png"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "monochromeImage": "./assets/adaptive-icon-monochrome.png",
+        "backgroundColor": "#0B0C0E"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
@@ -31,7 +36,12 @@
       "allowBackup": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "splash": {
+        "image": "./assets/splash-icon-light.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#FDFDFD"
+      }
     },
     "plugins": [
       "expo-location",
@@ -45,7 +55,20 @@
       ],
       "@react-native-community/datetimepicker",
       "expo-font",
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon-light.png",
+          "backgroundColor": "#FDFDFD",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#0B0C0E"
+          }
+        }
+      ]
     ]
   }
 }

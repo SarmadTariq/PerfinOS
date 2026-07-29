@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit",
     "typecheck:strict": "tsc --noEmit --noUnusedLocals --noUnusedParameters",
     "audit:prod": "npm audit --omit=dev",
-    "verify:release": "npm run typecheck:strict && npm run build && npm run audit:prod"
+    "verify:release": "npm run typecheck:strict && npm run build && npm run audit:prod",
+    "verify:brand-assets": "node scripts/verify-brand-assets.mjs",
+    "audit:design-system": "node scripts/audit-design-system.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
@@ -24,6 +26,7 @@
     "expo-font": "~57.0.1",
     "expo-image-picker": "~57.0.6",
     "expo-location": "~57.0.6",
+    "expo-splash-screen": "~57.0.5",
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.1",
     "firebase": "^12.16.0",

@@ -4,26 +4,27 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+} from 'react-native';
+import type {
+  StyleProp,
   ViewStyle,
 } from 'react-native';
 import {
-  BrandColors,
-  Colors,
   ControlSize,
   Radius,
   Spacing,
   Typography,
 } from '../../theme';
-import { useThemeScheme } from '../../context/ThemeContext';
+import { useColors } from '../../context/ThemeContext';
 
-interface ButtonProps {
+export interface ButtonProps {
   label: string;
   onPress: () => void;
   variant?: 'primary' | 'secondary' | 'danger' | 'success';
   size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
   loading?: boolean;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
 }
 
@@ -37,28 +38,21 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   accessibilityLabel,
 }) => {
-  const scheme = useThemeScheme();
-  const isDark = scheme === 'dark';
-  const colors = isDark ? Colors.dark : Colors.light;
+  const colors = useColors();
   const unavailable = disabled || loading;
 
   const variantColor = {
-    primary: colors.primary,
-    secondary: colors.bgSecondary,
-    danger: colors.danger,
-    success: colors.success,
+    primary: colors.actionPrimary,
+    secondary: colors.backgroundSurface,
+    danger: colors.statusCritical,
+    success: colors.statusPositive,
   }[variant];
 
-  const enabledTextColor =
-    variant === 'secondary'
-      ? colors.text
-      : variant === 'primary' && isDark
-        ? BrandColors.ink
-        : BrandColors.paper;
-
   const textColor = unavailable
-    ? colors.textTertiary
-    : enabledTextColor;
+    ? colors.textMuted
+    : variant === 'secondary'
+      ? colors.textPrimary
+      : colors.textInverse;
 
   const sizeStyles = {
     sm: {
@@ -93,7 +87,7 @@ export const Button: React.FC<ButtonProps> = ({
   return (
     <TouchableOpacity
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel || label}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{
         disabled: unavailable,
         busy: loading,
@@ -106,21 +100,27 @@ export const Button: React.FC<ButtonProps> = ({
         sizeStyles[size],
         {
           backgroundColor: unavailable
-            ? colors.bgTertiary
+            ? colors.backgroundSubtle
             : variantColor,
           borderColor: unavailable
-            ? colors.border
+            ? colors.borderDefault
             : variant === 'secondary'
-              ? colors.border
+              ? colors.borderDefault
               : variantColor,
-          borderWidth: variant === 'secondary' || unavailable ? 1 : 0,
+          borderWidth:
+            variant === 'secondary' || unavailable
+              ? 1
+              : 0,
           opacity: unavailable ? 0.72 : 1,
         },
         style,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={textColor} size="small" />
+        <ActivityIndicator
+          color={textColor}
+          size="small"
+        />
       ) : (
         <Text
           style={[
@@ -142,6 +142,6 @@ const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: Radius.sm,
+    borderRadius: Radius.md,
   },
 });

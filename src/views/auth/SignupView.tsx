@@ -1,11 +1,17 @@
 /**
- * SignupView — account creation with optional guest-data import dialog.
- * Extracted from PerFinOSScreens.tsx (SignupScreen).
+ * Account creation with optional guest-data import.
  */
 import { useState } from 'react';
-import { Alert } from 'react-native';
+import {
+  Alert,
+  StyleSheet,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Button, Card, Text } from '../../components/base';
+import {
+  Button,
+  Card,
+  Text,
+} from '../../components/base';
 import { ScreenHeader } from '../../components/finance';
 import { Field } from '../../components/form/Field';
 import { AppScroll } from '../../components/layout/AppScroll';
@@ -15,41 +21,121 @@ import { Spacing } from '../../theme';
 export const SignupScreen = () => {
   const navigation = useNavigation<any>();
   const { signupWithEmail, data } = useFinance();
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] =
+    useState<string | null>(null);
 
-  const submit = async (importGuestData = false) => {
+  const submit = async (
+    importGuestData = false,
+  ) => {
     try {
-      await signupWithEmail(name, email, password, { importGuestData });
+      await signupWithEmail(
+        name,
+        email,
+        password,
+        { importGuestData },
+      );
     } catch (err: any) {
       setError(err.message || 'Signup failed');
     }
   };
 
   const confirmSignup = () => {
-    if (data?.entitlement?.isGuest && data.transactions.length > 0) {
-      Alert.alert('Import guest data?', 'Create your account and import local guest data?', [
-        { text: 'Start Fresh', style: 'cancel', onPress: () => submit(false) },
-        { text: 'Import', onPress: () => submit(true) },
-      ]);
+    if (
+      data?.entitlement?.isGuest &&
+      data.transactions.length > 0
+    ) {
+      Alert.alert(
+        'Import guest data?',
+        'Create your account and import local guest data?',
+        [
+          {
+            text: 'Start Fresh',
+            style: 'cancel',
+            onPress: () => submit(false),
+          },
+          {
+            text: 'Import',
+            onPress: () => submit(true),
+          },
+        ],
+      );
+
       return;
     }
+
     submit(false);
   };
 
   return (
     <AppScroll>
-      <ScreenHeader title="Create Account" subtitle="Create a synced PerFin OS workspace." />
+      <ScreenHeader
+        title="Create account"
+        subtitle="Create a synced PerFin OS workspace."
+      />
+
       <Card shadow="sm">
-        <Field label="Name" value={name} onChangeText={setName} placeholder="Full name" />
-        <Field label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address"/>
-        <Field label="Password" value={password} onChangeText={setPassword} placeholder="At least 6 characters" secureTextEntry />
-        {error ? <Text color="danger">{error}</Text> : null}
-        <Button label="Create Account" onPress={confirmSignup} size="lg" />
-        <Button label="Back to Login" onPress={() => navigation.navigate('Login')} variant="secondary" style={{ marginTop: Spacing.md }} />
+        <Field
+          label="Name"
+          value={name}
+          onChangeText={setName}
+          placeholder="Full name"
+        />
+
+        <Field
+          label="Email"
+          value={email}
+          onChangeText={setEmail}
+          placeholder="you@example.com"
+          keyboardType="email-address"
+        />
+
+        <Field
+          label="Password"
+          value={password}
+          onChangeText={setPassword}
+          placeholder="At least 6 characters"
+          secureTextEntry
+        />
+
+        {error ? (
+          <Text
+            accessibilityRole="alert"
+            color="danger"
+            style={styles.error}
+          >
+            {error}
+          </Text>
+        ) : null}
+
+        <Button
+          label="Create account"
+          onPress={confirmSignup}
+          size="lg"
+        />
+
+        <Button
+          label="Back to login"
+          onPress={() =>
+            navigation.navigate('Login')
+          }
+          variant="secondary"
+          style={styles.backAction}
+        />
       </Card>
     </AppScroll>
   );
 };
+
+const styles = StyleSheet.create({
+  error: {
+    marginBottom: Spacing.md,
+  },
+
+  backAction: {
+    marginTop: Spacing.md,
+  },
+});
