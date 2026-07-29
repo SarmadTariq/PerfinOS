@@ -13,7 +13,8 @@
         "NSCameraUsageDescription": "PerFin OS uses the camera to attach receipt or payment images to expenses.",
         "NSPhotoLibraryUsageDescription": "PerFin OS uses your photo library to attach receipt or payment images to expenses."
       },
-      "bundleIdentifier": "com.anonymous.perfin-os"
+      "bundleIdentifier": "com.yashkanadhia.perfinos",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
@@ -25,7 +26,9 @@
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION"
       ],
-      "package": "com.sarmad.perfinos"
+      "package": "com.yashkanadhia.perfinos",
+      "versionCode": 1,
+      "allowBackup": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
