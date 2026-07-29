@@ -30,7 +30,7 @@ import { MapCanvas } from '../../components/map/MapCanvas';
 import { useFinance } from '../../context/FinanceContext';
 import { useColors } from '../../context/ThemeContext';
 import { AppData, Category, ReceiptAttachment, Transaction } from '../../models/finance';
-import { BrandColors, Colors, Radius, Spacing, Typography } from '../../theme';
+import { Radius, Spacing, Typography } from '../../theme/index';
 import { todayIso } from '../../utils/format';
 import { createClientEntityId } from '../../utils/ids';
 import { getTransactionCategoryOptions } from '../../utils/categories';
@@ -256,9 +256,9 @@ const DateField = ({
               padding: '13px 16px',
               fontSize: 16,
               borderRadius: 12,
-              border: `1px solid ${colors.border}`,
-              backgroundColor: colors.bgSecondary,
-              color: colors.text,
+              border: `1px solid ${colors.borderDefault}`,
+              backgroundColor: colors.backgroundSurface,
+              color: colors.textPrimary,
               outline: 'none',
               boxSizing: 'border-box',
               fontFamily: 'inherit',
@@ -272,9 +272,9 @@ const DateField = ({
             accessibilityRole="button"
             accessibilityLabel="Select transaction date"
             onPress={() => setShowDatePicker(true)}
-            style={[styles.dateButton, { borderColor: colors.border, backgroundColor: colors.bgSecondary }]}
+            style={[styles.dateButton, { borderColor: colors.borderDefault, backgroundColor: colors.backgroundSurface }]}
           >
-            <Text variant="body" style={{ color: colors.text }}>
+            <Text variant="body" style={{ color: colors.textPrimary }}>
               {date}
             </Text>
             <MaterialIcons name="calendar-today" size={18} color={colors.textSecondary} />
@@ -342,7 +342,7 @@ const CategorySelector = ({
           onPress={onCreateCategory}
           accessibilityRole="button"
           accessibilityLabel="Add custom category"
-          style={[styles.addCategoryChip, { borderColor: colors.border, backgroundColor: colors.bgSecondary }]}
+          style={[styles.addCategoryChip, { borderColor: colors.borderDefault, backgroundColor: colors.backgroundSurface }]}
         >
           <MaterialIcons name="add" size={14} color={colors.textSecondary} />
           <Text variant="caption" color="secondary" style={{ marginLeft: 3 }}>
@@ -429,10 +429,10 @@ const LocationSection = ({
                   accessibilityRole="button"
                   accessibilityLabel={`Select ${location.name}, ${location.formattedAddress || location.address}`}
                   onPress={() => onSelectPlace(location)}
-                  style={[styles.suggestionRow, { borderColor: colors.border, backgroundColor: colors.bgSecondary }]}
+                  style={[styles.suggestionRow, { borderColor: colors.borderDefault, backgroundColor: colors.backgroundSurface }]}
                 >
-                  <View style={[styles.suggestionIcon, { backgroundColor: colors.primarySoft }]}>
-                    <MaterialIcons name="place" size={17} color={colors.primary} />
+                  <View style={[styles.suggestionIcon, { backgroundColor: colors.actionPrimarySoft }]}>
+                    <MaterialIcons name="place" size={17} color={colors.actionPrimary} />
                   </View>
 
                   <View style={{ flex: 1 }}>
@@ -469,16 +469,16 @@ const LocationSection = ({
             style={[
               styles.selectedPlaceBox,
               {
-                borderColor: colors.border,
-                backgroundColor: colors.bgSecondary,
+                borderColor: colors.borderDefault,
+                backgroundColor: colors.backgroundSurface,
               },
             ]}
           >
-            <View style={[styles.suggestionIcon, { backgroundColor: colors.primarySoft }]}>
+            <View style={[styles.suggestionIcon, { backgroundColor: colors.actionPrimarySoft }]}>
               <MaterialIcons
                 name="check-circle"
                 size={18}
-                color={colors.primary}
+                color={colors.actionPrimary}
               />
             </View>
 
@@ -524,7 +524,7 @@ const LocationSection = ({
       ) : null}
 
       {previewTransaction ? (
-        <View style={[styles.mapFrame, { borderColor: colors.border, backgroundColor: colors.bgSecondary }]}>
+        <View style={[styles.mapFrame, { borderColor: colors.borderDefault, backgroundColor: colors.backgroundSurface }]}>
           <MapCanvas
             transactions={[previewTransaction]}
             categories={data.categories}
@@ -564,11 +564,11 @@ const ReceiptsSection = ({
         subtitle="Attach proof to keep the transaction record complete."
       />
 
-      <View style={[styles.receiptStatusBox, { borderColor: colors.border, backgroundColor: colors.bgSecondary }]}>
+      <View style={[styles.receiptStatusBox, { borderColor: colors.borderDefault, backgroundColor: colors.backgroundSurface }]}>
         <MaterialIcons
           name={receiptsEnabled ? 'cloud-upload' : 'lock-outline'}
           size={22}
-          color={receiptsEnabled ? colors.primary : colors.textTertiary}
+          color={receiptsEnabled ? colors.actionPrimary : colors.textMuted}
         />
 
         <View style={{ flex: 1 }}>
@@ -588,11 +588,11 @@ const ReceiptsSection = ({
       {receipts.length ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.receiptScroller}>
           {receipts.map((receipt) => (
-            <View key={receipt.id} style={[styles.receiptPreview, { borderColor: colors.border, backgroundColor: colors.bgSecondary }]}>
+            <View key={receipt.id} style={[styles.receiptPreview, { borderColor: colors.borderDefault, backgroundColor: colors.backgroundSurface }]}>
               {receipt.localUri ? (
                 <Image source={{ uri: receipt.localUri }} style={styles.receiptImage} />
               ) : (
-                <MaterialIcons name="receipt" size={30} color={colors.primary} />
+                <MaterialIcons name="receipt" size={30} color={colors.actionPrimary} />
               )}
 
               <Text variant="caption" numberOfLines={1}>
@@ -607,9 +607,15 @@ const ReceiptsSection = ({
                 accessibilityRole="button"
                 accessibilityLabel={`Remove ${receipt.fileName}`}
                 onPress={() => onRemoveReceipt(receipt.id)}
-                style={styles.receiptRemove}
+                style={[
+                  styles.receiptRemove,
+                  {
+                    backgroundColor:
+                      colors.statusCritical,
+                  },
+                ]}
               >
-                <MaterialIcons name="close" size={16} color={BrandColors.paper} />
+                <MaterialIcons name="close" size={16} color={colors.textInverse} />
               </TouchableOpacity>
             </View>
           ))}
@@ -667,8 +673,8 @@ const SavePanel = ({
       style={[
         styles.savePanel,
         {
-          backgroundColor: colors.card,
-          borderTopColor: colors.border,
+          backgroundColor: colors.backgroundElevated,
+          borderTopColor: colors.borderDefault,
           paddingBottom: Math.max(bottomInset, Spacing.md),
         },
       ]}
@@ -1245,8 +1251,8 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
               style={[
                 styles.editContext,
                 {
-                  backgroundColor: colors.bgSecondary,
-                  borderColor: colors.border,
+                  backgroundColor: colors.backgroundSurface,
+                  borderColor: colors.borderDefault,
                 },
               ]}
             >
@@ -1390,8 +1396,8 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
             style={[
               styles.optionalDisclosure,
               {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
+                backgroundColor: colors.backgroundElevated,
+                borderColor: colors.borderDefault,
               },
             ]}
           >
@@ -1483,8 +1489,8 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
             style={[
               styles.optionalDisclosure,
               {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
+                backgroundColor: colors.backgroundElevated,
+                borderColor: colors.borderDefault,
               },
             ]}
           >
@@ -1534,9 +1540,9 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
                   style={[
                     styles.recurringBox,
                     {
-                      borderColor: colors.border,
+                      borderColor: colors.borderDefault,
                       backgroundColor:
-                        colors.bgSecondary,
+                        colors.backgroundSurface,
                     },
                   ]}
                 >
@@ -1598,15 +1604,15 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
               style={[
                 styles.warningBox,
                 {
-                  backgroundColor: colors.bgSecondary,
-                  borderColor: colors.danger,
+                  backgroundColor: colors.backgroundSurface,
+                  borderColor: colors.statusCritical,
                 },
               ]}
             >
               <MaterialIcons
                 name="lock-outline"
                 size={20}
-                color={colors.danger}
+                color={colors.statusCritical}
               />
 
               <View style={styles.sectionHeaderCopy}>
@@ -1775,8 +1781,6 @@ const styles = StyleSheet.create({
   recurringBox: {
     borderWidth: 1,
     borderRadius: Radius.lg,
-    // borderColor: Colors.light.border,
-    // backgroundColor: Colors.light.bgSecondary,
     padding: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1867,7 +1871,6 @@ const styles = StyleSheet.create({
     borderRadius: Radius.round,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.light.danger,
   },
   savePanel: {
     borderTopWidth: 1,
