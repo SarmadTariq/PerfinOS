@@ -1,44 +1,37 @@
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import {
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Text } from '../../components/base';
+import { BrandMark } from '../../components/brand';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { useFinance } from '../../context/FinanceContext';
-import { useColors } from '../../context/ThemeContext';
-import { ControlSize, Radius, Spacing } from '../../theme';
+import {
+  ControlSize,
+  Spacing,
+} from '../../theme';
 
 export const WelcomeScreen = () => {
   const navigation = useNavigation<any>();
-  const colors = useColors();
   const { continueAsGuest } = useFinance();
 
   return (
     <AppScroll>
       <View style={styles.screen}>
         <View style={styles.content}>
-          <View style={styles.brandRow}>
-            <View
-              style={[
-                styles.brandMark,
-                {
-                  backgroundColor: colors.primarySoft,
-                  borderColor: colors.borderLight,
-                },
-              ]}
-            >
-              <MaterialIcons
-                name="query-stats"
-                size={22}
-                color={colors.primary}
-                accessible={false}
-              />
-            </View>
-
-            <Text variant="h4">PerFin OS</Text>
-          </View>
+          <BrandMark
+            size={ControlSize.iconButton}
+            appearance="auto"
+            alignment="horizontal"
+          />
 
           <View style={styles.hero}>
-            <Text variant="h1" style={styles.title}>
+            <Text
+              variant="display"
+              style={styles.title}
+            >
               See your money clearly.
             </Text>
 
@@ -47,8 +40,9 @@ export const WelcomeScreen = () => {
               color="secondary"
               style={styles.subtitle}
             >
-              Review activity, understand spending patterns, and turn
-              insights into a practical plan.
+              Review activity, understand spending
+              patterns, and turn insights into a
+              practical plan.
             </Text>
           </View>
         </View>
@@ -57,17 +51,23 @@ export const WelcomeScreen = () => {
           <View style={styles.actions}>
             <Button
               label="Log in"
-              onPress={() => navigation.navigate('Login')}
+              onPress={() =>
+                navigation.navigate('Login')
+              }
               size="lg"
               accessibilityLabel="Log in to PerFin OS"
             />
 
             <Button
               label="Create account"
-              onPress={() => navigation.navigate('Signup')}
+              onPress={() =>
+                navigation.navigate('Signup')
+              }
               variant="secondary"
               size="lg"
-              accessibilityLabel="Create a PerFin OS account"
+              accessibilityLabel={
+                'Create a PerFin OS account'
+              }
             />
 
             <TouchableOpacity
@@ -77,7 +77,10 @@ export const WelcomeScreen = () => {
               activeOpacity={0.82}
               style={styles.guestAction}
             >
-              <Text variant="body" color="secondary">
+              <Text
+                variant="body"
+                color="secondary"
+              >
                 Continue as guest
               </Text>
             </TouchableOpacity>
@@ -88,7 +91,8 @@ export const WelcomeScreen = () => {
             color="tertiary"
             style={styles.guestNote}
           >
-            Guest mode keeps this workspace on this device.
+            Guest mode keeps this workspace on this
+            device.
           </Text>
         </View>
       </View>
@@ -105,46 +109,41 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingTop: Spacing.lg,
   },
+
   content: {
     width: '100%',
   },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  brandMark: {
-    width: ControlSize.iconButton,
-    height: ControlSize.iconButton,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+
   hero: {
-    marginTop: Spacing.xxxl,
+    marginTop: Spacing.section,
   },
+
   title: {
     maxWidth: 420,
   },
+
   subtitle: {
     maxWidth: 420,
     marginTop: Spacing.md,
   },
+
   decisionArea: {
     width: '100%',
     marginTop: Spacing.xxxl,
   },
+
   actions: {
     width: '100%',
     gap: Spacing.md,
   },
+
   guestAction: {
     minHeight: ControlSize.minimumTouchTarget,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: Spacing.xs,
   },
+
   guestNote: {
     marginTop: Spacing.md,
     textAlign: 'center',

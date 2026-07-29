@@ -1,6 +1,9 @@
+import { Brand } from './brand';
+
 /**
- * Spacing scale — use these tokens for margin/padding/gap throughout the app.
- * Multiples of 4 for visual consistency.
+ * Four-point spacing scale.
+ *
+ * Existing names remain stable during PF-236 migration.
  */
 export const Spacing = {
   xs: 4,
@@ -10,8 +13,14 @@ export const Spacing = {
   xl: 20,
   xxl: 24,
   xxxl: 32,
-};
+  huge: 40,
+  display: 48,
+  section: 64,
+} as const;
 
+/**
+ * Minimum interactive and form-control dimensions.
+ */
 export const ControlSize = {
   minimumTouchTarget: 44,
   button: 48,
@@ -20,8 +29,7 @@ export const ControlSize = {
 } as const;
 
 /**
- * Border-radius tokens.
- * `round` is suitable for pills/chips; `xl` for large cards.
+ * Shared corner-radius scale.
  */
 export const Radius = {
   sm: 8,
@@ -29,42 +37,64 @@ export const Radius = {
   lg: 16,
   xl: 20,
   round: 999,
-};
+} as const;
 
 /**
- * Elevation / shadow presets.
- * `sm` for subtle lift, `md` for cards, `lg` for modals/overlays.
+ * Shared elevation primitives.
+ *
+ * Shadow colour is declared once and reused by every preset.
+ */
+export const ElevationPrimitive = {
+  shadowColor: Brand.ink,
+} as const;
+
+/**
+ * Cross-platform shadow presets.
  */
 export const Shadows = {
   sm: {
-    shadowColor: '#111',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.10,
+    shadowColor: ElevationPrimitive.shadowColor,
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
+
   md: {
-    shadowColor: '#111',
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: ElevationPrimitive.shadowColor,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 5,
   },
+
   lg: {
-    shadowColor: '#111',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.20,
+    shadowColor: ElevationPrimitive.shadowColor,
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.2,
     shadowRadius: 16,
     elevation: 8,
   },
-};
+} as const;
 
 /**
- * Default full-screen container style.
- * Apply as a base when building screen root views.
+ * Default full-screen container foundation.
  */
 export const Container = {
   flex: 1,
   paddingHorizontal: Spacing.lg,
   paddingVertical: Spacing.lg,
-};
+} as const;
+
+export type SpacingToken = keyof typeof Spacing;
+export type RadiusToken = keyof typeof Radius;
+export type ShadowToken = keyof typeof Shadows;

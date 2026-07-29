@@ -1,85 +1,249 @@
+import { Brand } from './brand';
+import type {
+  ThemeColors,
+  ThemeColorToken,
+  ThemeScheme,
+} from './types';
+
+export type {
+  ThemeColors,
+  ThemeColorToken,
+  ThemeScheme,
+} from './types';
+
 /**
- * Color palette for PerFin OS.
+ * Stable identity and feature palette references.
  *
- * Rule:
- * - React components use useColors().
- * - Non-component helpers use getThemeColor().
- * - Views must not index Colors with a loose string.
- * - Views must not put raw color strings directly inside React Native style arrays.
+ * Brand artwork files remain immutable. These constants support interface
+ * tokens and temporary compatibility consumers during PF-236 migration.
  */
-
-export type ThemeScheme = 'light' | 'dark';
-
 export const BrandColors = {
-  ink: '#111827',
-  blue: '#6C74E6',
-  blueLight: '#AEB4FF',
-  paper: '#F8FAFC',
+  ink: Brand.ink,
+  blue: Brand.terminalBlue,
+  blueLight: '#A9B7FF',
+  paper: Brand.lightCanvas,
+  white: Brand.white,
+
   budgetMint: '#58B87B',
   reportViolet: '#8D63D5',
   insightTeal: '#2AA6A4',
   goalOrange: '#E9823C',
 } as const;
 
-export type ThemeColors = {
-  bg: string;
-  bgSecondary: string;
-  bgTertiary: string;
-  text: string;
-  textSecondary: string;
-  textTertiary: string;
-  border: string;
-  borderLight: string;
-  primary: string;
-  primarySoft: string;
-  success: string;
-  danger: string;
-  warning: string;
-  card: string;
-  surfaceWarm: string;
-  surfaceBlue: string;
-};
+/**
+ * Primitive values used to construct semantic light-theme tokens.
+ *
+ * Raw interface colour values should remain inside approved theme source
+ * files rather than being repeated in components or screens.
+ */
+const lightPrimitives = {
+  canvas: Brand.lightCanvas,
+  surface: Brand.white,
+  subtle: '#F2F4F7',
+  elevated: Brand.white,
 
-export type ThemeColorToken = keyof ThemeColors;
+  textPrimary: Brand.ink,
+  textSecondary: '#3F4652',
+  textMuted: '#6B7280',
+  textInverse: Brand.white,
+
+  borderDefault: '#D1D5DB',
+  borderSubtle: '#E5E7EB',
+  borderStrong: '#9CA3AF',
+
+  actionPrimary: Brand.terminalBlue,
+  actionPrimaryPressed: '#3048C9',
+  actionPrimarySoft: '#E8ECFF',
+
+  positive: '#167C4B',
+  warning: '#925600',
+  critical: '#C6372B',
+  informational: '#285E8E',
+
+  income: '#167C4B',
+  expense: '#C6372B',
+  transfer: '#4B6FB4',
+
+  focusRing: Brand.terminalBlue,
+  overlay: 'rgba(11, 12, 14, 0.55)',
+} as const;
+
+/**
+ * Primitive values used to construct semantic dark-theme tokens.
+ */
+const darkPrimitives = {
+  canvas: Brand.ink,
+  surface: '#15171C',
+  subtle: '#1D2026',
+  elevated: '#23262D',
+
+  textPrimary: '#F8FAFC',
+  textSecondary: '#CBD1DA',
+  textMuted: '#9199A6',
+  textInverse: Brand.ink,
+
+  borderDefault: '#343943',
+  borderSubtle: '#252A32',
+  borderStrong: '#56606F',
+
+  actionPrimary: BrandColors.blueLight,
+  actionPrimaryPressed: '#C0C9FF',
+  actionPrimarySoft: '#232B52',
+
+  positive: '#53D38B',
+  warning: '#F2B84B',
+  critical: '#FF756A',
+  informational: '#69A9E0',
+
+  income: '#53D38B',
+  expense: '#FF756A',
+  transfer: '#8EA8F2',
+
+  focusRing: BrandColors.blueLight,
+  overlay: 'rgba(0, 0, 0, 0.68)',
+} as const;
+
+const lightSemantic = {
+  backgroundCanvas: lightPrimitives.canvas,
+  backgroundSurface: lightPrimitives.surface,
+  backgroundSubtle: lightPrimitives.subtle,
+  backgroundElevated: lightPrimitives.elevated,
+
+  textPrimary: lightPrimitives.textPrimary,
+  textSecondary: lightPrimitives.textSecondary,
+  textMuted: lightPrimitives.textMuted,
+  textInverse: lightPrimitives.textInverse,
+
+  borderDefault: lightPrimitives.borderDefault,
+  borderSubtle: lightPrimitives.borderSubtle,
+  borderStrong: lightPrimitives.borderStrong,
+
+  actionPrimary: lightPrimitives.actionPrimary,
+  actionPrimaryPressed: lightPrimitives.actionPrimaryPressed,
+  actionPrimarySoft: lightPrimitives.actionPrimarySoft,
+
+  statusPositive: lightPrimitives.positive,
+  statusWarning: lightPrimitives.warning,
+  statusCritical: lightPrimitives.critical,
+  statusInformational: lightPrimitives.informational,
+
+  amountIncome: lightPrimitives.income,
+  amountExpense: lightPrimitives.expense,
+  amountTransfer: lightPrimitives.transfer,
+
+  focusRing: lightPrimitives.focusRing,
+  overlay: lightPrimitives.overlay,
+} as const;
+
+const darkSemantic = {
+  backgroundCanvas: darkPrimitives.canvas,
+  backgroundSurface: darkPrimitives.surface,
+  backgroundSubtle: darkPrimitives.subtle,
+  backgroundElevated: darkPrimitives.elevated,
+
+  textPrimary: darkPrimitives.textPrimary,
+  textSecondary: darkPrimitives.textSecondary,
+  textMuted: darkPrimitives.textMuted,
+  textInverse: darkPrimitives.textInverse,
+
+  borderDefault: darkPrimitives.borderDefault,
+  borderSubtle: darkPrimitives.borderSubtle,
+  borderStrong: darkPrimitives.borderStrong,
+
+  actionPrimary: darkPrimitives.actionPrimary,
+  actionPrimaryPressed: darkPrimitives.actionPrimaryPressed,
+  actionPrimarySoft: darkPrimitives.actionPrimarySoft,
+
+  statusPositive: darkPrimitives.positive,
+  statusWarning: darkPrimitives.warning,
+  statusCritical: darkPrimitives.critical,
+  statusInformational: darkPrimitives.informational,
+
+  amountIncome: darkPrimitives.income,
+  amountExpense: darkPrimitives.expense,
+  amountTransfer: darkPrimitives.transfer,
+
+  focusRing: darkPrimitives.focusRing,
+  overlay: darkPrimitives.overlay,
+} as const;
+
+/**
+ * Compatibility aliases.
+ *
+ * These names keep existing consumers operational while the application moves
+ * to semantic keys. They must be removed only after the full PF-236 migration.
+ */
+const lightCompatibility = {
+  bg: lightSemantic.backgroundCanvas,
+  bgSecondary: lightSemantic.backgroundSurface,
+  bgTertiary: lightSemantic.backgroundSubtle,
+
+  text: lightSemantic.textPrimary,
+  textTertiary: lightSemantic.textMuted,
+
+  border: lightSemantic.borderDefault,
+  borderLight: lightSemantic.borderSubtle,
+
+  primary: lightSemantic.actionPrimary,
+  primarySoft: lightSemantic.actionPrimarySoft,
+
+  success: lightSemantic.statusPositive,
+  danger: lightSemantic.statusCritical,
+  warning: lightSemantic.statusWarning,
+
+  card: lightSemantic.backgroundElevated,
+  surfaceWarm: lightSemantic.backgroundSubtle,
+  surfaceBlue: lightSemantic.actionPrimarySoft,
+} as const;
+
+const darkCompatibility = {
+  bg: darkSemantic.backgroundCanvas,
+  bgSecondary: darkSemantic.backgroundSurface,
+  bgTertiary: darkSemantic.backgroundSubtle,
+
+  text: darkSemantic.textPrimary,
+  textTertiary: darkSemantic.textMuted,
+
+  border: darkSemantic.borderDefault,
+  borderLight: darkSemantic.borderSubtle,
+
+  primary: darkSemantic.actionPrimary,
+  primarySoft: darkSemantic.actionPrimarySoft,
+
+  success: darkSemantic.statusPositive,
+  danger: darkSemantic.statusCritical,
+  warning: darkSemantic.statusWarning,
+
+  card: darkSemantic.backgroundElevated,
+  surfaceWarm: darkSemantic.backgroundSubtle,
+  surfaceBlue: darkSemantic.actionPrimarySoft,
+} as const;
 
 export const Colors: Record<ThemeScheme, ThemeColors> = {
   light: {
-    bg: BrandColors.paper,
-    bgSecondary: '#FFFFFF',
-    bgTertiary: '#ECECEC',
-    text: BrandColors.ink,
-    textSecondary: '#4A4A4A',
-    textTertiary: '#777777',
-    border: '#D6D6D6',
-    borderLight: '#EEEEEE',
-    primary: BrandColors.blue,
-    primarySoft: '#E8F2FF',
-    success: '#34C759',
-    danger: '#FF3B30',
-    warning: '#FF9500',
-    card: '#FFFFFF',
-    surfaceWarm: '#F2F2F2',
-    surfaceBlue: '#E8F2FF',
+    ...lightSemantic,
+    ...lightCompatibility,
   },
+
   dark: {
-    bg: BrandColors.ink,
-    bgSecondary: '#171717',
-    bgTertiary: '#242424',
-    text: BrandColors.paper,
-    textSecondary: '#C9C9C9',
-    textTertiary: '#929292',
-    border: '#363636',
-    borderLight: '#282828',
-    primary: BrandColors.blueLight,
-    primarySoft: '#1A2E44',
-    success: '#32D74B',
-    danger: '#FF453A',
-    warning: '#FF9F0A',
-    card: '#171717',
-    surfaceWarm: '#202020',
-    surfaceBlue: '#1A2E44',
+    ...darkSemantic,
+    ...darkCompatibility,
   },
 };
 
-export const getThemeColor = (scheme: ThemeScheme | null | undefined): ThemeColors =>
-  scheme === 'dark' ? Colors.dark : Colors.light;
+export const getThemeColor = (
+  scheme: ThemeScheme | null | undefined,
+): ThemeColors => (
+  scheme === 'dark'
+    ? Colors.dark
+    : Colors.light
+);
+
+/**
+ * Compile-time helper for consumers that accept a token name rather than a
+ * complete colour object.
+ */
+export const getColorToken = (
+  scheme: ThemeScheme | null | undefined,
+  token: ThemeColorToken,
+): string => getThemeColor(scheme)[token];

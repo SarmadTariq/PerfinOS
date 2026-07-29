@@ -1,17 +1,73 @@
-import { View, StyleSheet } from 'react-native';
-import { Colors, Radius, Spacing } from '../../theme';
+import { StyleSheet, View } from 'react-native';
+import {
+  Radius,
+  Spacing,
+  Typography,
+} from '../../theme';
+import { useColors } from '../../context/ThemeContext';
 import { Text } from '../base';
 
-/** Floating toast notification. Renders nothing when `message` is null. */
-export const Toast = ({ message, tone = 'success' }: { message: string | null; tone?: 'success' | 'danger' }) => {
-  if (!message) return null;
+export interface ToastProps {
+  message: string | null;
+  tone?: 'success' | 'danger';
+}
+
+/**
+ * Floating status notification.
+ * Renders nothing when no message is provided.
+ */
+export const Toast = ({
+  message,
+  tone = 'success',
+}: ToastProps) => {
+  const colors = useColors();
+
+  if (!message) {
+    return null;
+  }
+
+  const backgroundColor =
+    tone === 'success'
+      ? colors.statusPositive
+      : colors.statusCritical;
+
   return (
-    <View style={[styles.toast, { backgroundColor: tone === 'success' ? Colors.light.success : Colors.light.danger }]}>
-      <Text variant="bodySmall" style={{ color: '#FFFFFF', fontWeight: '700' }}>{message}</Text>
+    <View
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
+      style={[
+        styles.toast,
+        { backgroundColor },
+      ]}
+    >
+      <Text
+        variant="bodySmall"
+        style={[
+          styles.message,
+          {
+            color: colors.textInverse,
+          },
+        ]}
+      >
+        {message}
+      </Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  toast: { position: 'absolute', left: Spacing.lg, right: Spacing.lg, bottom: Spacing.lg, borderRadius: Radius.lg, padding: Spacing.md, alignItems: 'center' },
+  toast: {
+    position: 'absolute',
+    left: Spacing.lg,
+    right: Spacing.lg,
+    bottom: Spacing.lg,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    alignItems: 'center',
+  },
+
+  message: {
+    fontWeight: Typography.label.fontWeight,
+    textAlign: 'center',
+  },
 });

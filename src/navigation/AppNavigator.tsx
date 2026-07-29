@@ -2,7 +2,7 @@ import React from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { Animated, Easing, View } from 'react-native';
+import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { useColors, useThemeScheme } from '../context/ThemeContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFinance } from '../context/FinanceContext';
@@ -36,8 +36,14 @@ import { ProfileScreen } from '../views/more/ProfileView';
 import { HelpAboutScreen } from '../views/more/HelpAboutView';
 // Errors
 import { NotFoundScreen } from '../views/errors/NotFoundView';
-import { Colors } from '../theme';
-import { Text } from '../components';
+import {
+  ControlSize,
+  Motion,
+  Radius,
+  Spacing,
+  Typography,
+} from '../theme';
+import { BrandMark } from '../components/brand';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -52,9 +58,6 @@ const AuthStack = () => (
   </Stack.Navigator>
 );
 
-  // const scheme = useThemeScheme();
-  // const { data, isAuthenticated } = useFinance();
-
 const PlanTabScreen = () => (
   <PlanScreen showBackButton={false} showProfileButton />
 );
@@ -65,26 +68,27 @@ const Tabs = () => {
   return (
     <Tab.Navigator
       initialRouteName="Map"
-      // theme={scheme === 'dark' ? DarkTheme : DefaultTheme}
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textTertiary,
+        tabBarActiveTintColor: colors.actionPrimary,
+        tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: {
-          backgroundColor: colors.card,
-          borderTopColor: colors.border,
-          minHeight: 76,
-          paddingBottom: 12,
-          paddingTop: 10,
+          backgroundColor: colors.backgroundElevated,
+          borderTopColor: colors.borderDefault,
+          minHeight:
+            ControlSize.button +
+            Spacing.xxl +
+            Spacing.xs,
+          paddingBottom: Spacing.md,
+          paddingTop: Spacing.sm + Spacing.xs / 2,
         },
         tabBarItemStyle: {
-          borderRadius: 8,
-          marginHorizontal: 2,
+          borderRadius: Radius.sm,
+          marginHorizontal: Spacing.xs / 2,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '700',
-          letterSpacing: 0,
+          ...Typography.caption,
+          fontWeight: Typography.h4.fontWeight,
         },
         tabBarHideOnKeyboard: true,
         tabBarIcon: ({ focused, color, size }) => {
@@ -127,56 +131,88 @@ const MainStack = () => (
   </Stack.Navigator>
 );
 
-const SplashGate = ({ children }: { children: React.ReactNode }) => {
-  const opacity = React.useRef(new Animated.Value(0)).current;
-  const scale = React.useRef(new Animated.Value(0.92)).current;
-  const [complete, setComplete] = React.useState(false);
+const SplashGate = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
+  const colors = useColors();
+
+  const opacity = React.useRef(
+    new Animated.Value(0),
+  ).current;
+
+  const scale = React.useRef(
+    new Animated.Value(Motion.scale.enter),
+  ).current;
+
+  const [complete, setComplete] =
+    React.useState(false);
 
   React.useEffect(() => {
-    Animated.sequence([
+    const animation = Animated.sequence([
       Animated.parallel([
         Animated.timing(opacity, {
           toValue: 1,
-          duration: 420,
+          duration: Motion.duration.deliberate,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
         Animated.timing(scale, {
-          toValue: 1,
-          duration: 520,
+          toValue: Motion.scale.identity,
+          duration: Motion.duration.deliberate,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
       ]),
-      Animated.delay(360),
+      Animated.delay(Motion.duration.standard),
       Animated.timing(opacity, {
         toValue: 0,
-        duration: 260,
+        duration: Motion.duration.standard,
         easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
       }),
-    ]).start(() => setComplete(true));
+    ]);
+
+    animation.start(({ finished }) => {
+      if (finished) {
+        setComplete(true);
+      }
+    });
+
+    return () => {
+      animation.stop();
+    };
   }, [opacity, scale]);
 
-  if (complete) return <>{children}</>;
+  if (complete) {
+    return <>{children}</>;
+  }
 
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.light.bg }}>
-      <Animated.View style={{ alignItems: 'center', opacity, transform: [{ scale }] }}>
-        <View
-          style={{
-            width: 74,
-            height: 74,
-            borderRadius: 20,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: Colors.light.primary,
-            marginBottom: 18,
-          }}
-        >
-          <Ionicons name="stats-chart" size={34} color="#FFFFFF" />
-        </View>
-        <Text variant="h2">PerFin OS</Text>
+    <View
+      style={[
+        styles.splash,
+        {
+          backgroundColor:
+            colors.backgroundCanvas,
+        },
+      ]}
+    >
+      <Animated.View
+        style={[
+          styles.splashContent,
+          {
+            opacity,
+            transform: [{ scale }],
+          },
+        ]}
+      >
+        <BrandMark
+          size={Spacing.section}
+          appearance="auto"
+          alignment="stacked"
+        />
       </Animated.View>
     </View>
   );
@@ -184,15 +220,54 @@ const SplashGate = ({ children }: { children: React.ReactNode }) => {
 
 const AppNavigator = () => {
   const scheme = useThemeScheme();
+  const colors = useColors();
   const { data, isAuthenticated } = useFinance();
 
+  const navigationTheme = React.useMemo(() => {
+    const baseTheme =
+      scheme === 'dark'
+        ? DarkTheme
+        : DefaultTheme;
+
+    return {
+      ...baseTheme,
+      colors: {
+        ...baseTheme.colors,
+        primary: colors.actionPrimary,
+        background: colors.backgroundCanvas,
+        card: colors.backgroundElevated,
+        text: colors.textPrimary,
+        border: colors.borderDefault,
+        notification: colors.statusCritical,
+      },
+    };
+  }, [colors, scheme]);
+
   return (
-    <NavigationContainer theme={scheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <NavigationContainer theme={navigationTheme}>
       <SplashGate>
-        {!isAuthenticated ? <AuthStack /> : data?.onboarded ? <MainStack /> : data ? <OnboardingScreen /> : <AuthStack />}
+        {!isAuthenticated
+          ? <AuthStack />
+          : data?.onboarded
+            ? <MainStack />
+            : data
+              ? <OnboardingScreen />
+              : <AuthStack />}
       </SplashGate>
     </NavigationContainer>
   );
 };
+
+const styles = StyleSheet.create({
+  splash: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  splashContent: {
+    alignItems: 'center',
+  },
+});
 
 export default AppNavigator;

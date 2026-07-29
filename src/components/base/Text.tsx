@@ -1,12 +1,20 @@
 import React from 'react';
-import { Text as RNText, TextProps } from 'react-native';
-import { Colors, Typography } from '../../theme';
-import { useThemeScheme } from '../../context/ThemeContext';
+import { Text as RNText } from 'react-native';
+import type { TextProps } from 'react-native';
+import { Typography } from '../../theme';
+import { useColors } from '../../context/ThemeContext';
 
-type TypographyVariant = 'h1' | 'h2' | 'h3' | 'h4' | 'bodyLarge' | 'body' | 'bodySmall' | 'caption';
-type TextColor = 'primary' | 'secondary' | 'tertiary' | 'danger' | 'success';
+export type TypographyVariant =
+  keyof typeof Typography;
 
-interface TextComponentProps extends TextProps {
+export type TextColor =
+  | 'primary'
+  | 'secondary'
+  | 'tertiary'
+  | 'danger'
+  | 'success';
+
+export interface TextComponentProps extends TextProps {
   variant?: TypographyVariant;
   color?: TextColor;
 }
@@ -18,23 +26,26 @@ export const Text: React.FC<TextComponentProps> = ({
   style,
   ...props
 }) => {
-  const scheme = useThemeScheme();
-  const colors = scheme === 'dark' ? Colors.dark : Colors.light;
+  const colors = useColors();
 
   const colorMap = {
-    primary: colors.text,
+    primary: colors.textPrimary,
     secondary: colors.textSecondary,
-    tertiary: colors.textTertiary,
-    danger: colors.danger,
-    success: colors.success,
+    tertiary: colors.textMuted,
+    danger: colors.statusCritical,
+    success: colors.statusPositive,
   };
-
-  const typographyStyle = Typography[variant];
 
   return (
     <RNText
       {...props}
-      style={[typographyStyle, { color: colorMap[color] }, style]}
+      style={[
+        Typography[variant],
+        {
+          color: colorMap[color],
+        },
+        style,
+      ]}
     >
       {children}
     </RNText>

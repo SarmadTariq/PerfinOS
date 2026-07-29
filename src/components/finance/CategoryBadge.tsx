@@ -1,38 +1,105 @@
-import { View, StyleSheet } from 'react-native';
-import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { useThemeScheme } from '../../context/ThemeContext';
-import { Colors, Radius, Spacing } from '../../theme';
-import { materialIconName, mcIconName } from '../../utils/icons';
+import {
+  MaterialCommunityIcons,
+  MaterialIcons,
+} from '@expo/vector-icons';
+import {
+  StyleSheet,
+  View,
+} from 'react-native';
+import { useColors } from '../../context/ThemeContext';
+import {
+  Radius,
+  Spacing,
+} from '../../theme';
+import {
+  materialIconName,
+  mcIconName,
+} from '../../utils/icons';
 import { Text } from '../base';
 
-/** Pill badge displaying a category label with optional icon and selection state. */
-export const CategoryBadge = ({
-  label, color, icon, selected = false, library = 'mci',
-}: {
+export interface CategoryBadgeProps {
   label: string;
   color: string;
   icon?: string;
   selected?: boolean;
   library?: 'mi' | 'mci';
-}) => {
-  const scheme = useThemeScheme();
-  const colors = scheme === 'dark' ? Colors.dark : Colors.light;
+}
+
+/**
+ * Category label with optional icon and selection state.
+ */
+export const CategoryBadge = ({
+  label,
+  color,
+  icon,
+  selected = false,
+  library = 'mci',
+}: CategoryBadgeProps) => {
+  const colors = useColors();
+
   return (
-    <View style={[styles.badge, { borderColor: color, backgroundColor: selected ? `${color}1F` : colors.bgSecondary }]}>
+    <View
+      accessibilityLabel={label}
+      accessibilityState={{ selected }}
+      style={[
+        styles.badge,
+        {
+          borderColor: color,
+          backgroundColor:
+            selected
+              ? colors.backgroundSubtle
+              : colors.backgroundElevated,
+        },
+      ]}
+    >
       {icon ? (
-        library === 'mi'
-          ? <MaterialIcons name={materialIconName(icon)} size={14} color={color} />
-          : <MaterialCommunityIcons name={mcIconName(icon)} size={14} color={color} />
+        library === 'mi' ? (
+          <MaterialIcons
+            name={materialIconName(icon)}
+            size={Spacing.lg}
+            color={color}
+          />
+        ) : (
+          <MaterialCommunityIcons
+            name={mcIconName(icon)}
+            size={Spacing.lg}
+            color={color}
+          />
+        )
       ) : null}
-      <Text variant="caption" style={{ color, marginLeft: icon ? Spacing.xs : 0 }}>{label}</Text>
+
+      <Text
+        variant="caption"
+        style={[
+          icon
+            ? styles.labelWithIcon
+            : styles.label,
+          { color },
+        ]}
+      >
+        {label}
+      </Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   badge: {
-    flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start',
-    borderWidth: 1, borderRadius: Radius.round,
-    paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, minHeight: 30,
+    minHeight: Spacing.xxxl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderRadius: Radius.round,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+
+  label: {
+    marginLeft: 0,
+  },
+
+  labelWithIcon: {
+    marginLeft: Spacing.xs,
   },
 });
