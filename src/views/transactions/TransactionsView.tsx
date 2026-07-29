@@ -22,11 +22,11 @@ import {
 } from '../../context/ActivityFilterContext';
 import {
   useColors,
-  useThemeScheme,
+  useTheme,
 } from '../../context/ThemeContext';
 import { AppData, Category, Transaction, TransactionDatePreset, TransactionFrequencyFilter, TransactionSortKey } from '../../models/finance';
 import { filterTransactions, sortTransactions } from '../../repositories/AnalyticsRepository';
-import { ControlSize, Radius, Spacing, Typography } from '../../theme';
+import { ControlSize, Radius, Spacing, Typography } from '../../theme/index';
 import { formatCurrency, formatCurrencyPrecise } from '../../utils/format';
 import { mcIconName } from '../../utils/icons';
 
@@ -83,7 +83,7 @@ const CalendarDateField = ({
   onChange: (value: string) => void;
 }) => {
   const colors = useColors();
-  const themeScheme = useThemeScheme();
+  const { resolved: themeScheme } = useTheme();
 
   if (Platform.OS === 'web') {
     return (
@@ -447,7 +447,7 @@ const SummaryStrip = ({
 
           <Text
             variant="h4"
-            style={{ color: colors.success }}
+            color="success"
             numberOfLines={1}
             adjustsFontSizeToFit
           >
@@ -481,7 +481,7 @@ const SummaryStrip = ({
 
           <Text
             variant="h4"
-            style={{ color: colors.danger }}
+            color="danger"
             numberOfLines={1}
             adjustsFontSizeToFit
           >
@@ -515,7 +515,11 @@ const SummaryStrip = ({
 
           <Text
             variant="h4"
-            style={{ color: netColor }}
+            color={
+              net >= 0
+                ? 'success'
+                : 'danger'
+            }
             numberOfLines={1}
             adjustsFontSizeToFit
           >
@@ -859,7 +863,7 @@ const ActivityFilterSheet = ({
         style={[
           styles.modalBackdrop,
           {
-            backgroundColor: `${colors.text}73`,
+            backgroundColor: colors.overlay,
           },
         ]}
       >
@@ -878,9 +882,9 @@ const ActivityFilterSheet = ({
               <Text
                 variant="bodySmall"
                 color="secondary"
-                style={{
-                  marginTop: Spacing.xs,
-                }}
+                style={
+                  styles.sheetSubtitle
+                }
               >
                 {sheetCopy.subtitle}
               </Text>
@@ -2123,13 +2127,15 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'flex-end',
   },
   sheetTitleCopy: {
     flex: 1,
     minWidth: 0,
     paddingRight: Spacing.sm,
+  },
+  sheetSubtitle: {
+    marginTop: Spacing.xs,
   },
   filterPanel: {
     borderTopLeftRadius: Radius.xl,
