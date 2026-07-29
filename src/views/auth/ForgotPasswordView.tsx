@@ -2,7 +2,7 @@
  * ForgotPasswordView — sends a password reset email via FinanceContext.
  * Extracted from PerFinOSScreens.tsx (ForgotPasswordScreen).
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button, Card, Text } from '../../components/base';
 import { ScreenHeader } from '../../components/finance';
 import { Field } from '../../components/form/Field';

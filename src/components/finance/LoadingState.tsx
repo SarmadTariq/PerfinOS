@@ -1,4 +1,3 @@
-import React from 'react';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { useThemeScheme } from '../../context/ThemeContext';
 import { Colors, Radius, Spacing } from '../../theme';

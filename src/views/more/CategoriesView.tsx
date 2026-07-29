@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   StyleSheet,
   TouchableOpacity,

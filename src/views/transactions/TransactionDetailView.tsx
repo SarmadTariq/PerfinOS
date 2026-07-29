@@ -2,7 +2,7 @@
  * TransactionDetailView - calm financial record with payment,
  * place, receipt, history, edit, and delete actions.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   StyleSheet,
   TouchableOpacity,

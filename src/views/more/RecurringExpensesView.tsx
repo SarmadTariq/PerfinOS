@@ -2,7 +2,6 @@
  * RecurringExpensesView — list and toggle detected recurring charges.
  * Extracted from PerFinOSScreens.tsx (RecurringExpensesScreen).
  */
-import React from 'react';
 import { StyleSheet, Switch, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Card, Text } from '../../components/base';
