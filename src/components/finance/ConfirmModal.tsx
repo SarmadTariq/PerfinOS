@@ -1,4 +1,3 @@
-import React from 'react';
 import { Modal, View, StyleSheet } from 'react-native';
 import { Radius, Spacing } from '../../theme';
 import { Button, Text } from '../base';

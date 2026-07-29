@@ -17,7 +17,7 @@ const ThemeContext = createContext<ThemeCtx | null>(null);
 const STORAGE_KEY = '@perfin_theme_mode';
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const system = useColorScheme() ?? 'light';
+  const system = useColorScheme() === 'dark' ? 'dark' : 'light';
   const [mode, setModeState] = useState<ThemeMode>('system');
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export const useTheme = () => {
 /** Drop-in replacement for useColorScheme() that respects manual override */
 export const useThemeScheme = (): 'light' | 'dark' => {
   const ctx = useContext(ThemeContext);
-  const system = useColorScheme() ?? 'light';
+  const system = useColorScheme() === 'dark' ? 'dark' : 'light';
   if (!ctx) return system;
   return ctx.resolved;
 };

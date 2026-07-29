@@ -2,7 +2,6 @@
  * NotFoundView — fallback screen for unrecognised navigation routes.
  * Extracted from PerFinOSScreens.tsx (NotFoundScreen).
  */
-import React from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { EmptyState } from '../../components/finance';
 import { AppScroll } from '../../components/layout/AppScroll';

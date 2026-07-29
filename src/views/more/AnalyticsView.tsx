@@ -1,7 +1,6 @@
 /**
  * AnalyticsView — evidence layer for reports, insights, and planning.
  */
-import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { BarListChart, ChartCard, EmptyState, IconButton, MetricGrid, ScreenHeader, StatCard } from '../../components/finance';

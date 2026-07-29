@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import React, {
+import {
   useEffect,
   useMemo,
   useState,

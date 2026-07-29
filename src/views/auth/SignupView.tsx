@@ -2,7 +2,7 @@
  * SignupView — account creation with optional guest-data import dialog.
  * Extracted from PerFinOSScreens.tsx (SignupScreen).
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Card, Text } from '../../components/base';

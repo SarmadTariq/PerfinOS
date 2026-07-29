@@ -2,7 +2,7 @@
  * OnboardingView — initial profile setup (name, income, budget, currency).
  * Extracted from PerFinOSScreens.tsx (OnboardingScreen).
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button, Card, Text } from '../../components/base';
 import { ScreenHeader } from '../../components/finance';
 import { Field } from '../../components/form/Field';

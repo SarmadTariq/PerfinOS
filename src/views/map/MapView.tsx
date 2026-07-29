@@ -2,7 +2,7 @@
  * MapView - expense map with heatmap/pins modes, category filters, and contextual actions.
  * Uses SafeAreaView layout because the map is the primary canvas.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -383,7 +383,11 @@ const styles = StyleSheet.create({
     ...Shadows.sm,
   },
   emptyOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     alignItems: 'center',
     justifyContent: 'center',
     padding: Spacing.lg,
