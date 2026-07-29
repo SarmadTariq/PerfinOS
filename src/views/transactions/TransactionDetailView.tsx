@@ -38,7 +38,7 @@ import {
   Radius,
   Spacing,
   Typography,
-} from '../../theme';
+} from '../../theme/index';
 import { formatCurrencyPrecise } from '../../utils/format';
 
 const formatBytes = (bytes: number) => {
@@ -93,18 +93,18 @@ const getReceiptTone = (
   colors: ReturnType<typeof useColors>
 ) => {
   if (status === 'uploaded') {
-    return colors.success;
+    return colors.statusPositive;
   }
 
   if (status === 'error') {
-    return colors.danger;
+    return colors.statusCritical;
   }
 
   if (status === 'uploading') {
-    return colors.warning;
+    return colors.statusWarning;
   }
 
-  return colors.primary;
+  return colors.actionPrimary;
 };
 
 const DetailRow = ({
@@ -123,7 +123,7 @@ const DetailRow = ({
       style={[
         styles.detailRow,
         {
-          borderBottomColor: colors.border,
+          borderBottomColor: colors.borderDefault,
         },
         last ? styles.detailRowLast : null,
       ]}
@@ -165,7 +165,7 @@ const ReceiptRow = ({
       style={[
         styles.receiptRow,
         {
-          borderBottomColor: colors.border,
+          borderBottomColor: colors.borderDefault,
         },
         last ? styles.detailRowLast : null,
       ]}
@@ -263,7 +263,7 @@ const ReceiptsSection = ({
               variant="bodySmall"
               style={[
                 styles.linkActionLabel,
-                { color: colors.primary },
+                { color: colors.actionPrimary },
               ]}
             >
               Manage
@@ -272,7 +272,7 @@ const ReceiptsSection = ({
             <MaterialIcons
               name="chevron-right"
               size={19}
-              color={colors.primary}
+              color={colors.actionPrimary}
             />
           </TouchableOpacity>
         ) : null}
@@ -283,16 +283,16 @@ const ReceiptsSection = ({
           style={[
             styles.emptyReceiptRow,
             {
-              borderColor: colors.border,
+              borderColor: colors.borderDefault,
               backgroundColor:
-                colors.bgSecondary,
+                colors.backgroundSurface,
             },
           ]}
         >
           <MaterialIcons
             name="receipt-long"
             size={20}
-            color={colors.textTertiary}
+            color={colors.textMuted}
           />
 
           <Text
@@ -332,8 +332,8 @@ const TransactionHero = ({
   const colors = useColors();
   const amountColor =
     transaction.type === 'income'
-      ? colors.success
-      : colors.danger;
+      ? colors.amountIncome
+      : colors.amountExpense;
 
   return (
     <Card style={styles.heroCard}>
@@ -400,7 +400,7 @@ const TransactionHero = ({
               styles.heroDivider,
               {
                 backgroundColor:
-                  colors.border,
+                  colors.borderDefault,
               },
             ]}
           />
@@ -552,16 +552,16 @@ const TransactionDetailContent = ({
                 styles.editAction,
                 {
                   borderColor:
-                    colors.border,
+                    colors.borderDefault,
                   backgroundColor:
-                    colors.bgSecondary,
+                    colors.backgroundSurface,
                 },
               ]}
             >
               <MaterialIcons
                 name="edit"
                 size={17}
-                color={colors.primary}
+                color={colors.actionPrimary}
               />
 
               <Text
@@ -569,7 +569,7 @@ const TransactionDetailContent = ({
                 style={[
                   styles.editActionLabel,
                   {
-                    color: colors.primary,
+                    color: colors.actionPrimary,
                   },
                 ]}
               >
@@ -583,7 +583,7 @@ const TransactionDetailContent = ({
       <TransactionHero
         transaction={transaction}
         categoryColor={
-          category?.color || colors.primary
+          category?.color || colors.actionPrimary
         }
         currency={data.user.currency}
       />
@@ -674,7 +674,7 @@ const TransactionDetailContent = ({
                     styles.linkActionLabel,
                     {
                       color:
-                        colors.primary,
+                        colors.actionPrimary,
                     },
                   ]}
                 >
@@ -684,7 +684,7 @@ const TransactionDetailContent = ({
                 <MaterialIcons
                   name="chevron-right"
                   size={19}
-                  color={colors.primary}
+                  color={colors.actionPrimary}
                 />
               </TouchableOpacity>
             ) : null}
@@ -766,7 +766,7 @@ const TransactionDetailContent = ({
           style={[
             styles.deleteAction,
             {
-              borderColor: colors.border,
+              borderColor: colors.borderDefault,
             },
           ]}
         >
@@ -775,14 +775,14 @@ const TransactionDetailContent = ({
               styles.deleteIcon,
               {
                 backgroundColor:
-                  `${colors.danger}1F`,
+                  `${colors.statusCritical}1F`,
               },
             ]}
           >
             <MaterialIcons
               name="delete-outline"
               size={20}
-              color={colors.danger}
+              color={colors.statusCritical}
             />
           </View>
 
@@ -806,7 +806,7 @@ const TransactionDetailContent = ({
           <MaterialIcons
             name="chevron-right"
             size={20}
-            color={colors.textTertiary}
+            color={colors.textMuted}
           />
         </TouchableOpacity>
       </Card>
