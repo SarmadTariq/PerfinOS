@@ -24,7 +24,7 @@ import {
   PLAN_STATUS_LABEL,
 } from '../../planning/planWorkspacePresentation';
 import { filterTransactions, sortTransactions } from '../../repositories/AnalyticsRepository';
-import { Radius, Spacing, Typography } from '../../theme';
+import { Radius, Spacing, Typography } from '../../theme/index';
 import { formatCurrency, getMonthKey, readableMonth } from '../../utils/format';
 
 type PlanHomeScreenProps = {
@@ -155,12 +155,12 @@ const SavedPlansSection = ({
       {plans.map((plan) => {
         const statusColor =
           plan.status === 'active'
-            ? colors.success
+            ? colors.statusPositive
             : plan.status === 'archived'
-              ? colors.textTertiary
+              ? colors.textMuted
               : plan.status === 'completed'
-                ? colors.primary
-                : colors.warning;
+                ? colors.actionPrimary
+                : colors.statusWarning;
 
         return (
           <Card
@@ -367,7 +367,7 @@ export const PlanHomeScreen = ({
                   {rangeLabel(dateRange.startDate, dateRange.endDate)} · {frequencyCopy}
                 </Text>
               </View>
-              <CategoryBadge label={focusStep.status === 'ready' ? 'Plan ready' : 'Review needed'} color={focusStep.status === 'ready' ? colors.success : colors.warning} icon="flag" library="mi" />
+              <CategoryBadge label={focusStep.status === 'ready' ? 'Plan ready' : 'Review needed'} color={focusStep.status === 'ready' ? colors.statusPositive : colors.statusWarning} icon="flag" library="mi" />
             </View>
 
             <View style={styles.summaryGrid}>
@@ -436,10 +436,10 @@ export const PlanHomeScreen = ({
             const config = statusConfig[step.status];
             const color =
               config.colorKey === 'success'
-                ? colors.success
+                ? colors.statusPositive
                 : config.colorKey === 'warning'
-                  ? colors.warning
-                  : colors.danger;
+                  ? colors.statusWarning
+                  : colors.statusCritical;
 
             return (
               <Card key={step.title} style={styles.stepCard}>

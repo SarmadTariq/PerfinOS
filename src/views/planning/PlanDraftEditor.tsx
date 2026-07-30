@@ -16,7 +16,7 @@ import type {
 
 import {
   Spacing,
-} from '../../theme';
+} from '../../theme/index';
 
 interface PlanDraftEditorProps {
   readonly draft:
