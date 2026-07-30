@@ -6,13 +6,12 @@ import { useNavigation } from '@react-navigation/native';
 import { BarListChart, ChartCard, EmptyState, IconButton, MetricGrid, ScreenHeader, StatCard } from '../../components/finance';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';
-import { useColors } from '../../context/ThemeContext';
 import {
   buildAnalyticsEvidenceLayer,
   groupTransactionsByMonth,
   groupTransactionsByWeek,
 } from '../../repositories/AnalyticsRepository';
-import { Spacing } from '../../theme';
+import { ChartColors, Spacing } from '../../theme/index';
 import { formatCurrency, getMonthKey, readableMonth } from '../../utils/format';
 
 const monthDateRange = (month: string) => ({
@@ -67,7 +66,6 @@ export const AnalyticsScreen = () => (
   <RequireData>
     {(data) => {
       const navigation = useNavigation<any>();
-      const colors = useColors();
       const month = getMonthKey();
       const period = monthDateRange(month);
       const evidence = buildAnalyticsEvidenceLayer(
@@ -87,25 +85,25 @@ export const AnalyticsScreen = () => (
       const monthlyTrend = Object.entries(months).map(([label, items]) => ({
         label,
         value: items.filter((item) => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0),
-        color: colors.primary,
+        color: ChartColors.series[0],
       }));
 
       const weekly = Object.entries(weeks).map(([label, items]) => ({
         label,
         value: items.filter((item) => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0),
-        color: colors.warning,
+        color: ChartColors.series[3],
       }));
 
       const incomeVsExpenses = [
         {
           label: 'Income',
           value: evidence.summary.totalIncome,
-          color: colors.success,
+          color: ChartColors.finance.income,
         },
         {
           label: 'Expenses',
           value: evidence.summary.totalExpense,
-          color: colors.danger,
+          color: ChartColors.finance.expense,
         },
       ];
 
@@ -119,7 +117,7 @@ export const AnalyticsScreen = () => (
       const recurringData = evidence.recurringEvidence.byMerchant.slice(0, 6).map((item) => ({
         label: item.merchant,
         value: item.amount,
-        color: colors.warning,
+        color: ChartColors.categories.subscriptions,
         secondary: `${item.transactionCount} recurring transaction${item.transactionCount === 1 ? '' : 's'}`,
       }));
 
