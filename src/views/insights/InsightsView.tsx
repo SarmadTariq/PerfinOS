@@ -37,7 +37,7 @@ import {
 import {
   Radius,
   Spacing,
-} from '../../theme';
+} from '../../theme/index';
 import { formatCurrency } from '../../utils/format';
 
 const GROUP_META: Record<
@@ -88,14 +88,14 @@ const InsightCard = ({
             styles.itemIcon,
             {
               backgroundColor:
-                colors.primarySoft,
+                colors.actionPrimarySoft,
             },
           ]}
         >
           <MaterialIcons
             name={meta.icon}
             size={20}
-            color={colors.primary}
+            color={colors.actionPrimary}
           />
         </View>
         <View style={styles.itemContent}>
@@ -115,7 +115,7 @@ const InsightCard = ({
               styles.evidence,
               {
                 borderColor:
-                  colors.borderLight,
+                  colors.borderSubtle,
               },
             ]}
           >
@@ -354,8 +354,8 @@ const InsightsContent = ({
           styles.contextBand,
           {
             backgroundColor:
-              colors.bgSecondary,
-            borderColor: colors.border,
+              colors.backgroundSubtle,
+            borderColor: colors.borderDefault,
           },
         ]}
       >
@@ -456,7 +456,7 @@ const InsightsContent = ({
                 styles.coverageNotice,
                 {
                   borderColor:
-                    colors.warning,
+                    colors.statusWarning,
                 },
               ]}
             >
@@ -482,7 +482,7 @@ const InsightsContent = ({
                 styles.coverageNotice,
                 {
                   borderColor:
-                    colors.border,
+                    colors.borderDefault,
                 },
               ]}
             >
