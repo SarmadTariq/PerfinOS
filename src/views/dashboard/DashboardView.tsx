@@ -22,7 +22,7 @@ import { RequireData } from '../../components/layout/RequireData';
 import { useColors } from '../../context/ThemeContext';
 import { AppData, Category, Transaction } from '../../models/finance';
 import { calculateBudgetHealth, calculateCategoryBreakdown, calculateSavingsProgress, calculateMonthlySummary, sortTransactions } from '../../repositories/AnalyticsRepository';
-import { ControlSize, Radius, Spacing, Typography } from '../../theme';
+import { ControlSize, Radius, Spacing, Typography } from '../../theme/index';
 import { formatCurrency, formatCurrencyPrecise, getMonthKey, readableMonth } from '../../utils/format';
 import { mcIconName } from '../../utils/icons';
 
@@ -108,18 +108,18 @@ const getBudgetStatus = (usedPercent: number): { label: string; tone: Tone } => 
 
 const getToneColor = (tone: Tone, colors: ReturnType<typeof useColors>) => {
   if (tone === 'success') {
-    return colors.success;
+    return colors.statusPositive;
   }
 
   if (tone === 'warning') {
-    return colors.warning;
+    return colors.statusWarning;
   }
 
   if (tone === 'danger') {
-    return colors.danger;
+    return colors.statusCritical;
   }
 
-  return colors.primary;
+  return colors.actionPrimary;
 };
 
 const DashboardHero = ({
@@ -151,7 +151,7 @@ const DashboardHero = ({
     : 'Add transactions to unlock category-level spending signals.';
 
   return (
-    <View style={[styles.dashboardHero, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={[styles.dashboardHero, { backgroundColor: colors.backgroundElevated, borderColor: colors.borderDefault }]}>
       <View style={styles.heroHeaderRow}>
         <View style={styles.heroTitleBlock}>
           <Text variant="caption" color="secondary" style={styles.eyebrow}>
@@ -169,7 +169,7 @@ const DashboardHero = ({
         </View>
       </View>
 
-      <View style={[styles.heroDivider, { backgroundColor: colors.border }]} />
+      <View style={[styles.heroDivider, { backgroundColor: colors.borderDefault }]} />
 
       <View style={styles.heroBudgetRow}>
         <View style={styles.budgetTextBlock}>
@@ -206,7 +206,7 @@ const DashboardHero = ({
         <MaterialIcons
           name="insights"
           size={18}
-          color={colors.primary}
+          color={colors.actionPrimary}
         />
 
         <Text
@@ -220,7 +220,7 @@ const DashboardHero = ({
         <MaterialIcons
           name="chevron-right"
           size={20}
-          color={colors.primary}
+          color={colors.actionPrimary}
         />
       </TouchableOpacity>
     </View>
@@ -241,7 +241,7 @@ const SnapshotPanel = ({ items }: { items: SnapshotItem[] }) => {
             style={[
               styles.snapshotRow,
               index < items.length - 1
-                ? { borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth }
+                ? { borderBottomColor: colors.borderDefault, borderBottomWidth: StyleSheet.hairlineWidth }
                 : null,
             ]}
           >
@@ -286,7 +286,7 @@ const AttentionPanel = ({ items }: { items: AttentionItem[] }) => {
             style={[
               styles.attentionRow,
               index < items.length - 1
-                ? { borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth }
+                ? { borderBottomColor: colors.borderDefault, borderBottomWidth: StyleSheet.hairlineWidth }
                 : null,
             ]}
           >
@@ -411,7 +411,7 @@ const DashboardFocusPanel = ({
           styles.segmentedControl,
           {
             backgroundColor:
-              colors.bgTertiary,
+              colors.backgroundSubtle,
           },
         ]}
       >
@@ -435,10 +435,10 @@ const DashboardFocusPanel = ({
                 styles.segmentButton,
                 {
                   backgroundColor: isActive
-                    ? colors.primarySoft
+                    ? colors.actionPrimarySoft
                     : 'transparent',
                   borderColor: isActive
-                    ? colors.primary
+                    ? colors.actionPrimary
                     : 'transparent',
                 },
               ]}
@@ -450,7 +450,7 @@ const DashboardFocusPanel = ({
                   styles.segmentLabel,
                   {
                     color: isActive
-                      ? colors.text
+                      ? colors.textPrimary
                       : colors.textSecondary,
                   },
                 ]}
@@ -482,9 +482,11 @@ const TransactionRow = ({
 }) => {
   const category = categories.find((item) => item.id === transaction.categoryId);
   const colors = useColors();
-  const categoryColor = category?.color || colors.textTertiary;
+  const categoryColor = category?.color || colors.textMuted;
   const amountColor =
-    transaction.type === 'income' ? colors.success : colors.danger;
+    transaction.type === 'income'
+      ? colors.amountIncome
+      : colors.amountExpense;
 
   return (
     <TouchableOpacity
@@ -633,7 +635,7 @@ const DashboardContent = ({ data }: { data: AppData }) => {
     <View
       style={[
         styles.screen,
-        { backgroundColor: colors.bg },
+        { backgroundColor: colors.backgroundCanvas },
       ]}
     >
       <AppScroll>
@@ -678,7 +680,7 @@ const DashboardContent = ({ data }: { data: AppData }) => {
           >
             <Text
               variant="bodySmall"
-              style={[styles.linkInline, { color: colors.primary }]}
+              style={[styles.linkInline, { color: colors.actionPrimary }]}
             >
               View all
             </Text>
@@ -719,21 +721,21 @@ const DashboardContent = ({ data }: { data: AppData }) => {
             styles.addActionButton,
             {
               backgroundColor:
-                colors.primary,
+                colors.actionPrimary,
             },
           ]}
         >
           <MaterialIcons
             name="add"
             size={22}
-            color={colors.text}
+            color={colors.textInverse}
           />
 
           <Text
             variant="bodySmall"
             style={[
               styles.addActionLabel,
-              { color: colors.text },
+              { color: colors.textInverse },
             ]}
           >
             Add transaction
