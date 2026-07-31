@@ -42,7 +42,7 @@ import {
   Radius,
   Spacing,
   Typography,
-} from '../theme';
+} from '../theme/index';
 import { BrandMark } from '../components/brand';
 
 const Stack = createStackNavigator();

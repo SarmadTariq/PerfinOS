@@ -6,7 +6,7 @@ import { useColors } from '../../context/ThemeContext';
 import {
   Radius,
   Spacing,
-} from '../../theme';
+} from '../../theme/index';
 import { clamp } from '../../utils/format';
 
 export interface ProgressBarProps {

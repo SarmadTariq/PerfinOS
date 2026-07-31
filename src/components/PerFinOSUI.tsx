@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { useThemeScheme } from '../context/ThemeContext';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { Colors, Radius, Spacing } from '../theme';
+import { Colors, Radius, Spacing } from '../theme/index';
 import { clamp, formatCurrency } from '../utils/format';
 import { materialIconName, mcIconName } from '../utils/icons';
 import { Card, Text, Button } from './index';

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text as RNText } from 'react-native';
 import type { TextProps } from 'react-native';
-import { Typography } from '../../theme';
+import { Typography } from '../../theme/index';
 import { useColors } from '../../context/ThemeContext';
 
 export type TypographyVariant =

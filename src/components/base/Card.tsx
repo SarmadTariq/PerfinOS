@@ -11,7 +11,7 @@ import {
   Radius,
   Shadows,
   Spacing,
-} from '../../theme';
+} from '../../theme/index';
 import { useColors } from '../../context/ThemeContext';
 
 export interface CardProps {

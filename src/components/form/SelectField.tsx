@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { TouchableOpacity, View, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useThemeScheme } from '../../context/ThemeContext';
-import { Colors, Radius, Spacing } from '../../theme';
+import { Colors, Radius, Spacing } from '../../theme/index';
 import { Text } from '../base';
 
 /**

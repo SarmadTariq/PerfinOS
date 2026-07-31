@@ -7,7 +7,7 @@ import { useColors } from '../../context/ThemeContext';
 import {
   Radius,
   Spacing,
-} from '../../theme';
+} from '../../theme/index';
 import { Text } from '../base';
 
 export interface LoadingStateProps {

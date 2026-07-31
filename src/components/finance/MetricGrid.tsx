@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Spacing } from '../../theme';
+import { Spacing } from '../../theme/index';
 
 /** Flex-wrap grid container for StatCard components. */
 export const MetricGrid = ({ children }: { children: React.ReactNode }) => (

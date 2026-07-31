@@ -11,7 +11,7 @@ import type {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColors } from '../../context/ThemeContext';
-import { Spacing } from '../../theme';
+import { Spacing } from '../../theme/index';
 
 const WIDE_VIEWPORT_WIDTH = 900;
 

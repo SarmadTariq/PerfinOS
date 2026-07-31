@@ -1,6 +1,6 @@
 import { TouchableOpacity, View, StyleSheet } from 'react-native';
 import { useThemeScheme } from '../../context/ThemeContext';
-import { Colors, Radius, Spacing } from '../../theme';
+import { Colors, Radius, Spacing } from '../../theme/index';
 import { Text } from '../base';
 
 /**

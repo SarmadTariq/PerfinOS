@@ -3,7 +3,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { Spacing } from '../../theme';
+import { Spacing } from '../../theme/index';
 import { Text } from '../base';
 
 export interface ScreenHeaderProps {

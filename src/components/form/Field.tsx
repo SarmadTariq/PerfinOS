@@ -6,7 +6,7 @@ import {
 import {
   Spacing,
   Typography,
-} from '../../theme';
+} from '../../theme/index';
 import {
   Input,
   Text,

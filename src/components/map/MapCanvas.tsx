@@ -1,7 +1,7 @@
 import { Platform, StyleSheet, TouchableOpacity, View, type StyleProp, type ViewStyle } from 'react-native';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useThemeScheme } from '../../context/ThemeContext';
-import { Colors, Radius, Spacing } from '../../theme';
+import { Colors, Radius, Spacing } from '../../theme/index';
 import { Category, Transaction } from '../../models/finance';
 import { formatCurrencyPrecise } from '../../utils/format';
 import { mcIconName } from '../../utils/icons';
