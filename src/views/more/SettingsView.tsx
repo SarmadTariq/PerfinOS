@@ -38,7 +38,7 @@ import {
   ControlSize,
   Radius,
   Spacing,
-} from '../../theme';
+} from '../../theme/index';
 
 const ThemeSelector = () => {
   const { mode, resolved, setMode } =
@@ -108,11 +108,11 @@ const ThemeSelector = () => {
                 styles.themeOption,
                 {
                   borderColor: selected
-                    ? colors.primary
-                    : colors.border,
+                    ? colors.actionPrimary
+                    : colors.borderDefault,
                   backgroundColor: selected
-                    ? colors.primarySoft
-                    : colors.bgSecondary,
+                    ? colors.actionPrimarySoft
+                    : colors.backgroundSubtle,
                 },
               ]}
             >
@@ -121,7 +121,7 @@ const ThemeSelector = () => {
                 size={20}
                 color={
                   selected
-                    ? colors.primary
+                    ? colors.actionPrimary
                     : colors.textSecondary
                 }
               />
@@ -156,7 +156,7 @@ const InfoRow = ({
         styles.settingRow,
         {
           borderBottomColor:
-            colors.borderLight,
+            colors.borderSubtle,
         },
       ]}
     >
@@ -165,7 +165,7 @@ const InfoRow = ({
           styles.rowIcon,
           {
             backgroundColor:
-              colors.bgTertiary,
+              colors.backgroundSubtle,
           },
         ]}
       >
@@ -219,7 +219,7 @@ const NavigationRow = ({
         styles.settingRow,
         {
           borderBottomColor:
-            colors.borderLight,
+            colors.borderSubtle,
         },
       ]}
     >
@@ -228,14 +228,14 @@ const NavigationRow = ({
           styles.rowIcon,
           {
             backgroundColor:
-              colors.primarySoft,
+              colors.actionPrimarySoft,
           },
         ]}
       >
         <MaterialIcons
           name={icon}
           size={20}
-          color={colors.primary}
+          color={colors.actionPrimary}
         />
       </View>
       <View style={styles.rowCopy}>
@@ -250,7 +250,7 @@ const NavigationRow = ({
       <MaterialIcons
         name="chevron-right"
         size={22}
-        color={colors.textTertiary}
+        color={colors.textMuted}
       />
     </TouchableOpacity>
   );
@@ -277,8 +277,10 @@ const Section = ({
         style={[
           styles.sectionBody,
           {
-            backgroundColor: colors.card,
-            borderColor: colors.border,
+            backgroundColor:
+              colors.backgroundSurface,
+            borderColor:
+              colors.borderDefault,
           },
         ]}
       >
@@ -411,7 +413,9 @@ export const SettingsScreen = () => (
                 styles.message,
                 {
                   backgroundColor:
-                    colors.primarySoft,
+                    colors.backgroundSubtle,
+                  borderColor:
+                    colors.statusPositive,
                 },
               ]}
             >
@@ -426,7 +430,8 @@ export const SettingsScreen = () => (
               style={[
                 styles.message,
                 {
-                  borderColor: colors.danger,
+                  borderColor:
+                    colors.statusCritical,
                 },
               ]}
             >

@@ -27,7 +27,7 @@ import {
 import {
   Radius,
   Spacing,
-} from '../../theme';
+} from '../../theme/index';
 
 const SECTION_ICONS = {
   required: 'storage',
@@ -51,7 +51,7 @@ const HelpTopicRow = ({
         styles.helpRow,
         {
           borderBottomColor:
-            colors.borderLight,
+            colors.borderSubtle,
         },
       ]}
     >
@@ -89,7 +89,7 @@ const HelpTopicRow = ({
                 styles.recovery,
                 {
                   backgroundColor:
-                    colors.primarySoft,
+                    colors.backgroundSubtle,
                 },
               ]}
             >
@@ -162,8 +162,9 @@ export const HelpAboutScreen = () => (
               styles.workspaceBanner,
               {
                 backgroundColor:
-                  colors.bgSecondary,
-                borderColor: colors.border,
+                  colors.backgroundSubtle,
+                borderColor:
+                  colors.borderDefault,
               },
             ]}
           >
@@ -172,7 +173,7 @@ export const HelpAboutScreen = () => (
                 styles.bannerIcon,
                 {
                   backgroundColor:
-                    colors.primarySoft,
+                    colors.actionPrimarySoft,
                 },
               ]}
             >
@@ -183,7 +184,7 @@ export const HelpAboutScreen = () => (
                     : 'verified-user'
                 }
                 size={22}
-                color={colors.primary}
+                color={colors.actionPrimary}
               />
             </View>
             <View style={styles.bannerCopy}>
@@ -222,7 +223,7 @@ export const HelpAboutScreen = () => (
                         ]
                       }
                       size={21}
-                      color={colors.primary}
+                      color={colors.statusInformational}
                     />
                     <View
                       style={
@@ -252,7 +253,7 @@ export const HelpAboutScreen = () => (
                             styles.privacyItem,
                             {
                               borderBottomColor:
-                                colors.borderLight,
+                                colors.borderSubtle,
                             },
                           ]}
                         >
@@ -291,7 +292,7 @@ export const HelpAboutScreen = () => (
                   styles.removal,
                   {
                     borderColor:
-                      colors.warning,
+                      colors.statusWarning,
                   },
                 ]}
               >

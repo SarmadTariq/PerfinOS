@@ -10,7 +10,7 @@ import { Text } from '../../components/base';
 import { ScreenHeader } from '../../components/finance';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { useColors } from '../../context/ThemeContext';
-import { Radius, Spacing } from '../../theme';
+import { Radius, Spacing } from '../../theme/index';
 
 type MoreItem = {
   label: string;
@@ -116,7 +116,7 @@ export const MoreScreen = () => {
               {section.title}
             </Text>
 
-            <View style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[styles.sectionCard, { backgroundColor: colors.backgroundSurface, borderColor: colors.borderDefault }]}>
               {section.items.map((item, index) => {
                 const isLast = index === section.items.length - 1;
 
@@ -130,11 +130,11 @@ export const MoreScreen = () => {
                     style={[
                       styles.row,
                       !isLast && styles.rowDivider,
-                      !isLast && { borderBottomColor: colors.border },
+                      !isLast && { borderBottomColor: colors.borderSubtle },
                     ]}
                   >
-                    <View style={[styles.iconTile, { backgroundColor: colors.primarySoft }]}>
-                      <MaterialIcons name={item.icon} size={22} color={colors.primary} />
+                    <View style={[styles.iconTile, { backgroundColor: colors.actionPrimarySoft }]}>
+                      <MaterialIcons name={item.icon} size={22} color={colors.actionPrimary} />
                     </View>
 
                     <View style={styles.rowCopy}>
@@ -146,7 +146,7 @@ export const MoreScreen = () => {
                       </Text>
                     </View>
 
-                    <MaterialIcons name="chevron-right" size={24} color={colors.textTertiary} />
+                    <MaterialIcons name="chevron-right" size={24} color={colors.textMuted} />
                   </TouchableOpacity>
                 );
               })}
