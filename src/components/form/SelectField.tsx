@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { TouchableOpacity, View, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useThemeScheme } from '../../context/ThemeContext';
-import { Colors, Radius, Spacing } from '../../theme/index';
+import { useColors } from '../../context/ThemeContext';
+import { Radius, Spacing } from '../../theme/index';
 import { Text } from '../base';
 
 /**
@@ -25,8 +25,7 @@ export const SelectField = ({
   options: string[];
   onChange: (value: string) => void;
 }) => {
-  const scheme = useThemeScheme();
-  const colors = scheme === 'dark' ? Colors.dark : Colors.light;
+  const colors = useColors();
   const [open, setOpen] = useState(false);
 
   return (
@@ -37,13 +36,13 @@ export const SelectField = ({
         accessibilityLabel={`Select ${label}`}
         accessibilityState={{ expanded: open }}
         onPress={() => setOpen((current) => !current)}
-        style={[styles.selectButton, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}
+        style={[styles.selectButton, { backgroundColor: colors.backgroundSurface, borderColor: colors.borderDefault }]}
       >
         <Text variant="bodyLarge" style={{ flex: 1 }}>{value || `Select ${label.toLowerCase()}`}</Text>
         <MaterialIcons name={open ? 'expand-less' : 'expand-more'} size={24} color={colors.textSecondary} />
       </TouchableOpacity>
       {open ? (
-        <View style={[styles.dropdownPanel, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={[styles.dropdownPanel, { backgroundColor: colors.backgroundElevated, borderColor: colors.borderDefault }]}>
           {options.map((option) => (
             <TouchableOpacity
               key={option}
@@ -53,10 +52,10 @@ export const SelectField = ({
                 onChange(option);
                 setOpen(false);
               }}
-              style={[styles.dropdownOption, option === value && { backgroundColor: colors.bgTertiary }]}
+              style={[styles.dropdownOption, option === value && { backgroundColor: colors.backgroundSubtle }]}
             >
               <Text variant="body" style={{ fontWeight: option === value ? '700' : '400' }}>{option}</Text>
-              {option === value ? <MaterialIcons name="check" size={18} color={colors.primary} /> : null}
+              {option === value ? <MaterialIcons name="check" size={18} color={colors.actionPrimary} /> : null}
             </TouchableOpacity>
           ))}
         </View>
