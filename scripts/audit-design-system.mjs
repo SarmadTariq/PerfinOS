@@ -46,36 +46,27 @@ const pass = (message) => {
   console.log(`PASS: ${message}`);
 };
 
-const rootShims = {
-  'src/components/Button.tsx': [
-    "export { Button } from './base/Button';",
-    "export type { ButtonProps } from './base/Button';",
-  ].join('\n'),
+const obsoleteFiles = [
+  'src/theme.ts',
+  'src/components/Button.tsx',
+  'src/components/Card.tsx',
+  'src/components/Input.tsx',
+  'src/components/Text.tsx',
+];
 
-  'src/components/Card.tsx': [
-    "export { Card } from './base/Card';",
-    "export type { CardProps } from './base/Card';",
-  ].join('\n'),
-
-  'src/components/Input.tsx': [
-    "export { Input } from './base/Input';",
-    "export type { InputProps } from './base/Input';",
-  ].join('\n'),
-
-  'src/components/Text.tsx': [
-    "export { Text } from './base/Text';",
-    "export type { TextColor, TextComponentProps, TypographyVariant } from './base/Text';",
-  ].join('\n'),
-};
-
-for (const [filePath, expected] of Object.entries(rootShims)) {
-  const actual = read(filePath).trim();
-
-  if (actual !== expected) {
-    fail(`${filePath} is not the approved re-export-only shim.`);
-  } else {
-    pass(`${filePath} is a re-export-only shim.`);
+for (const filePath of obsoleteFiles) {
+  if (fs.existsSync(path.join(root, filePath))) {
+    fail(`${filePath} must not exist.`);
   }
+}
+
+if (
+  obsoleteFiles.every(
+    (filePath) =>
+      !fs.existsSync(path.join(root, filePath)),
+  )
+) {
+  pass('Compatibility shim files are absent.');
 }
 
 const themeFiles = walk('src/theme');
@@ -83,9 +74,13 @@ const baseFiles = walk('src/components/base');
 const brandFiles = walk('src/components/brand');
 const authFiles = walk('src/views/auth');
 const sharedComponentFiles = [
+  'src/components/index.ts',
+  'src/components/PerFinOSUI.tsx',
   'src/components/layout/AppScroll.tsx',
   'src/components/finance/ScreenHeader.tsx',
   'src/components/form/Field.tsx',
+  'src/components/form/Segmented.tsx',
+  'src/components/form/SelectField.tsx',
 ];
 
 const migratedFinanceFiles = [
@@ -112,7 +107,6 @@ const scopedFiles = [
   ...migratedFinanceFiles,
   ...baseFiles,
   ...brandFiles,
-  ...Object.keys(rootShims),
 ];
 
 const rawHexAllowed = new Set([
@@ -149,16 +143,10 @@ if (
   pass('No prohibited raw colours exist in the foundation scope.');
 }
 
-const runtimeFiles = [
-  'src/context/ThemeContext.tsx',
-  'src/navigation/AppNavigator.tsx',
-  ...authFiles,
-  ...sharedComponentFiles,
-  ...migratedFinanceFiles,
-  ...baseFiles,
-  ...brandFiles,
-  ...Object.keys(rootShims),
-];
+const runtimeFiles = walk('src').filter(
+  (filePath) =>
+    !filePath.startsWith('src/theme/'),
+);
 
 for (const filePath of runtimeFiles) {
   if (/Colors\.(light|dark)\b/.test(read(filePath))) {
@@ -173,6 +161,90 @@ if (
   )
 ) {
   pass('No scoped runtime file directly selects a palette.');
+}
+
+const compatibilityTokenPattern =
+  /\bcolors\.(?:bg|bgSecondary|bgTertiary|text|textTertiary|border|borderLight|primary|primarySoft|success|danger|warning|card|surfaceWarm|surfaceBlue)\b/;
+
+for (const filePath of runtimeFiles) {
+  const source = read(filePath);
+
+  if (compatibilityTokenPattern.test(source)) {
+    fail(
+      `${filePath} uses a retired compatibility colour token.`,
+    );
+  }
+}
+
+if (
+  runtimeFiles.every(
+    (filePath) =>
+      !compatibilityTokenPattern.test(
+        read(filePath),
+      ),
+  )
+) {
+  pass(
+    'Runtime source uses semantic colour tokens only.',
+  );
+}
+
+const colorsSource = read(
+  'src/theme/colors.ts',
+);
+
+const typesSource = read(
+  'src/theme/types.ts',
+);
+
+const themeIndexSource = read(
+  'src/theme/index.ts',
+);
+
+if (
+  /\b(?:lightCompatibility|darkCompatibility)\b/.test(
+    colorsSource,
+  )
+) {
+  fail(
+    'src/theme/colors.ts still defines compatibility aliases.',
+  );
+}
+
+if (
+  /^\s*(?:bg|bgSecondary|bgTertiary|text|textTertiary|border|borderLight|primary|primarySoft|success|danger|warning|card|surfaceWarm|surfaceBlue):\s*string;/m.test(
+    typesSource,
+  )
+) {
+  fail(
+    'src/theme/types.ts still exposes compatibility aliases.',
+  );
+}
+
+if (
+  /src\/theme\.ts|compatibility shim/i.test(
+    themeIndexSource,
+  )
+) {
+  fail(
+    'src/theme/index.ts still documents the removed theme shim.',
+  );
+}
+
+if (
+  !/\b(?:lightCompatibility|darkCompatibility)\b/.test(
+    colorsSource,
+  ) &&
+  !/^\s*(?:bg|bgSecondary|bgTertiary|text|textTertiary|border|borderLight|primary|primarySoft|success|danger|warning|card|surfaceWarm|surfaceBlue):\s*string;/m.test(
+    typesSource,
+  ) &&
+  !/src\/theme\.ts|compatibility shim/i.test(
+    themeIndexSource,
+  )
+) {
+  pass(
+    'Theme contracts expose semantic tokens only.',
+  );
 }
 
 for (const component of ['Button', 'Card', 'Input', 'Text']) {

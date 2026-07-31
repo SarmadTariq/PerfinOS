@@ -15,7 +15,7 @@ export type {
  * Stable identity and feature palette references.
  *
  * Brand artwork files remain immutable. These constants support interface
- * tokens and temporary compatibility consumers during PF-236 migration.
+ * tokens and feature-specific palette consumers.
  */
 export const BrandColors = {
   ink: Brand.ink,
@@ -167,68 +167,9 @@ const darkSemantic = {
   overlay: darkPrimitives.overlay,
 } as const;
 
-/**
- * Compatibility aliases.
- *
- * These names keep existing consumers operational while the application moves
- * to semantic keys. They must be removed only after the full PF-236 migration.
- */
-const lightCompatibility = {
-  bg: lightSemantic.backgroundCanvas,
-  bgSecondary: lightSemantic.backgroundSurface,
-  bgTertiary: lightSemantic.backgroundSubtle,
-
-  text: lightSemantic.textPrimary,
-  textTertiary: lightSemantic.textMuted,
-
-  border: lightSemantic.borderDefault,
-  borderLight: lightSemantic.borderSubtle,
-
-  primary: lightSemantic.actionPrimary,
-  primarySoft: lightSemantic.actionPrimarySoft,
-
-  success: lightSemantic.statusPositive,
-  danger: lightSemantic.statusCritical,
-  warning: lightSemantic.statusWarning,
-
-  card: lightSemantic.backgroundElevated,
-  surfaceWarm: lightSemantic.backgroundSubtle,
-  surfaceBlue: lightSemantic.actionPrimarySoft,
-} as const;
-
-const darkCompatibility = {
-  bg: darkSemantic.backgroundCanvas,
-  bgSecondary: darkSemantic.backgroundSurface,
-  bgTertiary: darkSemantic.backgroundSubtle,
-
-  text: darkSemantic.textPrimary,
-  textTertiary: darkSemantic.textMuted,
-
-  border: darkSemantic.borderDefault,
-  borderLight: darkSemantic.borderSubtle,
-
-  primary: darkSemantic.actionPrimary,
-  primarySoft: darkSemantic.actionPrimarySoft,
-
-  success: darkSemantic.statusPositive,
-  danger: darkSemantic.statusCritical,
-  warning: darkSemantic.statusWarning,
-
-  card: darkSemantic.backgroundElevated,
-  surfaceWarm: darkSemantic.backgroundSubtle,
-  surfaceBlue: darkSemantic.actionPrimarySoft,
-} as const;
-
 export const Colors: Record<ThemeScheme, ThemeColors> = {
-  light: {
-    ...lightSemantic,
-    ...lightCompatibility,
-  },
-
-  dark: {
-    ...darkSemantic,
-    ...darkCompatibility,
-  },
+  light: { ...lightSemantic },
+  dark: { ...darkSemantic },
 };
 
 export const getThemeColor = (
