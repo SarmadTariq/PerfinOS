@@ -71,7 +71,7 @@ import {
   Radius,
   Spacing,
   Typography,
-} from '../../theme';
+} from '../../theme/index';
 import {
   formatCurrency,
 } from '../../utils/format';
@@ -563,7 +563,7 @@ const PlanDetailContent = ({
                 styles.errorCard,
                 {
                   borderColor:
-                    colors.danger,
+                    colors.statusCritical,
                 },
               ])}
             >
@@ -668,7 +668,7 @@ const PlanDetailContent = ({
                 styles.errorCard,
                 {
                   borderColor:
-                    colors.warning,
+                    colors.statusWarning,
                 },
               ])}
             >
@@ -696,7 +696,7 @@ const PlanDetailContent = ({
                 styles.errorCard,
                 {
                   borderColor:
-                    colors.warning,
+                    colors.statusWarning,
                 },
               ])}
             >
@@ -841,9 +841,9 @@ const PlanDetailContent = ({
                     styles.statusPanel,
                     {
                       borderColor:
-                        colors.warning,
+                        colors.statusWarning,
                       backgroundColor:
-                        colors.surfaceWarm,
+                        colors.backgroundSubtle,
                     },
                   ]}
                   accessibilityRole="alert"
@@ -1010,7 +1010,7 @@ const PlanDetailContent = ({
                   styles.versionRow,
                   {
                     borderColor:
-                      colors.border,
+                      colors.borderDefault,
                   },
                 ]}
               >

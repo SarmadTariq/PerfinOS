@@ -23,7 +23,7 @@ import {
   ControlSize,
   Spacing,
   Typography,
-} from '../../theme';
+} from '../../theme/index';
 
 export const LoginScreen = () => {
   const navigation = useNavigation<any>();

@@ -13,7 +13,7 @@ import { RequireData } from '../../components/layout/RequireData';
 import { MapCanvas } from '../../components/map/MapCanvas';
 import { useColors } from '../../context/ThemeContext';
 import { AppData, Transaction } from '../../models/finance';
-import { ControlSize, Radius, Shadows, Spacing, Typography } from '../../theme';
+import { ControlSize, Radius, Shadows, Spacing, Typography } from '../../theme/index';
 import { formatCurrencyPrecise } from '../../utils/format';
 
 type MapMode = 'pins' | 'heatmap';
@@ -99,7 +99,7 @@ const MapContent = ({ data }: MapContentProps) => {
   };
 
   return (
-    <SafeAreaView edges={['top']} style={[styles.mapShell, { backgroundColor: colors.bg }]}>
+    <SafeAreaView edges={['top']} style={[styles.mapShell, { backgroundColor: colors.backgroundCanvas }]}>
       <View style={styles.header}>
         <View style={styles.headerCopy}>
           <Text variant="h2">Spending map</Text>
@@ -115,8 +115,8 @@ const MapContent = ({ data }: MapContentProps) => {
         />
       </View>
 
-      <View style={[styles.controlsChrome, { borderColor: colors.border }]}>
-        <View style={[styles.modeToggle, { backgroundColor: colors.bgTertiary }]}>
+      <View style={[styles.controlsChrome, { borderColor: colors.borderDefault }]}>
+        <View style={[styles.modeToggle, { backgroundColor: colors.backgroundSubtle }]}>
           {modeOptions.map((option) => {
             const isActive = option.value === mode;
 
@@ -130,8 +130,8 @@ const MapContent = ({ data }: MapContentProps) => {
                 style={[
                   styles.modeButton,
                   isActive && {
-                    backgroundColor: colors.primarySoft,
-                    borderColor: colors.primary,
+                    backgroundColor: colors.actionPrimarySoft,
+                    borderColor: colors.actionPrimary,
                   },
                 ]}
               >
@@ -139,7 +139,7 @@ const MapContent = ({ data }: MapContentProps) => {
                   variant="bodySmall"
                   style={[
                     styles.modeLabel,
-                    { color: isActive ? colors.text : colors.textSecondary },
+                    { color: isActive ? colors.textPrimary : colors.textSecondary },
                   ]}
                 >
                   {option.label}
@@ -163,7 +163,7 @@ const MapContent = ({ data }: MapContentProps) => {
             <CategoryBadge
               label="All"
               icon="layers"
-              color={colors.primary}
+              color={colors.actionPrimary}
               selected={categoryId === 'all'}
               library="mi"
             />
@@ -209,8 +209,8 @@ const MapContent = ({ data }: MapContentProps) => {
               onPress={handleZoomOut}
               style={{
                 ...styles.zoomButton,
-                backgroundColor: colors.card,
-                borderColor: colors.border,
+                backgroundColor: colors.backgroundElevated,
+                borderColor: colors.borderDefault,
               }}
             />
             <IconButton
@@ -219,15 +219,15 @@ const MapContent = ({ data }: MapContentProps) => {
               onPress={handleZoomIn}
               style={{
                 ...styles.zoomButton,
-                backgroundColor: colors.card,
-                borderColor: colors.border,
+                backgroundColor: colors.backgroundElevated,
+                borderColor: colors.borderDefault,
               }}
             />
         </View>
 
         {visibleTransactions.length === 0 ? (
           <View pointerEvents="box-none" style={styles.emptyOverlay}>
-            <View style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[styles.emptyCard, { backgroundColor: colors.backgroundElevated, borderColor: colors.borderDefault }]}>
               <EmptyState title="No mapped expenses" message="Add an expense with a location to see pins here." />
             </View>
           </View>
@@ -238,14 +238,14 @@ const MapContent = ({ data }: MapContentProps) => {
             style={[
               styles.selectedCard,
               {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
+                backgroundColor: colors.backgroundElevated,
+                borderColor: colors.borderDefault,
               },
             ]}
           >
             <View style={styles.selectedHeader}>
-              <View style={[styles.placeIcon, { backgroundColor: colors.primarySoft }]}>
-                <MaterialIcons name="place" size={20} color={colors.primary} />
+              <View style={[styles.placeIcon, { backgroundColor: colors.actionPrimarySoft }]}>
+                <MaterialIcons name="place" size={20} color={colors.actionPrimary} />
               </View>
 
               <View style={styles.selectedCopy}>

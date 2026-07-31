@@ -23,9 +23,10 @@ import type {
   TransactionType,
 } from '../../models/finance';
 import {
+  ChartColors,
   Radius,
   Spacing,
-} from '../../theme';
+} from '../../theme/index';
 import {
   isCategoryArchived,
   MAX_CATEGORY_NAME_LENGTH,
@@ -34,12 +35,12 @@ import { formatCurrency } from '../../utils/format';
 import { mcIconName } from '../../utils/icons';
 
 const CATEGORY_COLORS = [
-  '#2F8F83',
-  '#367C9D',
-  '#725EAB',
-  '#A64F72',
-  '#D95F43',
-  '#C18726',
+  ChartColors.categories.health,
+  ChartColors.categories.transportation,
+  ChartColors.categories.housing,
+  ChartColors.categories.shopping,
+  ChartColors.categories.food,
+  ChartColors.categories.subscriptions,
 ] as const;
 
 const CATEGORY_ICONS = [
@@ -123,7 +124,7 @@ const CategoryEditor = ({
     <Card
       style={{
         ...styles.editor,
-        borderColor: colors.primary,
+        borderColor: colors.actionPrimary,
       }}
     >
       <View style={styles.sectionHeading}>
@@ -234,8 +235,8 @@ const CategoryEditor = ({
                 {
                   backgroundColor: color,
                   borderColor: selected
-                    ? colors.text
-                    : colors.bgSecondary,
+                    ? colors.borderStrong
+                    : colors.borderSubtle,
                 },
               ]}
             />
@@ -273,11 +274,11 @@ const CategoryEditor = ({
                 styles.iconChoice,
                 {
                   backgroundColor: selected
-                    ? colors.primarySoft
-                    : colors.bgSecondary,
+                    ? colors.actionPrimarySoft
+                    : colors.backgroundSubtle,
                   borderColor: selected
-                    ? colors.primary
-                    : colors.border,
+                    ? colors.actionPrimary
+                    : colors.borderDefault,
                 },
               ]}
             >
@@ -286,7 +287,7 @@ const CategoryEditor = ({
                 size={20}
                 color={
                   selected
-                    ? colors.primary
+                    ? colors.actionPrimary
                     : colors.textSecondary
                 }
               />
@@ -350,7 +351,7 @@ const CategoryRow = ({
         styles.categoryRow,
         {
           borderBottomColor:
-            colors.borderLight,
+            colors.borderSubtle,
           opacity: archived ? 0.78 : 1,
         },
       ]}
@@ -666,7 +667,9 @@ export const CategoriesScreen = () => (
                 styles.notice,
                 {
                   backgroundColor:
-                    colors.primarySoft,
+                    colors.backgroundSubtle,
+                  borderColor:
+                    colors.statusPositive,
                 },
               ]}
             >
@@ -682,8 +685,8 @@ export const CategoriesScreen = () => (
                 styles.notice,
                 {
                   backgroundColor:
-                    colors.bgSecondary,
-                  borderColor: colors.danger,
+                    colors.backgroundSubtle,
+                  borderColor: colors.statusCritical,
                 },
               ]}
             >
@@ -771,7 +774,7 @@ export const CategoriesScreen = () => (
               style={[
                 styles.empty,
                 {
-                  borderColor: colors.border,
+                  borderColor: colors.borderDefault,
                 },
               ]}
             >

@@ -32,7 +32,7 @@ import {
 import {
   Radius,
   Spacing,
-} from '../../theme';
+} from '../../theme/index';
 
 const ReadOnlyRow = ({
   label,
@@ -48,7 +48,7 @@ const ReadOnlyRow = ({
         styles.readOnlyRow,
         {
           borderBottomColor:
-            colors.borderLight,
+            colors.borderSubtle,
         },
       ]}
     >
@@ -91,7 +91,7 @@ const UtilityRow = ({
         styles.utilityRow,
         {
           borderBottomColor:
-            colors.borderLight,
+            colors.borderSubtle,
         },
       ]}
     >
@@ -100,14 +100,14 @@ const UtilityRow = ({
           styles.utilityIcon,
           {
             backgroundColor:
-              colors.primarySoft,
+              colors.actionPrimarySoft,
           },
         ]}
       >
         <MaterialIcons
           name={icon}
           size={21}
-          color={colors.primary}
+          color={colors.actionPrimary}
         />
       </View>
       <View style={styles.utilityCopy}>
@@ -124,7 +124,7 @@ const UtilityRow = ({
       <MaterialIcons
         name="chevron-right"
         size={22}
-        color={colors.textTertiary}
+        color={colors.textMuted}
       />
     </TouchableOpacity>
   );
@@ -246,7 +246,9 @@ export const ProfileScreen = () => (
                 styles.message,
                 {
                   backgroundColor:
-                    colors.primarySoft,
+                    colors.backgroundSubtle,
+                  borderColor:
+                    colors.statusPositive,
                 },
               ]}
             >
@@ -261,7 +263,8 @@ export const ProfileScreen = () => (
               style={[
                 styles.message,
                 {
-                  borderColor: colors.danger,
+                  borderColor:
+                    colors.statusCritical,
                 },
               ]}
             >
@@ -280,7 +283,7 @@ export const ProfileScreen = () => (
                 styles.avatar,
                 {
                   backgroundColor:
-                    colors.primarySoft,
+                    colors.backgroundSubtle,
                 },
               ]}
             >

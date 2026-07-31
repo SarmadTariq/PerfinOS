@@ -32,7 +32,7 @@ import type {
 import {
   Radius,
   Spacing,
-} from '../../theme';
+} from '../../theme/index';
 
 import {
   formatCurrency,
@@ -473,10 +473,10 @@ export const PlanStructuredDraftReview = ({
             styles.proposalNotice,
             {
               backgroundColor:
-                colors.primarySoft,
+                colors.actionPrimarySoft,
 
               borderColor:
-                colors.primary,
+                colors.actionPrimary,
             },
           ]}
         >
@@ -484,7 +484,7 @@ export const PlanStructuredDraftReview = ({
             name="verified-user"
             size={20}
             color={
-              colors.primary
+              colors.actionPrimary
             }
           />
 

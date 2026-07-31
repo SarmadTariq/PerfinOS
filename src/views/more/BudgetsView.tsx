@@ -11,8 +11,9 @@ import { Field } from '../../components/form/Field';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';
 import { useFinance } from '../../context/FinanceContext';
+import { useColors } from '../../context/ThemeContext';
 import { calculateBudgetHealth, calculateCategoryBreakdown } from '../../repositories/AnalyticsRepository';
-import { Colors, Spacing } from '../../theme';
+import { Spacing } from '../../theme/index';
 import { formatCurrency, getMonthKey } from '../../utils/format';
 
 export const BudgetsScreen = () => (
@@ -20,6 +21,7 @@ export const BudgetsScreen = () => (
     {(data) => {
       const { upsertBudget } = useFinance();
       const navigation = useNavigation<any>();
+      const colors = useColors();
       const month = getMonthKey();
       const current = data.budgets.find((item) => item.month === month);
       const [budgetValue, setBudgetValue] = useState(String(current?.totalBudget || data.user.monthlyBudget));
@@ -41,7 +43,7 @@ export const BudgetsScreen = () => (
           <Card shadow="sm" style={{ marginBottom: Spacing.lg }}>
             <Text variant="h4">Monthly Budget</Text>
             <Field label="Total Budget" value={budgetValue} onChangeText={setBudgetValue} placeholder="2600" keyboardType="numeric" />
-            <ProgressBar value={health.usedPercent} color={health.usedPercent > 100 ? Colors.light.danger : undefined} />
+            <ProgressBar value={health.usedPercent} color={health.usedPercent > 100 ? colors.statusCritical : undefined} />
             <Text variant="bodySmall" color="secondary" style={{ marginTop: Spacing.sm }}>
               {formatCurrency(health.spent, data.user.currency)} spent of {formatCurrency(Number(budgetValue), data.user.currency)}
             </Text>

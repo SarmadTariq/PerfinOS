@@ -12,7 +12,7 @@ import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';
 import { useFinance } from '../../context/FinanceContext';
 import { calculateSavingsProgress } from '../../repositories/AnalyticsRepository';
-import { Spacing } from '../../theme';
+import { Spacing } from '../../theme/index';
 import { formatCurrency } from '../../utils/format';
 
 export const SavingsGoalsScreen = () => (

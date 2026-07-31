@@ -7,7 +7,7 @@ import type {
 import {
   Brand,
   BrandAssets,
-} from '../../theme';
+} from '../../theme/index';
 import { useThemeScheme } from '../../context/ThemeContext';
 
 export type BrandSymbolAppearance =

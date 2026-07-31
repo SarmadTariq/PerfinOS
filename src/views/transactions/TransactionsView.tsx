@@ -117,10 +117,10 @@ const CalendarDateField = ({
               padding: '13px 16px',
               fontSize: 16,
               borderRadius: 12,
-              border: `1px solid ${colors.border}`,
+              border: `1px solid ${colors.borderDefault}`,
               backgroundColor:
-                colors.bgSecondary,
-              color: colors.text,
+                colors.backgroundSurface,
+              color: colors.textPrimary,
               outline: 'none',
               boxSizing: 'border-box',
               fontFamily: 'inherit',
@@ -149,9 +149,9 @@ const CalendarDateField = ({
         style={[
           styles.calendarField,
           {
-            borderColor: colors.border,
+            borderColor: colors.borderDefault,
             backgroundColor:
-              colors.bgSecondary,
+              colors.backgroundSurface,
           },
         ]}
       >
@@ -183,11 +183,11 @@ const CalendarDateField = ({
                 : 'default'
             }
             themeVariant={themeScheme}
-            accentColor={colors.primary}
+            accentColor={colors.actionPrimary}
             style={[
               styles.nativeCalendar,
               {
-                backgroundColor: colors.card,
+                backgroundColor: colors.backgroundElevated,
               },
             ]}
             minimumDate={minimumDate}
@@ -356,21 +356,21 @@ const PeriodSelector = ({
       style={[
         styles.periodSelector,
         {
-          backgroundColor: colors.bgSecondary,
-          borderColor: colors.borderLight,
+          backgroundColor: colors.backgroundSurface,
+          borderColor: colors.borderSubtle,
         },
       ]}
     >
       <View
         style={[
           styles.periodIcon,
-          { backgroundColor: colors.primarySoft },
+          { backgroundColor: colors.actionPrimarySoft },
         ]}
       >
         <MaterialIcons
           name="calendar-today"
           size={19}
-          color={colors.primary}
+          color={colors.actionPrimary}
         />
       </View>
 
@@ -416,7 +416,7 @@ const SummaryStrip = ({
   currency: string;
 }) => {
   const colors = useColors();
-  const netColor = net >= 0 ? colors.success : colors.danger;
+  const netColor = net >= 0 ? colors.amountIncome : colors.amountExpense;
 
   return (
     <Card style={styles.summaryCard}>
@@ -426,13 +426,13 @@ const SummaryStrip = ({
             <View
               style={[
                 styles.summaryIcon,
-                { backgroundColor: `${colors.success}1F` },
+                { backgroundColor: `${colors.amountIncome}1F` },
               ]}
             >
               <MaterialIcons
                 name="south"
                 size={17}
-                color={colors.success}
+                color={colors.amountIncome}
               />
             </View>
 
@@ -460,13 +460,13 @@ const SummaryStrip = ({
             <View
               style={[
                 styles.summaryIcon,
-                { backgroundColor: `${colors.danger}1F` },
+                { backgroundColor: `${colors.amountExpense}1F` },
               ]}
             >
               <MaterialIcons
                 name="north"
                 size={17}
-                color={colors.danger}
+                color={colors.amountExpense}
               />
             </View>
 
@@ -532,13 +532,13 @@ const SummaryStrip = ({
             <View
               style={[
                 styles.summaryIcon,
-                { backgroundColor: colors.primarySoft },
+                { backgroundColor: colors.actionPrimarySoft },
               ]}
             >
               <MaterialIcons
                 name="receipt-long"
                 size={17}
-                color={colors.primary}
+                color={colors.actionPrimary}
               />
             </View>
 
@@ -635,11 +635,11 @@ const QuickFilters = ({
             styles.filterChip,
             {
               borderColor: chip.selected
-                ? colors.primary
-                : colors.border,
+                ? colors.actionPrimary
+                : colors.borderDefault,
               backgroundColor: chip.selected
-                ? colors.primarySoft
-                : colors.bgSecondary,
+                ? colors.actionPrimarySoft
+                : colors.backgroundSurface,
             },
           ]}
         >
@@ -649,7 +649,7 @@ const QuickFilters = ({
               styles.filterChipLabel,
               {
                 color: chip.selected
-                  ? colors.primary
+                  ? colors.actionPrimary
                   : colors.textSecondary,
               },
             ]}
@@ -663,7 +663,7 @@ const QuickFilters = ({
               style={[
                 styles.filterBadge,
                 {
-                  backgroundColor: colors.primary,
+                  backgroundColor: colors.actionPrimary,
                 },
               ]}
             >
@@ -671,7 +671,7 @@ const QuickFilters = ({
                 variant="caption"
                 style={[
                   styles.filterBadgeLabel,
-                  { color: colors.text },
+                  { color: colors.textInverse },
                 ]}
               >
                 {refineFilterCount}
@@ -870,7 +870,7 @@ const ActivityFilterSheet = ({
         <View
           style={[
             styles.filterPanel,
-            { backgroundColor: colors.card },
+            { backgroundColor: colors.backgroundElevated },
           ]}
         >
           <View style={styles.rowBetween}>
@@ -965,12 +965,12 @@ const ActivityFilterSheet = ({
                             {
                               borderColor:
                                 selected
-                                  ? colors.primary
-                                  : colors.border,
+                                  ? colors.actionPrimary
+                                  : colors.borderDefault,
                               backgroundColor:
                                 selected
-                                  ? colors.primarySoft
-                                  : colors.bgSecondary,
+                                  ? colors.actionPrimarySoft
+                                  : colors.backgroundSurface,
                             },
                           ]}
                         >
@@ -980,8 +980,8 @@ const ActivityFilterSheet = ({
                               styles.datePresetLabel,
                               {
                                 color: selected
-                                  ? colors.primary
-                                  : colors.text,
+                                  ? colors.actionPrimary
+                                  : colors.textPrimary,
                               },
                             ]}
                           >
@@ -997,7 +997,7 @@ const ActivityFilterSheet = ({
                               name="check"
                               size={18}
                               color={
-                                colors.primary
+                                colors.actionPrimary
                               }
                             />
                           ) : null}
@@ -1118,12 +1118,12 @@ const ActivityFilterSheet = ({
                       {
                         borderColor:
                           categoryId === 'all'
-                            ? colors.primary
-                            : colors.border,
+                            ? colors.actionPrimary
+                            : colors.borderDefault,
                         backgroundColor:
                           categoryId === 'all'
-                            ? colors.primarySoft
-                            : colors.bgSecondary,
+                            ? colors.actionPrimarySoft
+                            : colors.backgroundSurface,
                       },
                     ]}
                   >
@@ -1134,7 +1134,7 @@ const ActivityFilterSheet = ({
                         {
                           color:
                             categoryId === 'all'
-                              ? colors.primary
+                              ? colors.actionPrimary
                               : colors.textSecondary,
                         },
                       ]}
@@ -1164,11 +1164,11 @@ const ActivityFilterSheet = ({
                           {
                             borderColor: selected
                               ? category.color
-                              : colors.border,
+                              : colors.borderDefault,
                             backgroundColor:
                               selected
                                 ? `${category.color}1F`
-                                : colors.bgSecondary,
+                                : colors.backgroundSurface,
                           },
                         ]}
                       >
@@ -1305,7 +1305,7 @@ const DateHeader = ({
   currency: string;
 }) => {
   const colors = useColors();
-  const amountColor = net >= 0 ? colors.success : colors.danger;
+  const amountColor = net >= 0 ? colors.amountIncome : colors.amountExpense;
 
   return (
     <View style={styles.dateHeader}>
@@ -1353,7 +1353,7 @@ const TransactionCard = ({
 }) => {
   const colors = useColors();
   const category = categories.find((item) => item.id === transaction.categoryId);
-  const amountColor = transaction.type === 'income' ? colors.success : colors.danger;
+  const amountColor = transaction.type === 'income' ? colors.amountIncome : colors.amountExpense;
   const receiptCount = transaction.receipts?.length || 0;
   const placeLabel =
     transaction.location?.neighborhood ||
@@ -1377,11 +1377,11 @@ const TransactionCard = ({
     >
       <Card style={styles.transactionCard}>
         <View style={styles.transactionRow}>
-          <View style={[styles.iconTile, { backgroundColor: `${category?.color || colors.primary}1F` }]}>
+          <View style={[styles.iconTile, { backgroundColor: `${category?.color || colors.actionPrimary}1F` }]}>
             <MaterialCommunityIcons
               name={mcIconName(category?.icon, transaction.type === 'income' ? 'cash-plus' : 'receipt')}
               size={20}
-              color={category?.color || colors.primary}
+              color={category?.color || colors.actionPrimary}
             />
           </View>
 
@@ -1396,11 +1396,11 @@ const TransactionCard = ({
               </Text>
 
               {transaction.isRecurring ? (
-                <View style={[styles.receiptPill, { backgroundColor: colors.primarySoft }]}>
-                  <MaterialIcons name="autorenew" size={13} color={colors.primary} />
+                <View style={[styles.receiptPill, { backgroundColor: colors.actionPrimarySoft }]}>
+                  <MaterialIcons name="autorenew" size={13} color={colors.actionPrimary} />
                   <Text
                     variant="caption"
-                    style={[styles.pillLabel, { color: colors.primary }]}
+                    style={[styles.pillLabel, { color: colors.actionPrimary }]}
                   >
                     Recurring
                   </Text>
@@ -1408,11 +1408,11 @@ const TransactionCard = ({
               ) : null}
 
               {receiptCount > 0 ? (
-                <View style={[styles.receiptPill, { backgroundColor: colors.primarySoft }]}>
-                  <MaterialIcons name="receipt-long" size={13} color={colors.primary} />
+                <View style={[styles.receiptPill, { backgroundColor: colors.actionPrimarySoft }]}>
+                  <MaterialIcons name="receipt-long" size={13} color={colors.actionPrimary} />
                   <Text
                     variant="caption"
-                    style={[styles.pillLabel, { color: colors.primary }]}
+                    style={[styles.pillLabel, { color: colors.actionPrimary }]}
                   >
                     {receiptCount}
                   </Text>
@@ -1441,7 +1441,7 @@ const TransactionCard = ({
             <MaterialIcons
               name="chevron-right"
               size={20}
-              color={colors.textTertiary}
+              color={colors.textMuted}
               style={styles.chevron}
             />
           </View>
@@ -1634,7 +1634,7 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.bg }]}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.backgroundCanvas }]}>
       <FlatList
         data={feedItems}
         keyExtractor={(item, index) => (item.type === 'date' ? `date-${item.date}` : `transaction-${item.transaction.id}-${index}`)}
@@ -1712,9 +1712,9 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
                         styles.activeFilterChip,
                         {
                           backgroundColor:
-                            colors.primarySoft,
+                            colors.actionPrimarySoft,
                           borderColor:
-                            colors.primary,
+                            colors.actionPrimary,
                         },
                       ]}
                     >
@@ -1725,7 +1725,7 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
                           styles.activeFilterChipLabel,
                           {
                             color:
-                              colors.primary,
+                              colors.actionPrimary,
                           },
                         ]}
                       >
@@ -1735,7 +1735,7 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
                       <MaterialIcons
                         name="close"
                         size={15}
-                        color={colors.primary}
+                        color={colors.actionPrimary}
                       />
                     </TouchableOpacity>
                   ))}
@@ -1765,7 +1765,7 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
                       style={[
                         styles.actionLabel,
                         {
-                          color: colors.primary,
+                          color: colors.actionPrimary,
                         },
                       ]}
                     >
@@ -1836,13 +1836,13 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
           accessibilityHint="Opens the new transaction form"
           style={[
             styles.addActionButton,
-            { backgroundColor: colors.primary },
+            { backgroundColor: colors.actionPrimary },
           ]}
         >
-          <MaterialIcons name="add" size={22} color={colors.text} />
+          <MaterialIcons name="add" size={22} color={colors.textInverse} />
           <Text
             variant="bodySmall"
-            style={[styles.actionLabel, { color: colors.text }]}
+            style={[styles.actionLabel, { color: colors.textInverse }]}
           >
             Add transaction
           </Text>

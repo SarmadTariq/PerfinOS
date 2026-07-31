@@ -11,7 +11,7 @@ import { useFinance } from '../../context/FinanceContext';
 import {
   ControlSize,
   Spacing,
-} from '../../theme';
+} from '../../theme/index';
 
 export const WelcomeScreen = () => {
   const navigation = useNavigation<any>();

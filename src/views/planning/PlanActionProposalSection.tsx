@@ -47,7 +47,7 @@ import {
 import {
   Radius,
   Spacing,
-} from '../../theme';
+} from '../../theme/index';
 import {
   formatCurrency,
 } from '../../utils/format';
@@ -459,7 +459,7 @@ export const PlanActionProposalSection = ({
               return (
                 <View
                   key={proposal.id}
-                  style={[styles.proposalRow, { borderColor: colors.border }]}
+                  style={[styles.proposalRow, { borderColor: colors.borderDefault }]}
                 >
                   <View style={styles.rowHeader}>
                     <View style={styles.flexCopy}>
@@ -514,7 +514,7 @@ export const PlanActionProposalSection = ({
         )}
 
         {activeProposal?.type === 'savings_contribution' && !review ? (
-          <View style={[styles.configuration, { borderColor: colors.border }]}>
+          <View style={[styles.configuration, { borderColor: colors.borderDefault }]}>
             <Text variant="h4">Choose the savings action</Text>
             <View style={styles.actionRow}>
               {data.savingsGoals.map((goal) => (
@@ -622,7 +622,7 @@ export const PlanActionProposalSection = ({
         <View style={styles.backdrop}>
           <View
             accessibilityViewIsModal
-            style={[styles.modalPanel, { backgroundColor: colors.card }]}
+            style={[styles.modalPanel, { backgroundColor: colors.backgroundElevated }]}
           >
             <ScrollView
               contentContainerStyle={styles.modalContent}

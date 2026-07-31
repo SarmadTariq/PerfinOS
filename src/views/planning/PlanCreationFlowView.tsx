@@ -122,7 +122,7 @@ import {
   Radius,
   Spacing,
   Typography,
-} from '../../theme';
+} from '../../theme/index';
 
 import {
   formatCurrency,
@@ -224,13 +224,13 @@ const ChoiceChip = ({
         {
           backgroundColor:
             selected
-              ? colors.primarySoft
-              : colors.bgSecondary,
+              ? colors.actionPrimarySoft
+              : colors.backgroundSubtle,
 
           borderColor:
             selected
-              ? colors.primary
-              : colors.border,
+              ? colors.actionPrimary
+              : colors.borderDefault,
         },
       ]}
     >
@@ -243,8 +243,8 @@ const ChoiceChip = ({
         size={18}
         color={
           selected
-            ? colors.primary
-            : colors.textTertiary
+            ? colors.actionPrimary
+            : colors.textMuted
         }
       />
 
@@ -254,7 +254,7 @@ const ChoiceChip = ({
           selected
             ? {
                 color:
-                  colors.primary,
+                  colors.actionPrimary,
               }
             : undefined
         }
@@ -406,7 +406,7 @@ const EvidenceSummary = ({
                             name="info-outline"
                             size={18}
                             color={
-                              colors.warning
+                              colors.statusWarning
                             }
                           />
 
@@ -1022,7 +1022,7 @@ setGenerationMessage(null);
                     styles.largeIcon,
                     {
                       backgroundColor:
-                        colors.primarySoft,
+                        colors.actionPrimarySoft,
                     },
                   ]}
                 >
@@ -1030,7 +1030,7 @@ setGenerationMessage(null);
                     name="auto-awesome"
                     size={26}
                     color={
-                      colors.primary
+                      colors.actionPrimary
                     }
                   />
                 </View>
@@ -1262,7 +1262,7 @@ setGenerationMessage(null);
                       styles.largeIcon,
                       {
                         backgroundColor:
-                          colors.primarySoft,
+                          colors.actionPrimarySoft,
                       },
                     ]}
                   >
@@ -1270,7 +1270,7 @@ setGenerationMessage(null);
                       name="flag"
                       size={26}
                       color={
-                        colors.primary
+                        colors.actionPrimary
                       }
                     />
                   </View>
@@ -1311,7 +1311,7 @@ setGenerationMessage(null);
                       <Card
                         style={{
                           borderColor:
-                            colors.warning,
+                            colors.statusWarning,
                         }}
                       >
                         <Text variant="h4">
@@ -1553,14 +1553,14 @@ setGenerationMessage(null);
                     backgroundColor:
                       state
                         .dataUseAccepted
-                        ? colors.primarySoft
-                        : colors.bgSecondary,
+                        ? colors.actionPrimarySoft
+                        : colors.backgroundSubtle,
 
                     borderColor:
                       state
                         .dataUseAccepted
-                        ? colors.primary
-                        : colors.border,
+                        ? colors.actionPrimary
+                        : colors.borderDefault,
                   },
                 ]}
               >
@@ -1575,8 +1575,8 @@ setGenerationMessage(null);
                   color={
                     state
                       .dataUseAccepted
-                      ? colors.primary
-                      : colors.textTertiary
+                      ? colors.actionPrimary
+                      : colors.textMuted
                   }
                 />
 
@@ -1684,10 +1684,10 @@ setGenerationMessage(null);
                   styles.sensitiveWarning,
                   {
                     backgroundColor:
-                      colors.surfaceWarm,
+                      colors.backgroundSubtle,
 
                     borderColor:
-                      colors.warning,
+                      colors.statusWarning,
                   },
                 ]}
               >
@@ -1695,7 +1695,7 @@ setGenerationMessage(null);
                   name="privacy-tip"
                   size={20}
                   color={
-                    colors.warning
+                    colors.statusWarning
                   }
                 />
 
@@ -1748,7 +1748,7 @@ setGenerationMessage(null);
                     styles.largeIcon,
                     {
                       backgroundColor:
-                        colors.primarySoft,
+                        colors.actionPrimarySoft,
                     },
                   ]}
                 >
@@ -1756,7 +1756,7 @@ setGenerationMessage(null);
                     name="auto-awesome"
                     size={26}
                     color={
-                      colors.primary
+                      colors.actionPrimary
                     }
                   />
                 </View>
@@ -1966,7 +1966,7 @@ setGenerationMessage(null);
           styles.progressTrack,
           {
             backgroundColor:
-              colors.bgTertiary,
+              colors.backgroundSubtle,
           },
         ]}
         accessibilityRole="progressbar"
@@ -1984,7 +1984,7 @@ setGenerationMessage(null);
             styles.progressFill,
             {
               backgroundColor:
-                colors.primary,
+                colors.actionPrimary,
 
               width:
                 `${progress.percent}%`,
@@ -2048,8 +2048,8 @@ setGenerationMessage(null);
                           backgroundColor:
                             active ||
                             complete
-                              ? colors.primary
-                              : colors.bgTertiary,
+                              ? colors.actionPrimary
+                              : colors.backgroundSubtle,
                         },
                       ]}
                     >
@@ -2059,7 +2059,7 @@ setGenerationMessage(null);
                           color:
                             active ||
                             complete
-                              ? colors.bgSecondary
+                              ? colors.textInverse
                               : colors.textSecondary,
                         }}
                       >
@@ -2132,10 +2132,10 @@ setGenerationMessage(null);
                       styles.errorPanel,
                       {
                         borderColor:
-                          colors.danger,
+                          colors.statusCritical,
 
                         backgroundColor:
-                          colors.surfaceWarm,
+                          colors.backgroundSubtle,
                       },
                     ]}
                   >

@@ -9,7 +9,7 @@ import { EmptyState, IconButton, ScreenHeader } from '../../components/finance';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';
 import { useFinance } from '../../context/FinanceContext';
-import { Spacing } from '../../theme';
+import { Spacing } from '../../theme/index';
 import { formatCurrencyPrecise } from '../../utils/format';
 
 export const RecurringExpensesScreen = () => (

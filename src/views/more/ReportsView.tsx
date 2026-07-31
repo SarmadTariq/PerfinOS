@@ -26,7 +26,7 @@ import {
 import {
   Radius,
   Spacing,
-} from '../../theme';
+} from '../../theme/index';
 import {
   formatCurrency,
   getMonthKey,
@@ -78,10 +78,10 @@ const StatusBanner = ({
 }) => {
   const colors = useColors();
   const borderColor = {
-    neutral: colors.border,
-    success: colors.success,
-    warning: colors.warning,
-    danger: colors.danger,
+    neutral: colors.borderDefault,
+    success: colors.statusPositive,
+    warning: colors.statusWarning,
+    danger: colors.statusCritical,
   }[tone];
 
   return (
@@ -90,7 +90,7 @@ const StatusBanner = ({
       style={[
         styles.statusBanner,
         {
-          backgroundColor: colors.bgSecondary,
+          backgroundColor: colors.backgroundSubtle,
           borderColor,
         },
       ]}
