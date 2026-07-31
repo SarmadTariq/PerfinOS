@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, TouchableOpacity, View, ViewStyle } from 'react-native';
-import { useThemeScheme } from '../context/ThemeContext';
+import { useColors } from '../context/ThemeContext';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { Colors, Radius, Spacing } from '../theme/index';
+import { Radius, Spacing } from '../theme/index';
 import { clamp, formatCurrency } from '../utils/format';
 import { materialIconName, mcIconName } from '../utils/icons';
 import { Card, Text, Button } from './index';
@@ -41,14 +41,13 @@ export const StatCard = ({
   tone?: 'primary' | 'success' | 'warning' | 'danger';
   helper?: string;
 }) => {
-  const scheme = useThemeScheme();
-  const colors = scheme === 'dark' ? Colors.dark : Colors.light;
-  const toneColor = tone === 'success' ? colors.success : tone === 'warning' ? colors.warning : tone === 'danger' ? colors.danger : colors.primary;
+  const colors = useColors();
+  const toneColor = tone === 'success' ? colors.statusPositive : tone === 'warning' ? colors.statusWarning : tone === 'danger' ? colors.statusCritical : colors.actionPrimary;
 
   return (
     <Card style={styles.statCard} shadow="sm">
       <View style={styles.statTopRow}>
-        <View style={[styles.iconTile, { backgroundColor: colors.primarySoft }]}>
+        <View style={[styles.iconTile, { backgroundColor: colors.actionPrimarySoft }]}>
           <MaterialIcons name={icon} size={22} color={toneColor} />
         </View>
         <View style={[styles.statusDot, { backgroundColor: toneColor }]} />
@@ -105,15 +104,14 @@ export const CategoryBadge = ({
   selected?: boolean;
   library?: 'mi' | 'mci';
 }) => {
-  const scheme = useThemeScheme();
-  const colors = scheme === 'dark' ? Colors.dark : Colors.light;
+  const colors = useColors();
   return (
     <View
       style={[
         styles.badge,
         {
           borderColor: color,
-          backgroundColor: selected ? `${color}1F` : colors.bgSecondary,
+          backgroundColor: selected ? `${color}1F` : colors.backgroundSurface,
         },
       ]}
     >
@@ -138,16 +136,15 @@ export const ProgressBar = ({
   color?: string;
   height?: number;
 }) => {
-  const scheme = useThemeScheme();
-  const colors = scheme === 'dark' ? Colors.dark : Colors.light;
+  const colors = useColors();
   return (
-    <View style={[styles.progressTrack, { height, backgroundColor: colors.bgTertiary }]}>
+    <View style={[styles.progressTrack, { height, backgroundColor: colors.backgroundSubtle }]}>
       <View
         style={[
           styles.progressFill,
           {
             width: `${clamp(value)}%`,
-            backgroundColor: color || colors.primary,
+            backgroundColor: color || colors.actionPrimary,
           },
         ]}
       />
@@ -168,12 +165,11 @@ export const EmptyState = ({
   actionLabel?: string;
   onAction?: () => void;
 }) => {
-  const scheme = useThemeScheme();
-  const colors = scheme === 'dark' ? Colors.dark : Colors.light;
+  const colors = useColors();
   return (
-    <View style={[styles.stateBox, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]} accessibilityRole="summary">
-      <View style={[styles.stateIcon, { backgroundColor: colors.primarySoft }]}>
-        <MaterialIcons name={icon} size={34} color={colors.primary} />
+    <View style={[styles.stateBox, { backgroundColor: colors.backgroundSurface, borderColor: colors.borderDefault }]} accessibilityRole="summary">
+      <View style={[styles.stateIcon, { backgroundColor: colors.actionPrimarySoft }]}>
+        <MaterialIcons name={icon} size={34} color={colors.actionPrimary} />
       </View>
       <Text variant="h4" style={{ marginTop: Spacing.md }}>
         {title}
@@ -189,11 +185,10 @@ export const EmptyState = ({
 };
 
 export const LoadingState = ({ label = 'Loading PerFin OS data...' }: { label?: string }) => {
-  const scheme = useThemeScheme();
-  const colors = scheme === 'dark' ? Colors.dark : Colors.light;
+  const colors = useColors();
   return (
     <View style={styles.stateBox} accessibilityRole="progressbar">
-      <ActivityIndicator color={colors.primary} />
+      <ActivityIndicator color={colors.actionPrimary} />
       <Text variant="body" color="secondary" style={{ marginTop: Spacing.md }}>
         {label}
       </Text>
@@ -209,20 +204,24 @@ export const ErrorState = ({
   title?: string;
   message: string;
   onRetry?: () => void;
-}) => (
-  <View style={styles.stateBox} accessibilityRole="alert">
-    <View style={[styles.stateIcon, { backgroundColor: '#FCEDEA' }]}>
-      <MaterialIcons name="error-outline" size={34} color={Colors.light.danger} />
+}) => {
+  const colors = useColors();
+
+  return (
+    <View style={styles.stateBox} accessibilityRole="alert">
+      <View style={[styles.stateIcon, { backgroundColor: `${colors.statusCritical}1F` }]}>
+        <MaterialIcons name="error-outline" size={34} color={colors.statusCritical} />
+      </View>
+      <Text variant="h4" style={{ marginTop: Spacing.md }}>
+        {title}
+      </Text>
+      <Text variant="body" color="secondary" style={styles.stateMessage}>
+        {message}
+      </Text>
+      {onRetry ? <Button label="Try Again" onPress={onRetry} variant="secondary" /> : null}
     </View>
-    <Text variant="h4" style={{ marginTop: Spacing.md }}>
-      {title}
-    </Text>
-    <Text variant="body" color="secondary" style={styles.stateMessage}>
-      {message}
-    </Text>
-    {onRetry ? <Button label="Try Again" onPress={onRetry} variant="secondary" /> : null}
-  </View>
-);
+  );
+};
 
 export const ConfirmModal = ({
   visible,
@@ -238,28 +237,43 @@ export const ConfirmModal = ({
   confirmLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
-}) => (
-  <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-    <View style={styles.modalBackdrop}>
-      <View style={styles.modalPanel} accessibilityRole="alert">
-        <Text variant="h3">{title}</Text>
-        <Text variant="body" color="secondary" style={{ marginTop: Spacing.sm }}>
-          {message}
-        </Text>
-        <View style={styles.modalActions}>
-          <Button label="Cancel" onPress={onCancel} variant="secondary" style={{ flex: 1 }} />
-          <Button label={confirmLabel} onPress={onConfirm} variant="danger" style={{ flex: 1 }} />
+}) => {
+  const colors = useColors();
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+      <View style={[styles.modalBackdrop, { backgroundColor: colors.overlay }]}>
+        <View
+          style={[styles.modalPanel, { backgroundColor: colors.backgroundElevated }]}
+          accessibilityRole="alert"
+        >
+          <Text variant="h3">{title}</Text>
+          <Text variant="body" color="secondary" style={{ marginTop: Spacing.sm }}>
+            {message}
+          </Text>
+          <View style={styles.modalActions}>
+            <Button label="Cancel" onPress={onCancel} variant="secondary" style={{ flex: 1 }} />
+            <Button label={confirmLabel} onPress={onConfirm} variant="danger" style={{ flex: 1 }} />
+          </View>
         </View>
       </View>
-    </View>
-  </Modal>
-);
+    </Modal>
+  );
+};
 
 export const Toast = ({ message, tone = 'success' }: { message: string | null; tone?: 'success' | 'danger' }) => {
+  const colors = useColors();
+
   if (!message) return null;
+
   return (
-    <View style={[styles.toast, { backgroundColor: tone === 'success' ? Colors.light.success : Colors.light.danger }]}>
-      <Text variant="bodySmall" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+    <View
+      style={[
+        styles.toast,
+        { backgroundColor: tone === 'success' ? colors.statusPositive : colors.statusCritical },
+      ]}
+    >
+      <Text variant="bodySmall" style={{ color: colors.textInverse, fontWeight: '700' }}>
         {message}
       </Text>
     </View>
@@ -276,8 +290,7 @@ export const BarListChart = ({
   emptyMessage?: string;
 }) => {
   const [selected, setSelected] = useState<string | null>(null);
-  const scheme = useThemeScheme();
-  const colors = scheme === 'dark' ? Colors.dark : Colors.light;
+  const colors = useColors();
   const max = Math.max(...data.map((item) => item.value), 0);
 
   if (data.length === 0 || max === 0) {
@@ -298,14 +311,14 @@ export const BarListChart = ({
             style={[
               styles.chartItem,
               {
-                backgroundColor: isSelected ? colors.bgTertiary : 'transparent',
-                borderColor: isSelected ? colors.border : 'transparent',
+                backgroundColor: isSelected ? colors.backgroundSubtle : 'transparent',
+                borderColor: isSelected ? colors.borderDefault : 'transparent',
               },
             ]}
           >
             <View style={styles.chartRow}>
               <View style={styles.chartLabelGroup}>
-                <View style={[styles.legendDot, { backgroundColor: item.color || colors.primary }]} />
+                <View style={[styles.legendDot, { backgroundColor: item.color || colors.actionPrimary }]} />
                 <Text variant="bodySmall" style={{ flex: 1, fontWeight: '700' }} numberOfLines={1}>
                   {item.label}
                 </Text>
@@ -314,11 +327,11 @@ export const BarListChart = ({
                 {formatCurrency(item.value, currency)}
               </Text>
             </View>
-            <View style={[styles.chartTrack, { backgroundColor: colors.bgTertiary }]}>
+            <View style={[styles.chartTrack, { backgroundColor: colors.backgroundSubtle }]}>
               <View
                 style={[
                   styles.chartBar,
-                  { width: `${Math.max(width, 4)}%`, backgroundColor: item.color || colors.primary },
+                  { width: `${Math.max(width, 4)}%`, backgroundColor: item.color || colors.actionPrimary },
                 ]}
               />
             </View>
@@ -349,16 +362,15 @@ export const IconButton = ({
   onPress: () => void;
   style?: ViewStyle;
 }) => {
-  const scheme = useThemeScheme();
-  const colors = scheme === 'dark' ? Colors.dark : Colors.light;
+  const colors = useColors();
   return (
     <TouchableOpacity
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
-      style={[styles.iconButton, { backgroundColor: colors.primarySoft }, style]}
+      style={[styles.iconButton, { backgroundColor: colors.actionPrimarySoft }, style]}
     >
-      <MaterialIcons name={icon} size={21} color={colors.primary} />
+      <MaterialIcons name={icon} size={21} color={colors.actionPrimary} />
     </TouchableOpacity>
   );
 };
@@ -447,7 +459,6 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: Spacing.xl,
@@ -456,7 +467,6 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 420,
     borderRadius: Radius.lg,
-    backgroundColor: '#FFFFFF',
     padding: Spacing.xl,
   },
   modalActions: {
