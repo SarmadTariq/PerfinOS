@@ -17,3 +17,7 @@ export { Toast } from './Toast';
 export { BarListChart } from './BarListChart';
 export { MetricGrid } from './MetricGrid';
 export { IconButton } from './IconButton';
+export { PeriodScopeBar } from './PeriodScopeBar';
+export { FilterChip } from './FilterChip';
+export { MetricStrip } from './MetricStrip';
+export { ExpandableSection } from './ExpandableSection';

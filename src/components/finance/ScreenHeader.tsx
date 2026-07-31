@@ -1,37 +1,43 @@
 import React from 'react';
-import {
-  StyleSheet,
-  View,
-} from 'react-native';
-import { Spacing } from '../../theme/index';
+import { StyleSheet, View } from 'react-native';
+import { Spacing } from '../../theme';
 import { Text } from '../base';
 
 export interface ScreenHeaderProps {
   title: string;
   subtitle?: string;
+  eyebrow?: string;
+  leading?: React.ReactNode;
   action?: React.ReactNode;
+  compact?: boolean;
 }
 
-/**
- * Displays a screen title, optional supporting text,
- * and an optional action.
- */
-export const ScreenHeader: React.FC<
-  ScreenHeaderProps
-> = ({
+/** Compact application header with native leading and trailing action slots. */
+export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   title,
   subtitle,
+  eyebrow,
+  leading,
   action,
+  compact = false,
 }) => (
-  <View style={styles.header}>
+  <View style={[styles.header, compact && styles.compactHeader]}>
+    {leading ? <View style={styles.leading}>{leading}</View> : null}
+
     <View style={styles.content}>
-      <Text variant="h2">
+      {eyebrow ? (
+        <Text variant="caption" color="secondary" style={styles.eyebrow}>
+          {eyebrow}
+        </Text>
+      ) : null}
+
+      <Text variant={compact ? 'h3' : 'h2'} numberOfLines={2}>
         {title}
       </Text>
 
       {subtitle ? (
         <Text
-          variant="body"
+          variant={compact ? 'bodySmall' : 'body'}
           color="secondary"
           style={styles.subtitle}
         >
@@ -40,22 +46,35 @@ export const ScreenHeader: React.FC<
       ) : null}
     </View>
 
-    {action}
+    {action ? <View style={styles.action}>{action}</View> : null}
   </View>
 );
 
 const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: Spacing.md,
     marginBottom: Spacing.xl,
   },
-
+  compactHeader: {
+    marginBottom: Spacing.lg,
+  },
+  leading: {
+    paddingTop: Spacing.xs,
+  },
   content: {
     flex: 1,
+    minWidth: 0,
   },
-
+  action: {
+    paddingTop: Spacing.xs,
+  },
+  eyebrow: {
+    marginBottom: Spacing.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
   subtitle: {
     marginTop: Spacing.xs,
   },

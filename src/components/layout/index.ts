@@ -6,3 +6,4 @@
  */
 export { AppScroll } from './AppScroll';
 export { RequireData } from './RequireData';
+export { ActionBar } from './ActionBar';

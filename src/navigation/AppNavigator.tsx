@@ -59,7 +59,7 @@ const AuthStack = () => (
 );
 
 const PlanTabScreen = () => (
-  <PlanScreen showBackButton={false} showProfileButton />
+  <PlanScreen showBackButton={false} />
 );
 
 const Tabs = () => {

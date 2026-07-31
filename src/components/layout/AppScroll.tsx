@@ -1,92 +1,58 @@
 import React from 'react';
-import {
-  ScrollView,
-  StyleSheet,
-  useWindowDimensions,
-  View,
-} from 'react-native';
-import type {
-  StyleProp,
-  ViewStyle,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import type { ScrollViewProps, StyleProp, ViewStyle } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '../../context/ThemeContext';
-import { Spacing } from '../../theme/index';
+import { Spacing } from '../../theme';
 
 const WIDE_VIEWPORT_WIDTH = 900;
-
-const BOTTOM_CONTENT_INSET =
-  Spacing.section * 2 +
-  Spacing.xxxl +
-  Spacing.xl;
 
 export interface AppScrollProps {
   children: React.ReactNode;
   contentContainerStyle?: StyleProp<ViewStyle>;
+  bottomInset?: number;
+  scrollProps?: Omit<ScrollViewProps, 'contentContainerStyle'>;
 }
 
-/**
- * Full-screen scrollable layout for standard app pages.
- */
+/** Standard safe-area container with a compact tab-aware content inset. */
 export const AppScroll: React.FC<AppScrollProps> = ({
   children,
   contentContainerStyle,
+  bottomInset,
+  scrollProps,
 }) => {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-
-  const horizontalPadding =
-    width >= WIDE_VIEWPORT_WIDTH
-      ? Spacing.xxxl
-      : Spacing.lg;
+  const horizontalPadding = width >= WIDE_VIEWPORT_WIDTH ? Spacing.xxxl : Spacing.lg;
+  const resolvedBottomInset = bottomInset ?? Math.max(insets.bottom, Spacing.lg) + Spacing.section;
 
   return (
-    <SafeAreaView
-      style={[
-        styles.safeArea,
-        {
-          backgroundColor:
-            colors.backgroundCanvas,
-        },
-      ]}
-    >
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.backgroundCanvas }]}>
       <ScrollView
-        style={styles.scrollView}
+        {...scrollProps}
+        style={[styles.scrollView, scrollProps?.style]}
         contentContainerStyle={[
           styles.scrollContent,
-          {
-            paddingHorizontal:
-              horizontalPadding,
-          },
+          { paddingHorizontal: horizontalPadding, paddingBottom: resolvedBottomInset },
           contentContainerStyle,
         ]}
-        keyboardShouldPersistTaps="handled"
-        scrollEnabled
-        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps={scrollProps?.keyboardShouldPersistTaps ?? 'handled'}
+        showsVerticalScrollIndicator={scrollProps?.showsVerticalScrollIndicator ?? false}
       >
-        <View style={styles.pageFrame}>
-          {children}
-        </View>
+        <View style={styles.pageFrame}>{children}</View>
       </ScrollView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-
-  scrollView: {
-    flex: 1,
-  },
-
+  safeArea: { flex: 1 },
+  scrollView: { flex: 1 },
   scrollContent: {
-    paddingVertical: Spacing.xl,
-    paddingBottom: BOTTOM_CONTENT_INSET,
     flexGrow: 1,
+    paddingTop: Spacing.lg,
   },
-
   pageFrame: {
     width: '100%',
     maxWidth: 1180,
