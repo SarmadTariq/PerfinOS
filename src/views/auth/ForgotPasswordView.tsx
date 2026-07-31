@@ -12,7 +12,7 @@ import { ScreenHeader } from '../../components/finance';
 import { Field } from '../../components/form/Field';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { useFinance } from '../../context/FinanceContext';
-import { Spacing } from '../../theme';
+import { Spacing } from '../../theme/index';
 
 export const ForgotPasswordScreen = () => {
   const { forgotPassword } = useFinance();
