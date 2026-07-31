@@ -75,7 +75,6 @@ const brandFiles = walk('src/components/brand');
 const authFiles = walk('src/views/auth');
 const sharedComponentFiles = [
   'src/components/index.ts',
-  'src/components/PerFinOSUI.tsx',
   'src/components/layout/AppScroll.tsx',
   'src/components/finance/ScreenHeader.tsx',
   'src/components/form/Field.tsx',
