@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Text } from '../../components/base';
-import { CategoryBadge, EmptyState, IconButton } from '../../components/finance';
+import { CategoryBadge, EmptyState, IconButton, ScreenHeader } from '../../components/finance';
 import { RequireData } from '../../components/layout/RequireData';
 import { MapCanvas } from '../../components/map/MapCanvas';
 import { useColors } from '../../context/ThemeContext';
@@ -101,17 +101,16 @@ const MapContent = ({ data }: MapContentProps) => {
   return (
     <SafeAreaView edges={['top']} style={[styles.mapShell, { backgroundColor: colors.backgroundCanvas }]}>
       <View style={styles.header}>
-        <View style={styles.headerCopy}>
-          <Text variant="h2">Spending map</Text>
-          <Text variant="body" color="secondary" style={styles.headerSubtitle}>
-            See where mapped expenses are concentrated.
-          </Text>
-        </View>
-
-        <IconButton
-          icon="add-location-alt"
-          label="Add located expense"
-          onPress={() => navigation.navigate('AddTransaction')}
+        <ScreenHeader
+          title="Spending map"
+          subtitle="See where mapped expenses are concentrated."
+          action={
+            <IconButton
+              icon="add-location-alt"
+              label="Add located expense"
+              onPress={() => navigation.navigate('AddTransaction')}
+            />
+          }
         />
       </View>
 

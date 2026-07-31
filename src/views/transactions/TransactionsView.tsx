@@ -1646,6 +1646,13 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
             <ScreenHeader
               title="Activity"
               subtitle="Review the money movement behind your financial picture."
+              action={
+                <IconButton
+                  icon="add"
+                  label="Add transaction"
+                  onPress={() => navigation.navigate('AddTransaction')}
+                />
+              }
             />
 
             <PeriodSelector
@@ -1827,28 +1834,6 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
         ListFooterComponent={<View style={styles.listFooter} />}
       />
 
-      <View pointerEvents="box-none" style={styles.addActionLayer}>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('AddTransaction')}
-          activeOpacity={0.82}
-          accessibilityRole="button"
-          accessibilityLabel="Add transaction"
-          accessibilityHint="Opens the new transaction form"
-          style={[
-            styles.addActionButton,
-            { backgroundColor: colors.actionPrimary },
-          ]}
-        >
-          <MaterialIcons name="add" size={22} color={colors.textInverse} />
-          <Text
-            variant="bodySmall"
-            style={[styles.actionLabel, { color: colors.textInverse }]}
-          >
-            Add transaction
-          </Text>
-        </TouchableOpacity>
-      </View>
-
       <ActivityFilterSheet
         mode={activeSheet}
         categories={categoriesForFilter}
@@ -1899,7 +1884,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.xl,
-    paddingBottom: 180,
+    paddingBottom: Spacing.section + Spacing.xxl,
   },
   searchCard: {
     width: '100%',
