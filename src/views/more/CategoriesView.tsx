@@ -667,7 +667,9 @@ export const CategoriesScreen = () => (
                 styles.notice,
                 {
                   backgroundColor:
-                    colors.actionPrimarySoft,
+                    colors.backgroundSubtle,
+                  borderColor:
+                    colors.statusPositive,
                 },
               ]}
             >
