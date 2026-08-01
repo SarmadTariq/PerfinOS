@@ -381,17 +381,15 @@ export const ReportsScreen = () => (
       return (
         <AppScroll>
           <ScreenHeader
-            title="Reports"
-            subtitle="Generate and save reconciled monthly summaries."
-            action={
+            leading={
               <IconButton
                 icon="arrow-back"
                 label="Go back"
-                onPress={() =>
-                  navigation.goBack()
-                }
+                onPress={() => navigation.goBack()}
               />
             }
+            title="Reports"
+            subtitle="Generate and save reconciled monthly summaries."
           />
 
           <View style={styles.controls}>

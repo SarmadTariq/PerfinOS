@@ -14,6 +14,7 @@ import { Card, Text } from '../../components/base';
 import {
   BarListChart,
   EmptyState,
+  IconButton,
   ProgressBar,
   ScreenHeader,
 } from '../../components/finance';
@@ -642,6 +643,13 @@ const DashboardContent = ({ data }: { data: AppData }) => {
         <ScreenHeader
           title="Dashboard"
           subtitle={`Your money in ${readableMonth(month)}`}
+          action={
+            <IconButton
+              icon="add"
+              label="Add transaction"
+              onPress={() => navigation.navigate('AddTransaction')}
+            />
+          }
         />
 
       <DashboardHero
@@ -703,45 +711,6 @@ const DashboardContent = ({ data }: { data: AppData }) => {
         </Card>
       </AppScroll>
 
-      <View
-        pointerEvents="box-none"
-        style={styles.addActionLayer}
-      >
-        <TouchableOpacity
-          onPress={() =>
-            navigation.navigate(
-              'AddTransaction'
-            )
-          }
-          activeOpacity={0.82}
-          accessibilityRole="button"
-          accessibilityLabel="Add transaction"
-          accessibilityHint="Opens the new transaction form"
-          style={[
-            styles.addActionButton,
-            {
-              backgroundColor:
-                colors.actionPrimary,
-            },
-          ]}
-        >
-          <MaterialIcons
-            name="add"
-            size={22}
-            color={colors.textInverse}
-          />
-
-          <Text
-            variant="bodySmall"
-            style={[
-              styles.addActionLabel,
-              { color: colors.textInverse },
-            ]}
-          >
-            Add transaction
-          </Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };
@@ -755,27 +724,6 @@ export const DashboardScreen = () => (
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-  },
-  addActionLayer: {
-    position: 'absolute',
-    left: Spacing.lg,
-    right: Spacing.lg,
-    bottom: Spacing.lg,
-    alignItems: 'flex-end',
-  },
-  addActionButton: {
-    minHeight:
-      ControlSize.minimumTouchTarget,
-    borderRadius: Radius.round,
-    paddingHorizontal: Spacing.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-  },
-  addActionLabel: {
-    fontWeight:
-      Typography.label.fontWeight,
   },
   dashboardHero: {
     borderWidth: 1,

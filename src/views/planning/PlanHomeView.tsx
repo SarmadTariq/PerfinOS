@@ -29,7 +29,6 @@ import { formatCurrency, getMonthKey, readableMonth } from '../../utils/format';
 
 type PlanHomeScreenProps = {
   showBackButton?: boolean;
-  showProfileButton?: boolean;
 
   onStartPlan:
     () => void;
@@ -216,7 +215,6 @@ const SavedPlansSection = ({
 
 export const PlanHomeScreen = ({
   showBackButton = true,
-  showProfileButton = false,
   onStartPlan,
   savedPlans,
   savedPlansState,
@@ -318,19 +316,13 @@ export const PlanHomeScreen = ({
       return (
         <AppScroll>
           <ScreenHeader
-            title="Your Plan"
-            subtitle="Turn Activity signals into the next planning action."
-            action={
+            leading={
               showBackButton ? (
                 <IconButton icon="arrow-back" label="Go back" onPress={() => navigation.goBack()} />
-              ) : showProfileButton ? (
-                <IconButton
-                  icon="person"
-                  label="Open profile"
-                  onPress={() => navigation.navigate('Profile')}
-                />
               ) : undefined
             }
+            title="Your Plan"
+            subtitle="Turn Activity signals into the next planning action."
           />
 
           <View style={styles.sectionHeader}>

@@ -37,9 +37,6 @@ import {
 type PlanScreenProps = {
   readonly showBackButton?:
     boolean;
-
-  readonly showProfileButton?:
-    boolean;
 };
 
 type PlanMode =
@@ -56,7 +53,6 @@ type PlanMode =
 
 export const PlanScreen = ({
   showBackButton = true,
-  showProfileButton = false,
 }: PlanScreenProps) => {
   const {
     remoteUserId,
@@ -71,9 +67,6 @@ export const PlanScreen = ({
       showBackButton={
         showBackButton
       }
-      showProfileButton={
-        showProfileButton
-      }
     />
   );
 };
@@ -86,7 +79,6 @@ interface PlanWorkspaceScreenProps
 const PlanWorkspaceScreen = ({
   remoteUserId,
   showBackButton = true,
-  showProfileButton = false,
 }: PlanWorkspaceScreenProps) => {
   const activeUserIdRef =
     useRef(remoteUserId);
@@ -277,9 +269,6 @@ const PlanWorkspaceScreen = ({
     <PlanHomeScreen
       showBackButton={
         showBackButton
-      }
-      showProfileButton={
-        showProfileButton
       }
       onStartPlan={() =>
         setMode({

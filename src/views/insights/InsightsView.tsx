@@ -347,6 +347,14 @@ const InsightsContent = ({
       <ScreenHeader
         title="Insights"
         subtitle="A small set of evidence-bound signals and supported next steps."
+        action={
+          <Button
+            label="Activity"
+            size="sm"
+            variant="secondary"
+            onPress={() => navigation.navigate('Transactions')}
+          />
+        }
       />
 
       <View
@@ -382,15 +390,6 @@ const InsightsContent = ({
               · {frequencyLabel}
             </Text>
           </View>
-          <Button
-            label="Adjust in Activity"
-            variant="secondary"
-            onPress={() =>
-              navigation.navigate(
-                'Transactions'
-              )
-            }
-          />
         </View>
 
         <View style={styles.summaryGrid}>
