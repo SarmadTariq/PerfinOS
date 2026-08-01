@@ -226,17 +226,15 @@ export const ProfileScreen = () => (
       return (
         <AppScroll>
           <ScreenHeader
-            title="Profile"
-            subtitle="Identity, account state, and workspace utilities."
-            action={
+            leading={
               <IconButton
                 icon="arrow-back"
                 label="Go back"
-                onPress={() =>
-                  navigation.goBack()
-                }
+                onPress={() => navigation.goBack()}
               />
             }
+            title="Profile"
+            subtitle="Identity, account state, and workspace utilities."
           />
 
           {notice ? (

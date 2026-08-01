@@ -39,7 +39,11 @@ export const BudgetsScreen = () => (
       );
       return (
         <AppScroll>
-          <ScreenHeader title="Budgets" subtitle="Monthly and category budget tracking." action={<IconButton icon="arrow-back" label="Go back" onPress={() => navigation.goBack()} />} />
+          <ScreenHeader
+            leading={<IconButton icon="arrow-back" label="Go back" onPress={() => navigation.goBack()} />}
+            title="Budgets"
+            subtitle="Monthly and category budget tracking."
+          />
           <Card shadow="sm" style={{ marginBottom: Spacing.lg }}>
             <Text variant="h4">Monthly Budget</Text>
             <Field label="Total Budget" value={budgetValue} onChangeText={setBudgetValue} placeholder="2600" keyboardType="numeric" />

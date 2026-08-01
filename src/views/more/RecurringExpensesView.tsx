@@ -19,7 +19,11 @@ export const RecurringExpensesScreen = () => (
       const navigation = useNavigation<any>();
       return (
         <AppScroll>
-          <ScreenHeader title="Recurring Expenses" subtitle="Detected subscriptions and recurring charges." action={<IconButton icon="arrow-back" label="Go back" onPress={() => navigation.goBack()} />} />
+          <ScreenHeader
+            leading={<IconButton icon="arrow-back" label="Go back" onPress={() => navigation.goBack()} />}
+            title="Recurring Expenses"
+            subtitle="Detected subscriptions and recurring charges."
+          />
           {data.recurringExpenses.length === 0 ? <EmptyState title="No recurring expenses" message="Mark a transaction as recurring to track it here." /> : data.recurringExpenses.map((item) => (
             <Card key={item.id} shadow="sm" style={{ marginBottom: Spacing.md }}>
               <View style={styles.rowBetween}>

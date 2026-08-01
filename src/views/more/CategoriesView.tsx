@@ -647,17 +647,15 @@ export const CategoriesScreen = () => (
       return (
         <AppScroll>
           <ScreenHeader
-            title="Categories"
-            subtitle="Manage where income and expenses appear without changing historical transaction labels."
-            action={
+            leading={
               <IconButton
                 icon="arrow-back"
                 label="Go back"
-                onPress={() =>
-                  navigation.goBack()
-                }
+                onPress={() => navigation.goBack()}
               />
             }
+            title="Categories"
+            subtitle="Manage where income and expenses appear without changing historical transaction labels."
           />
 
           {notice ? (

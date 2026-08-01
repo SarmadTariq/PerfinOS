@@ -393,17 +393,15 @@ export const SettingsScreen = () => (
       return (
         <AppScroll>
           <ScreenHeader
-            title="Settings"
-            subtitle="Implemented preferences, capability status, and account routes."
-            action={
+            leading={
               <IconButton
                 icon="arrow-back"
                 label="Go back"
-                onPress={() =>
-                  navigation.goBack()
-                }
+                onPress={() => navigation.goBack()}
               />
             }
+            title="Settings"
+            subtitle="Preferences, capability status, and account controls."
           />
 
           {notice ? (

@@ -134,17 +134,15 @@ export const HelpAboutScreen = () => (
       return (
         <AppScroll>
           <ScreenHeader
-            title="Privacy & Help"
-            subtitle="Verified data use, user controls, product scope, and recovery guidance."
-            action={
+            leading={
               <IconButton
                 icon="arrow-back"
                 label="Go back"
-                onPress={() =>
-                  navigation.goBack()
-                }
+                onPress={() => navigation.goBack()}
               />
             }
+            title="Privacy & Help"
+            subtitle="Data use, user controls, product scope, and recovery guidance."
           />
 
           <Segmented
