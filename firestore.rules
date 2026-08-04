@@ -1057,5 +1057,9 @@ service cloud.firestore {
           && resource.data.userId == userId;
       }
     }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
   }
 }
