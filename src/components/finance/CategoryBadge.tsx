@@ -10,7 +10,7 @@ import { useColors } from '../../context/ThemeContext';
 import {
   Radius,
   Spacing,
-} from '../../theme';
+} from '../../theme/index';
 import {
   materialIconName,
   mcIconName,

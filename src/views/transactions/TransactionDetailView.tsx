@@ -515,22 +515,14 @@ const TransactionDetailContent = ({
 
   return (
     <AppScroll>
-      <View style={styles.leadingHeader}>
-        <IconButton
-          icon="arrow-back"
-          label="Return to previous screen"
-          onPress={() => navigation.goBack()}
-        />
-
-        <Text
-          variant="bodySmall"
-          color="secondary"
-        >
-          Back
-        </Text>
-      </View>
-
       <ScreenHeader
+        leading={
+          <IconButton
+            icon="arrow-back"
+            label="Return to previous screen"
+            onPress={() => navigation.goBack()}
+          />
+        }
         title="Transaction details"
         subtitle={transaction.merchant}
         action={

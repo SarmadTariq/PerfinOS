@@ -14,7 +14,7 @@ import {
   Radius,
   Spacing,
   Typography,
-} from '../../theme';
+} from '../../theme/index';
 import { useColors } from '../../context/ThemeContext';
 
 export interface ButtonProps {

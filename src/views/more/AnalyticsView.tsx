@@ -124,9 +124,9 @@ export const AnalyticsScreen = () => (
       return (
         <AppScroll>
           <ScreenHeader
+            leading={<IconButton icon="arrow-back" label="Go back" onPress={() => navigation.goBack()} />}
             title="Analytics Evidence"
             subtitle={`${period.label} signals that support Reports, Insights, and Planning.`}
-            action={<IconButton icon="arrow-back" label="Go back" onPress={() => navigation.goBack()} />}
           />
 
           {data.transactions.length === 0 ? (

@@ -1,7 +1,7 @@
 import { Platform, StyleSheet, TouchableOpacity, View, type StyleProp, type ViewStyle } from 'react-native';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { useThemeScheme } from '../../context/ThemeContext';
-import { Colors, Radius, Spacing } from '../../theme';
+import { useColors } from '../../context/ThemeContext';
+import { Radius, Spacing } from '../../theme/index';
 import { Category, Transaction } from '../../models/finance';
 import { formatCurrencyPrecise } from '../../utils/format';
 import { mcIconName } from '../../utils/icons';
@@ -54,8 +54,7 @@ export const MapCanvas = ({
   showsUserLocation = true,
   style,
 }: MapCanvasProps) => {
-  const scheme = useThemeScheme();
-  const colors = scheme === 'dark' ? Colors.dark : Colors.light;
+  const colors = useColors();
   const expenseTransactions = transactions.filter((t) => t.type === 'expense');
 
   const heatGroups = Object.values(
@@ -110,7 +109,7 @@ export const MapCanvas = ({
   }
 
   return (
-    <View style={[styles.mapCanvas, { backgroundColor: colors.bgTertiary }, style]}>
+    <View style={[styles.mapCanvas, { backgroundColor: colors.backgroundSubtle }, style]}>
       <View style={[styles.mapLayer, { transform: [{ scale: zoom }] }]}>
         <View style={[styles.mapRoad, styles.mapRoadOne]} />
         <View style={[styles.mapRoad, styles.mapRoadTwo]} />
@@ -119,7 +118,7 @@ export const MapCanvas = ({
         <View style={styles.mapWater} />
 
         {showsUserLocation ? (
-          <View style={styles.currentLocationDot}>
+          <View style={[styles.currentLocationDot, { backgroundColor: colors.actionPrimary }]}>
             <MaterialIcons name="my-location" size={18} color="#FFFFFF" />
           </View>
         ) : null}
@@ -211,14 +210,14 @@ export const MapCanvas = ({
                     styles.mapPin,
                     position,
                     {
-                      backgroundColor: category?.color || colors.primary,
+                      backgroundColor: category?.color || colors.actionPrimary,
                       transform: [{ scale: isSelected ? 1.16 : 1 }],
                     },
                   ]}
                 >
                   <MaterialCommunityIcons name={mcIconName(category?.icon, 'food')} size={17} color="#FFFFFF" />
 
-                  <View style={[styles.mapPinLabel, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <View style={[styles.mapPinLabel, { backgroundColor: colors.backgroundElevated, borderColor: colors.borderDefault }]}>
                     <Text variant="caption" numberOfLines={1}>
                       {transaction.location.name || transaction.merchant}
                     </Text>
@@ -232,7 +231,7 @@ export const MapCanvas = ({
             })}
 
         {mode === 'heatmap' && topHeat ? (
-          <View style={[styles.heatLegend, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={[styles.heatLegend, { backgroundColor: colors.backgroundElevated, borderColor: colors.borderDefault }]}>
             <Text variant="caption" color="secondary">
               Highest spend region
             </Text>
@@ -292,7 +291,6 @@ const styles = StyleSheet.create({
     marginLeft: -19,
     marginTop: -19,
     borderRadius: Radius.round,
-    backgroundColor: Colors.light.primary,
     borderWidth: 3,
     borderColor: '#FFFFFF',
     alignItems: 'center',

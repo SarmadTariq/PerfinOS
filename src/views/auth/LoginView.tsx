@@ -14,7 +14,7 @@ import {
   Card,
   Text,
 } from '../../components/base';
-import { ScreenHeader } from '../../components/finance';
+import { IconButton, ScreenHeader } from '../../components/finance';
 import { Field } from '../../components/form/Field';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { useFinance } from '../../context/FinanceContext';
@@ -84,6 +84,13 @@ export const LoginScreen = () => {
   return (
     <AppScroll>
       <ScreenHeader
+        leading={
+          <IconButton
+            icon="arrow-back"
+            label="Return to welcome"
+            onPress={() => navigation.goBack()}
+          />
+        }
         title="Log in"
         subtitle="Access your PerFin OS workspace."
       />

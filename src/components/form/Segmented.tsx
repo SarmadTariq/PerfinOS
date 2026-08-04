@@ -1,6 +1,6 @@
 import { TouchableOpacity, View, StyleSheet } from 'react-native';
-import { useThemeScheme } from '../../context/ThemeContext';
-import { Colors, Radius, Spacing } from '../../theme';
+import { useColors } from '../../context/ThemeContext';
+import { Radius, Spacing } from '../../theme/index';
 import { Text } from '../base';
 
 /**
@@ -20,13 +20,12 @@ export const Segmented = ({
   value: string;
   onChange: (value: string) => void;
 }) => {
-  const scheme = useThemeScheme();
-  const colors = scheme === 'dark' ? Colors.dark : Colors.light;
+  const colors = useColors();
 
   return (
     <View
       accessibilityRole="tablist"
-      style={[styles.segmented, { backgroundColor: colors.bgTertiary }]}
+      style={[styles.segmented, { backgroundColor: colors.backgroundSubtle }]}
     >
       {options.map((option) => (
         <TouchableOpacity
@@ -35,7 +34,7 @@ export const Segmented = ({
           accessibilityState={{ selected: option === value }}
           aria-selected={option === value}
           onPress={() => onChange(option)}
-          style={[styles.segment, option === value && { backgroundColor: colors.bgSecondary }]}
+          style={[styles.segment, option === value && { backgroundColor: colors.backgroundSurface }]}
         >
           <Text variant="caption" style={{ textTransform: 'capitalize' }}>
             {option.replace('-', ' ')}

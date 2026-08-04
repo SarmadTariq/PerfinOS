@@ -13,7 +13,7 @@ import {
   ControlSize,
   Radius,
   Spacing,
-} from '../../theme';
+} from '../../theme/index';
 
 export interface IconButtonProps {
   icon: React.ComponentProps<

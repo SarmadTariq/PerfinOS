@@ -543,15 +543,15 @@ const PlanDetailContent = ({
     <>
       <AppScroll>
         <ScreenHeader
-          title={plan.title}
-          subtitle={`${plan.startDate} to ${plan.endDate} · ${PLAN_STATUS_LABEL[plan.status]}`}
-          action={
+          leading={
             <IconButton
               icon="arrow-back"
               label="Return to Plan home"
               onPress={onBack}
             />
           }
+          title={plan.title}
+          subtitle={`${plan.startDate} to ${plan.endDate} · ${PLAN_STATUS_LABEL[plan.status]}`}
         />
 
         {operationError ? (

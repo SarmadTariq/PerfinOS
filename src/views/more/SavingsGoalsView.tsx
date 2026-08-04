@@ -31,7 +31,11 @@ export const SavingsGoalsScreen = () => (
       }).catch((err) => Alert.alert('Savings goal error', err.message));
       return (
         <AppScroll>
-          <ScreenHeader title="Savings Goals" subtitle={`${savings.percentage}% overall progress across active goals.`} action={<IconButton icon="arrow-back" label="Go back" onPress={() => navigation.goBack()} />} />
+          <ScreenHeader
+            leading={<IconButton icon="arrow-back" label="Go back" onPress={() => navigation.goBack()} />}
+            title="Savings Goals"
+            subtitle={`${savings.percentage}% overall progress across active goals.`}
+          />
           <Card shadow="sm" style={{ marginBottom: Spacing.lg }}>
             <Field label="Goal Name" value={name} onChangeText={setName} placeholder="Emergency fund" />
             <Field label="Target Amount" value={target} onChangeText={setTarget} placeholder="5000" keyboardType="numeric" />

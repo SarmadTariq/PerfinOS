@@ -1215,25 +1215,18 @@ const TransactionFormContent = ({ data, mode }: { data: AppData; mode: Transacti
     >
       <View style={styles.screen}>
         <AppScroll>
-          <View style={styles.leadingHeader}>
-            <IconButton
-              icon="arrow-back"
-              label={
-                mode === 'edit'
-                  ? 'Return to transaction details'
-                  : 'Return to Activity'
-              }
-              onPress={handleExit}
-            />
-
-            <Text variant="bodySmall" color="secondary">
-              {mode === 'edit'
-                ? 'Transaction details'
-                : 'Activity'}
-            </Text>
-          </View>
-
           <ScreenHeader
+            leading={
+              <IconButton
+                icon="arrow-back"
+                label={
+                  mode === 'edit'
+                    ? 'Return to transaction details'
+                    : 'Return to Activity'
+                }
+                onPress={handleExit}
+              />
+            }
             title={
               mode === 'edit'
                 ? 'Edit transaction'

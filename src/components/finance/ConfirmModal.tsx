@@ -1,5 +1,5 @@
 import { Modal, StyleSheet, View } from 'react-native';
-import { Radius, Spacing } from '../../theme';
+import { Radius, Spacing } from '../../theme/index';
 import { useColors } from '../../context/ThemeContext';
 import { Button, Text } from '../base';
 

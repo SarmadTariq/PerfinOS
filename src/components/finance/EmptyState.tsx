@@ -1,35 +1,27 @@
 import React from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
-import {
-  StyleSheet,
-  View,
-} from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useColors } from '../../context/ThemeContext';
-import {
-  Radius,
-  Spacing,
-} from '../../theme';
+import { Radius, Spacing } from '../../theme';
 import { Button, Text } from '../base';
 
 export interface EmptyStateProps {
   title: string;
   message: string;
-  icon?: React.ComponentProps<
-    typeof MaterialIcons
-  >['name'];
+  icon?: React.ComponentProps<typeof MaterialIcons>['name'];
   actionLabel?: string;
   onAction?: () => void;
+  compact?: boolean;
 }
 
-/**
- * Empty state with context and an optional recovery action.
- */
+/** Empty state that defaults to a compact in-flow presentation. */
 export const EmptyState = ({
   title,
   message,
   icon = 'inbox',
   actionLabel,
   onAction,
+  compact = true,
 }: EmptyStateProps) => {
   const colors = useColors();
 
@@ -39,49 +31,41 @@ export const EmptyState = ({
       accessibilityLabel={title}
       style={[
         styles.box,
+        compact ? styles.compactBox : styles.expandedBox,
         {
-          backgroundColor:
-            colors.backgroundSurface,
-          borderColor:
-            colors.borderDefault,
+          backgroundColor: colors.backgroundSurface,
+          borderColor: colors.borderDefault,
         },
       ]}
     >
-      <View
-        style={[
-          styles.icon,
-          {
-            backgroundColor:
-              colors.actionPrimarySoft,
-          },
-        ]}
-      >
-        <MaterialIcons
-          name={icon}
-          size={Spacing.xxxl}
-          color={colors.actionPrimary}
-        />
+      <View style={styles.row}>
+        <View
+          style={[
+            styles.icon,
+            compact && styles.compactIcon,
+            { backgroundColor: colors.actionPrimarySoft },
+          ]}
+        >
+          <MaterialIcons
+            name={icon}
+            size={compact ? Spacing.xl : Spacing.xxxl}
+            color={colors.actionPrimary}
+          />
+        </View>
+
+        <View style={styles.copy}>
+          <Text variant="h4">{title}</Text>
+          <Text variant="bodySmall" color="secondary" style={styles.message}>
+            {message}
+          </Text>
+        </View>
       </View>
-
-      <Text
-        variant="h4"
-        style={styles.title}
-      >
-        {title}
-      </Text>
-
-      <Text
-        variant="body"
-        color="secondary"
-        style={styles.message}
-      >
-        {message}
-      </Text>
 
       {actionLabel && onAction ? (
         <Button
           label={actionLabel}
           onPress={onAction}
+          size="sm"
           style={styles.action}
         />
       ) : null}
@@ -91,17 +75,25 @@ export const EmptyState = ({
 
 const styles = StyleSheet.create({
   box: {
-    minHeight:
-      Spacing.section * 3 +
-      Spacing.xxl +
-      Spacing.xs,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.xl,
+    width: '100%',
     borderRadius: Radius.lg,
     borderWidth: 1,
   },
-
+  compactBox: {
+    padding: Spacing.lg,
+    gap: Spacing.md,
+  },
+  expandedBox: {
+    minHeight: Spacing.section * 3,
+    justifyContent: 'center',
+    padding: Spacing.xl,
+    gap: Spacing.lg,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
   icon: {
     width: Spacing.section,
     height: Spacing.section,
@@ -109,20 +101,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  title: {
-    marginTop: Spacing.md,
+  compactIcon: {
+    width: Spacing.display,
+    height: Spacing.display,
   },
-
+  copy: {
+    flex: 1,
+    minWidth: 0,
+  },
   message: {
-    maxWidth:
-      Spacing.section * 5 +
-      Spacing.xl,
-    marginTop: Spacing.sm,
-    textAlign: 'center',
+    marginTop: Spacing.xs,
   },
-
   action: {
-    marginTop: Spacing.lg,
+    alignSelf: 'flex-start',
   },
 });

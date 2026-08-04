@@ -9,7 +9,7 @@ import {
   Radius,
   Spacing,
   Typography,
-} from '../../theme';
+} from '../../theme/index';
 import { formatCurrency } from '../../utils/format';
 import { Text } from '../base';
 import { EmptyState } from './EmptyState';

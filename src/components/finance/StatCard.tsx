@@ -8,7 +8,7 @@ import { useColors } from '../../context/ThemeContext';
 import {
   Radius,
   Spacing,
-} from '../../theme';
+} from '../../theme/index';
 import { Card, Text } from '../base';
 
 export type StatCardTone =

@@ -1,8 +1,7 @@
 /**
  * Public theme contracts for PerFin OS.
  *
- * Semantic keys describe purpose.
- * Compatibility keys keep current consumers working during PF-236 migration.
+ * Semantic keys describe purpose across light and dark themes.
  */
 
 export type ThemeScheme = 'light' | 'dark';
@@ -55,24 +54,6 @@ export type ThemeColors = {
   amountExpense: string;
   amountTransfer: string;
 
-  /*
-   * Temporary compatibility aliases
-   */
-  bg: string;
-  bgSecondary: string;
-  bgTertiary: string;
-  text: string;
-  textTertiary: string;
-  border: string;
-  borderLight: string;
-  primary: string;
-  primarySoft: string;
-  success: string;
-  danger: string;
-  warning: string;
-  card: string;
-  surfaceWarm: string;
-  surfaceBlue: string;
 };
 
 export type ThemeColorToken = keyof ThemeColors;

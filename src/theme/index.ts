@@ -1,8 +1,7 @@
 /**
  * Public design-system entry point for PerFin OS.
  *
- * New code should import theme contracts and tokens from this directory.
- * The old `src/theme.ts` file remains as a temporary compatibility shim.
+ * Import theme contracts and tokens from this directory.
  */
 
 export { BrandColors, Colors, getThemeColor } from './colors';

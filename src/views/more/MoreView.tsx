@@ -107,7 +107,10 @@ export const MoreScreen = () => {
 
   return (
     <AppScroll>
-      <ScreenHeader title="More" subtitle="Manage setup, preferences, and support." />
+      <ScreenHeader
+        title="More"
+        subtitle="Manage your financial setup, account, and support."
+      />
 
       <View style={styles.sectionStack}>
         {sections.map((section) => (

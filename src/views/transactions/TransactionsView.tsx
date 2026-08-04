@@ -9,10 +9,15 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Card, Text } from '../../components/base';
-import { EmptyState, IconButton, ScreenHeader } from '../../components/finance';
+import { EmptyState, IconButton } from '../../components/finance';
 import { Field } from '../../components/form/Field';
 import { Segmented } from '../../components/form/Segmented';
 import { RequireData } from '../../components/layout/RequireData';
+import { RootAppHeader } from '../../components/layout/RootAppHeader';
+import {
+  FloatingActionLayer,
+  RootTabBottomSpacer,
+} from '../../components/layout/FloatingTabChrome';
 import {
   useActivityFilters,
   calculateActivitySummary,
@@ -26,7 +31,7 @@ import {
 } from '../../context/ThemeContext';
 import { AppData, Category, Transaction, TransactionDatePreset, TransactionFrequencyFilter, TransactionSortKey } from '../../models/finance';
 import { filterTransactions, sortTransactions } from '../../repositories/AnalyticsRepository';
-import { ControlSize, Radius, Spacing, Typography } from '../../theme/index';
+import { ControlSize, Radius, Spacing, Typography, Shadows } from '../../theme/index';
 import { formatCurrency, formatCurrencyPrecise } from '../../utils/format';
 import { mcIconName } from '../../utils/icons';
 
@@ -615,7 +620,12 @@ const QuickFilters = ({
   ];
 
   return (
-    <View style={styles.quickFilterRow}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.quickFilterScroll}
+      contentContainerStyle={styles.quickFilterRow}
+    >
       {chips.map((chip) => (
         <TouchableOpacity
           key={chip.key}
@@ -680,7 +690,7 @@ const QuickFilters = ({
           ) : null}
         </TouchableOpacity>
       ))}
-    </View>
+    </ScrollView>
   );
 };
 
@@ -1363,6 +1373,10 @@ const TransactionCard = ({
     transaction.categoryName || category?.name || 'Uncategorized',
     transaction.paymentMethod,
     placeLabel,
+    transaction.isRecurring ? 'Recurring' : null,
+    receiptCount > 0
+      ? `${receiptCount} receipt${receiptCount === 1 ? '' : 's'}`
+      : null,
   ]
     .filter(Boolean)
     .join(' · ');
@@ -1375,7 +1389,12 @@ const TransactionCard = ({
       accessibilityHint="Opens transaction details"
       activeOpacity={0.76}
     >
-      <Card style={styles.transactionCard}>
+      <View
+        style={[
+          styles.transactionCard,
+          { borderBottomColor: colors.borderSubtle },
+        ]}
+      >
         <View style={styles.transactionRow}>
           <View style={[styles.iconTile, { backgroundColor: `${category?.color || colors.actionPrimary}1F` }]}>
             <MaterialCommunityIcons
@@ -1446,7 +1465,7 @@ const TransactionCard = ({
             />
           </View>
         </View>
-      </Card>
+      </View>
     </TouchableOpacity>
   );
 };
@@ -1512,18 +1531,13 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
 
   const summary = useMemo(() => calculateActivitySummary(visibleTransactions), [visibleTransactions]);
 
-  const resultSummary = `${dateRange.label} · ${summary.transactionCount} transaction${summary.transactionCount === 1 ? '' : 's'} · ${summary.recurringCount} recurring · ${summary.oneTimeCount} one-time`;
+  const resultSummary = `${summary.transactionCount} transaction${summary.transactionCount === 1 ? '' : 's'} · ${summary.recurringCount} recurring · ${summary.oneTimeCount} one-time`;
 
 
   const refineFilterCount =
     (sortKey !== 'date-desc' ? 1 : 0) +
     (receiptFilter !== 'any' ? 1 : 0) +
     (frequencyFilter !== 'all' ? 1 : 0);
-
-  const advancedFilterCount =
-    refineFilterCount +
-    (categoryId !== 'all' ? 1 : 0) +
-    (datePreset !== 'this-month' ? 1 : 0);
 
   const activeFilters: Array<{
     key: string;
@@ -1643,7 +1657,7 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <>
-            <ScreenHeader
+            <RootAppHeader
               title="Activity"
               subtitle="Review the money movement behind your financial picture."
             />
@@ -1657,24 +1671,14 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
               }
             />
 
-            <Card style={styles.searchCard}>
+            <View style={styles.searchCard}>
               <Field
                 label="Search transactions"
                 value={query}
                 onChangeText={setQuery}
                 placeholder="Merchant, category, location, note, or payment method"
               />
-            </Card>
-
-            <SummaryStrip
-              income={summary.income}
-              expenses={summary.expenses}
-              net={summary.netCashFlow}
-              transactionCount={
-                summary.transactionCount
-              }
-              currency={data.user.currency}
-            />
+            </View>
 
             <View style={styles.filterArea}>
               <QuickFilters
@@ -1695,6 +1699,16 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
                 onOpenRefine={() =>
                   setActiveSheet('refine')
                 }
+              />
+
+              <SummaryStrip
+                income={summary.income}
+                expenses={summary.expenses}
+                net={summary.netCashFlow}
+                transactionCount={
+                  summary.transactionCount
+                }
+                currency={data.user.currency}
               />
 
               {activeFilters.length > 0 ? (
@@ -1739,6 +1753,25 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
                       />
                     </TouchableOpacity>
                   ))}
+
+
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Reset all activity filters"
+                    activeOpacity={0.76}
+                    style={styles.activeFilterReset}
+                    onPress={resetAllFilters}
+                  >
+                    <Text
+                      variant="caption"
+                      style={[
+                        styles.actionLabel,
+                        { color: colors.actionPrimary },
+                      ]}
+                    >
+                      Reset
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               ) : null}
 
@@ -1749,30 +1782,6 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
                 >
                   {resultSummary}
                 </Text>
-
-                {query ||
-                type !== 'all' ||
-                advancedFilterCount > 0 ? (
-                  <TouchableOpacity
-                    accessibilityRole="button"
-                    accessibilityLabel="Reset all activity filters"
-                    activeOpacity={0.76}
-                    style={styles.resetAction}
-                    onPress={resetAllFilters}
-                  >
-                    <Text
-                      variant="caption"
-                      style={[
-                        styles.actionLabel,
-                        {
-                          color: colors.actionPrimary,
-                        },
-                      ]}
-                    >
-                      Reset
-                    </Text>
-                  </TouchableOpacity>
-                ) : null}
               </View>
             </View>
           </>
@@ -1824,30 +1833,36 @@ const TransactionsContent = ({ data }: { data: AppData }) => {
             />
           );
         }}
-        ListFooterComponent={<View style={styles.listFooter} />}
+        ListFooterComponent={
+          <>
+            <View style={styles.listFooter} />
+            <RootTabBottomSpacer />
+          </>
+        }
       />
 
-      <View pointerEvents="box-none" style={styles.addActionLayer}>
+      <FloatingActionLayer>
         <TouchableOpacity
-          onPress={() => navigation.navigate('AddTransaction')}
+          onPress={() =>
+            navigation.navigate('AddTransaction')
+          }
           activeOpacity={0.82}
           accessibilityRole="button"
           accessibilityLabel="Add transaction"
           accessibilityHint="Opens the new transaction form"
+          hitSlop={4}
           style={[
-            styles.addActionButton,
+            styles.activityAddButton,
             { backgroundColor: colors.actionPrimary },
           ]}
         >
-          <MaterialIcons name="add" size={22} color={colors.textInverse} />
-          <Text
-            variant="bodySmall"
-            style={[styles.actionLabel, { color: colors.textInverse }]}
-          >
-            Add transaction
-          </Text>
+          <MaterialIcons
+            name="add"
+            size={24}
+            color={colors.textInverse}
+          />
         </TouchableOpacity>
-      </View>
+      </FloatingActionLayer>
 
       <ActivityFilterSheet
         mode={activeSheet}
@@ -1898,32 +1913,32 @@ const styles = StyleSheet.create({
     maxWidth: 1180,
     alignSelf: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
-    paddingBottom: 180,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.lg,
   },
   searchCard: {
     width: '100%',
     maxWidth: 760,
     alignSelf: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   periodSelector: {
     width: '100%',
     maxWidth: 520,
     alignSelf: 'center',
-    minHeight: 64,
-    marginBottom: Spacing.lg,
+    minHeight: 52,
+    marginBottom: Spacing.md,
     borderWidth: 1,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.md,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   periodIcon: {
-    width: 38,
-    height: 38,
+    width: 34,
+    height: 34,
     borderRadius: Radius.md,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1942,46 +1957,50 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   periodTrailing: {
-    width: 38,
+    width: 34,
     alignItems: 'center',
     justifyContent: 'center',
   },
   summaryCard: {
-    marginBottom: Spacing.lg,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.md,
   },
   summaryGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.lg,
+    alignItems: 'stretch',
   },
   summaryMetric: {
-    flexGrow: 1,
-    flexBasis: 132,
+    flex: 1,
     minWidth: 0,
-    gap: Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
   },
   summaryMetricHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  summaryIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: Radius.round,
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  summaryIcon: {
+    display: 'none',
+  },
   summaryLabel: {
-    flex: 1,
+    width: '100%',
+    textAlign: 'center',
     fontWeight: Typography.label.fontWeight,
   },
   filterArea: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  quickFilterScroll: {
+    marginHorizontal: -Spacing.lg,
   },
   quickFilterRow: {
+    paddingHorizontal: Spacing.lg,
     flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
     gap: Spacing.sm,
   },
@@ -2016,12 +2035,13 @@ const styles = StyleSheet.create({
   activeFilterRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    alignItems: 'center',
     gap: Spacing.sm,
     marginTop: Spacing.md,
   },
   activeFilterChip: {
-    maxWidth: '100%',
-    minHeight: 36,
+    maxWidth: 250,
+    minHeight: 34,
     borderWidth: 1,
     borderRadius: Radius.round,
     paddingHorizontal: Spacing.md,
@@ -2030,13 +2050,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  resultLine: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  activeFilterReset: {
+    minHeight: 34,
+    paddingHorizontal: Spacing.sm,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.sm,
-    marginTop: -Spacing.xs,
+    justifyContent: 'center',
+  },
+  resultLine: {
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
   resetAction: {
     minHeight: ControlSize.minimumTouchTarget,
@@ -2045,6 +2067,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dateHeader: {
+    marginTop: Spacing.md,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.xs,
   },
@@ -2054,20 +2077,22 @@ const styles = StyleSheet.create({
     fontWeight: Typography.label.fontWeight,
   },
   transactionCard: {
-    marginBottom: Spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingVertical: Spacing.md,
   },
   transactionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    minHeight: 66,
+    minHeight: 52,
   },
   iconTile: {
-    width: 42,
-    height: 42,
-    borderRadius: Radius.lg,
+    width: 40,
+    height: 40,
+    borderRadius: Radius.md,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   transactionCopy: {
     flex: 1,
@@ -2075,46 +2100,39 @@ const styles = StyleSheet.create({
   },
   transactionTitleRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
-    gap: Spacing.sm,
   },
   transactionTitle: {
     flex: 1,
-    minWidth: 120,
+    minWidth: 0,
     fontWeight: Typography.label.fontWeight,
   },
   transactionMeta: {
-    marginTop: Spacing.xs,
+    marginTop: 2,
   },
   receiptPill: {
-    minHeight: 24,
-    borderRadius: Radius.round,
-    paddingHorizontal: Spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
+    display: 'none',
   },
   pillLabel: {
     fontWeight: Typography.label.fontWeight,
   },
   amountBlock: {
-    alignItems: 'flex-end',
+    minWidth: 108,
+    maxWidth: 150,
     flexShrink: 0,
-    maxWidth: 132,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: Spacing.xs,
   },
   amountText: {
+    flexShrink: 1,
+    textAlign: 'right',
     fontWeight: Typography.label.fontWeight,
   },
   chevron: {
-    marginTop: Spacing.xs,
-  },
-  addActionLayer: {
-    position: 'absolute',
-    left: Spacing.lg,
-    right: Spacing.lg,
-    bottom: Spacing.lg,
-    alignItems: 'flex-end',
+    marginTop: 0,
+    flexShrink: 0,
   },
   addActionButton: {
     minHeight: ControlSize.minimumTouchTarget,
@@ -2124,6 +2142,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
+  },
+  activityAddButton: {
+    width: ControlSize.minimumTouchTarget,
+    height: ControlSize.minimumTouchTarget,
+    borderRadius: Radius.round,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.md,
   },
   modalBackdrop: {
     flex: 1,
@@ -2251,7 +2277,7 @@ const styles = StyleSheet.create({
     flexBasis: 140,
   },
   listFooter: {
-    height: Spacing.xxxl,
+    height: Spacing.xl,
   },
   rowBetween: {
     flexDirection: 'row',
