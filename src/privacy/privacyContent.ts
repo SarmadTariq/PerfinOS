@@ -127,8 +127,8 @@ export const getDataRemovalGuidance = (
   isGuest: boolean
 ) =>
   isGuest
-    ? 'Leaving guest mode does not delete stored guest data. To remove all guest workspace data, clear PerFin OS app storage in device or browser settings. Individual supported records can be removed from their product screens.'
-    : 'Logging out does not delete cloud data. Individual supported records can be removed from their product screens. This build does not provide verified account-wide deletion or a support request form.';
+    ? 'Profile can delete the guest workspace stored on this device. Exiting guest mode without using deletion only closes the active guest session. Individual supported records can also be removed from their product screens.'
+    : 'Logging out does not delete cloud data. Profile can request account deletion through the protected deletion service when it is configured for the build. Individual supported records can also be removed from their product screens.';
 
 export const getHelpTopics = (
   isGuest: boolean
@@ -156,7 +156,7 @@ export const getHelpTopics = (
     detail:
       'Receipt selection is optional. Signed-in upload can store the image remotely when the service is configured. Transaction records keep receipt metadata and upload state.',
     recovery:
-      'If camera or photo access is denied, enable it in system settings or continue without a receipt. Remote receipt deletion is not verified from the app workflow.',
+      'If camera or photo access is denied, enable it in system settings or continue without a receipt. Individual remote receipt deletion is not verified from the app workflow.',
   },
   {
     id: 'location',
@@ -202,7 +202,7 @@ export const getHelpTopics = (
     id: 'contact',
     title: 'Contact',
     detail:
-      'This build does not include an in-app support form or verified account-deletion request route.',
+      'This build does not include an in-app support form. Account deletion is initiated from Profile and requires the protected deletion service to be configured.',
     recovery:
       'Use the support channel provided with the build or distribution source. Do not send passwords, tokens, account numbers, or receipt images in a support message.',
   },

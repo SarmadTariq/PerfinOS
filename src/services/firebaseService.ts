@@ -11,6 +11,7 @@
 export {
   app,
   auth,
+  deleteRemoteIdentity,
   db,
   firebaseConfig,
   firebaseConfigured,

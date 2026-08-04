@@ -2,6 +2,9 @@ import { useMemo } from 'react';
 import { AppData, Budget, Category, NewTransactionInput, RecurringExpense, Report, SavingsGoal, Transaction, User } from '../models/finance';
 import { detectRecurringExpenses, generateMonthlyReport } from '../services/financeAnalytics';
 import { importFinanceWorkspace } from '../services/firebaseService';
+import {
+  deleteGuestWorkspaceData,
+} from '../services/accountDeletion';
 import { createEmptyAppData } from '../services/initialData';
 import { getMonthKey } from '../utils/format';
 import {
@@ -19,6 +22,7 @@ export interface FinanceActions {
   loginWithEmail: (email: string, password: string, options?: AuthOptions) => Promise<void>;
   signupWithEmail: (name: string, email: string, password: string, options?: AuthOptions) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
+  deleteGuestData: () => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
   completeOnboarding: (updates: Partial<User>) => Promise<void>;
@@ -133,6 +137,11 @@ export const useFinanceActions = (): FinanceActions => {
       },
       forgotPassword: async (email) => {
         await resetRemotePassword(email);
+      },
+      deleteGuestData: async () => {
+        await deleteGuestWorkspaceData();
+        await logoutSession();
+        clearWorkspace();
       },
       logout: async () => {
         try {
