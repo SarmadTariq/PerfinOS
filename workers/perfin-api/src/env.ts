@@ -29,4 +29,7 @@ export interface Env {
 
   PLAN_REVISE_RATE_LIMITER?:
     RateLimit;
+
+  PLACES_SEARCH_RATE_LIMITER?:
+    RateLimit;
 }

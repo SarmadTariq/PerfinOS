@@ -57,6 +57,14 @@ namespace_id = "20804"
   limit = 6
   period = 60
 
+[[ratelimits]]
+name = "PLACES_SEARCH_RATE_LIMITER"
+namespace_id = "20805"
+
+  [ratelimits.simple]
+  limit = 60
+  period = 60
+
 [env.preview]
 name = "perfin-os-preview"
 
@@ -111,6 +119,14 @@ namespace_id = "20814"
   limit = 6
   period = 60
 
+[[env.preview.ratelimits]]
+name = "PLACES_SEARCH_RATE_LIMITER"
+namespace_id = "20815"
+
+  [env.preview.ratelimits.simple]
+  limit = 60
+  period = 60
+
 [env.production]
 name = "perfin-os"
 
@@ -163,4 +179,12 @@ namespace_id = "20804"
 
   [env.production.ratelimits.simple]
   limit = 6
+  period = 60
+
+[[env.production.ratelimits]]
+name = "PLACES_SEARCH_RATE_LIMITER"
+namespace_id = "20805"
+
+  [env.production.ratelimits.simple]
+  limit = 60
   period = 60
