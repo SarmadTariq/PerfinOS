@@ -49,9 +49,10 @@ test('release privacy inventory covers required store data categories', () => {
 test('privacy inventory reflects installed telemetry dependencies', () => {
   const inventory = read('docs/release/privacy-data-inventory.md');
   const packageJson = read('package.json');
+  const workerPackageJson = read('workers/perfin-api/package.json');
 
   assert.doesNotMatch(
-    packageJson,
+    `${packageJson}\n${workerPackageJson}`,
     /firebase\/analytics|@react-native-firebase\/analytics|@react-native-firebase\/crashlytics|sentry|amplitude|posthog/i
   );
   assert.match(
@@ -61,5 +62,38 @@ test('privacy inventory reflects installed telemetry dependencies', () => {
   assert.match(
     inventory,
     /\| Product analytics \| No third-party analytics SDK installed/i
+  );
+});
+
+test('privacy inventory discloses location provider paths', () => {
+  const inventory = read('docs/release/privacy-data-inventory.md');
+  const locationService = read('src/services/locationService.ts');
+
+  assert.match(
+    locationService,
+    /Location\.(?:reverseGeocodeAsync|geocodeAsync)/
+  );
+  assert.match(
+    inventory,
+    /Expo\/platform geocoding may process current coordinates or entered addresses/i
+  );
+  assert.match(
+    inventory,
+    /Google Places via Worker for remote place search/i
+  );
+});
+
+test('privacy inventory does not overclaim receipt cleanup on transaction deletion', () => {
+  const inventory = read('docs/release/privacy-data-inventory.md');
+  const financeActions = read('src/hooks/useFinanceActions.ts');
+  const transactionDetail = read('src/views/transactions/TransactionDetailView.tsx');
+  const transactionForm = read('src/views/transactions/TransactionFormView.tsx');
+
+  assert.match(financeActions, /deleteTransaction:\s*async/);
+  assert.match(transactionDetail, /deleteTransaction\(\s*transaction\.id\s*\)/);
+  assert.match(transactionForm, /deleteReceiptFromWorker/);
+  assert.match(
+    inventory,
+    /whole-transaction deletion removes the transaction record but R2 cleanup is not yet verified/i
   );
 });
