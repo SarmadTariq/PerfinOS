@@ -27,6 +27,10 @@ import { RequireData } from '../../components/layout/RequireData';
 import { useFinance } from '../../context/FinanceContext';
 import { useColors } from '../../context/ThemeContext';
 import {
+  buildAccountDeletionDisclosure,
+  startRemoteAccountDeletion,
+} from '../../services/accountDeletion';
+import {
   validateProfileDraft,
 } from '../../profile';
 import {
@@ -135,6 +139,7 @@ export const ProfileScreen = () => (
     {(data) => {
       const {
         isGuest,
+        deleteGuestData,
         updateUser,
         logout,
       } = useFinance();
@@ -157,6 +162,18 @@ export const ProfileScreen = () => (
       const [confirmLogout, setConfirmLogout] =
         useState(false);
       const [loggingOut, setLoggingOut] =
+        useState(false);
+      const [confirmDeleteGuest, setConfirmDeleteGuest] =
+        useState(false);
+      const [confirmDeleteAccount, setConfirmDeleteAccount] =
+        useState(false);
+      const [deletingGuest, setDeletingGuest] =
+        useState(false);
+      const [deletionPassword, setDeletionPassword] =
+        useState('');
+      const [deletingAccount, setDeletingAccount] =
+        useState(false);
+      const [deletionSubmitted, setDeletionSubmitted] =
         useState(false);
 
       const validation = useMemo(
@@ -213,6 +230,91 @@ export const ProfileScreen = () => (
           } finally {
             setLoggingOut(false);
           }
+        };
+
+      const deletionDisclosure = useMemo(
+        () =>
+          buildAccountDeletionDisclosure(
+            isGuest
+          ),
+        [isGuest]
+      );
+
+      const confirmGuestDeletionAction =
+        async () => {
+          if (deletingGuest) return;
+          setDeletingGuest(true);
+          setError(null);
+          setNotice(null);
+
+          try {
+            await deleteGuestData();
+            setConfirmDeleteGuest(false);
+          } catch (caught) {
+            setError(
+              caught instanceof Error
+                ? caught.message
+                : 'Guest data could not be deleted.'
+            );
+          } finally {
+            setDeletingGuest(false);
+          }
+        };
+
+      const startAccountDeletionAction =
+        async () => {
+          setError(null);
+          setNotice(null);
+          setDeletingAccount(true);
+
+          try {
+            const job =
+              await startRemoteAccountDeletion({
+                email:
+                  data.user.email,
+                password:
+                  deletionPassword,
+              });
+
+            setDeletionPassword('');
+            setDeletionSubmitted(false);
+            setConfirmDeleteAccount(false);
+            setNotice(
+              job.status ===
+                'identity_complete'
+                ? 'Account deletion completed for remote workspace data and the Firebase identity.'
+                : 'Account deletion request was accepted.'
+            );
+            await logout();
+          } catch (caught) {
+            setError(
+              caught instanceof Error
+                ? caught.message
+                : 'Account deletion could not be completed.'
+            );
+          } finally {
+            setDeletingAccount(false);
+          }
+        };
+
+      const requestAccountDeletionConfirmation =
+        () => {
+          setDeletionSubmitted(true);
+          setError(null);
+          setNotice(null);
+
+          if (!data.user.email) {
+            setError(
+              'This workspace is missing a signed-in email address.'
+            );
+            return;
+          }
+
+          if (!deletionPassword.trim()) {
+            return;
+          }
+
+          setConfirmDeleteAccount(true);
         };
 
       const createdAt = new Date(
@@ -488,6 +590,80 @@ export const ProfileScreen = () => (
 
           <View style={styles.accountActions}>
             <Text variant="h3">
+              Data deletion
+            </Text>
+            <Text
+              variant="bodySmall"
+              color="secondary"
+              style={styles.sectionCopy}
+            >
+              {isGuest
+                ? 'Delete the local guest workspace stored on this device. Guest workspaces are not synced accounts.'
+                : 'Delete the signed-in workspace through the protected deletion service. A fresh password check is required before any remote deletion request is sent.'}
+            </Text>
+            <Card style={styles.deletionCard}>
+              <Text variant="body">
+                {deletionDisclosure.title}
+              </Text>
+              <View style={styles.deletionList}>
+                {deletionDisclosure.categories.map(
+                  (category) => (
+                    <Text
+                      key={category}
+                      variant="bodySmall"
+                      color="secondary"
+                    >
+                      {'• '}
+                      {category}
+                    </Text>
+                  )
+                )}
+              </View>
+              {isGuest ? (
+                <Button
+                  label="Delete guest data"
+                  variant="danger"
+                  onPress={() =>
+                    setConfirmDeleteGuest(true)
+                  }
+                  loading={deletingGuest}
+                  disabled={deletingGuest}
+                  style={styles.sectionAction}
+                />
+              ) : (
+                <View style={styles.deletionForm}>
+                  <Field
+                    label="Password"
+                    value={deletionPassword}
+                    onChangeText={setDeletionPassword}
+                    placeholder="Confirm your password"
+                    secureTextEntry
+                    error={
+                      deletionSubmitted &&
+                      !deletionPassword.trim()
+                        ? 'Enter your password to continue.'
+                        : undefined
+                    }
+                  />
+                  <Button
+                    label="Delete account"
+                    variant="danger"
+                    onPress={
+                      requestAccountDeletionConfirmation
+                    }
+                    loading={deletingAccount}
+                    disabled={
+                      deletingAccount
+                    }
+                    style={styles.sectionAction}
+                  />
+                </View>
+              )}
+            </Card>
+          </View>
+
+          <View style={styles.accountActions}>
+            <Text variant="h3">
               Account state
             </Text>
             <Text
@@ -512,6 +688,44 @@ export const ProfileScreen = () => (
               style={styles.sectionAction}
             />
           </View>
+
+          <ConfirmModal
+            visible={confirmDeleteGuest}
+            title="Delete guest data?"
+            message="This removes the guest workspace stored on this device, including profile preferences, transactions, categories, budgets, goals, recurring items, and reports. This cannot be undone."
+            confirmLabel={
+              deletingGuest
+                ? 'Deleting'
+                : 'Delete guest data'
+            }
+            onConfirm={
+              confirmGuestDeletionAction
+            }
+            onCancel={() => {
+              if (!deletingGuest) {
+                setConfirmDeleteGuest(false);
+              }
+            }}
+          />
+
+          <ConfirmModal
+            visible={confirmDeleteAccount}
+            title="Delete account?"
+            message="This deletes the signed-in workspace through the protected deletion service, then deletes the Firebase identity when remote deletion completes. This cannot be undone."
+            confirmLabel={
+              deletingAccount
+                ? 'Deleting'
+                : 'Delete account'
+            }
+            onConfirm={
+              startAccountDeletionAction
+            }
+            onCancel={() => {
+              if (!deletingAccount) {
+                setConfirmDeleteAccount(false);
+              }
+            }}
+          />
 
           <ConfirmModal
             visible={confirmLogout}
@@ -641,5 +855,15 @@ const styles = StyleSheet.create({
   },
   accountActions: {
     marginBottom: Spacing.xl,
+  },
+  deletionCard: {
+    marginTop: Spacing.md,
+  },
+  deletionList: {
+    gap: Spacing.xs,
+    marginTop: Spacing.md,
+  },
+  deletionForm: {
+    marginTop: Spacing.lg,
   },
 });

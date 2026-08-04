@@ -7,6 +7,7 @@ export {
 } from './client';
 
 export {
+  deleteRemoteIdentity,
   getRemoteIdToken,
   logoutRemote,
   reauthenticateRemotePassword,

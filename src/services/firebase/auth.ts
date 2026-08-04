@@ -2,6 +2,7 @@ import {
   User as FirebaseUser,
   EmailAuthProvider,
   createUserWithEmailAndPassword,
+  deleteUser,
   getIdToken,
   onAuthStateChanged,
   reauthenticateWithCredential,
@@ -126,3 +127,17 @@ export const reauthenticateRemotePassword =
 export const logoutRemote = async () => {
   if (auth?.currentUser) await signOut(auth);
 };
+
+export const deleteRemoteIdentity =
+  async () => {
+    const user =
+      auth?.currentUser;
+
+    if (!user) {
+      throw new RemoteReauthenticationError(
+        'missing_user'
+      );
+    }
+
+    await deleteUser(user);
+  };

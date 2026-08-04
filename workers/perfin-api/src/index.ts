@@ -28,6 +28,10 @@ import {
 } from './receipt/gateway';
 
 import {
+  createDeletionGateway,
+} from './deletion/gateway';
+
+import {
   createPlanProvider,
   createInMemoryPlanCircuitBreaker,
 } from './plan/provider';
@@ -136,6 +140,14 @@ const receiptGateway =
       verifyFirebaseAppCheckToken,
   });
 
+const deletionGateway =
+  createDeletionGateway({
+    verifyIdToken:
+      verifyFirebaseIdToken,
+    verifyAppCheckToken:
+      verifyFirebaseAppCheckToken,
+  });
+
 // ── Main router ────────────────────────────────────────────────────────────
 
 export default {
@@ -162,6 +174,16 @@ export default {
 
       if (receiptResponse) {
         return receiptResponse;
+      }
+
+      const deletionResponse =
+        await deletionGateway(
+          request,
+          env
+        );
+
+      if (deletionResponse) {
+        return deletionResponse;
       }
 
       if (
