@@ -4,7 +4,7 @@ compatibility_date = "2026-05-19"
 
 [[r2_buckets]]
 binding = "RECEIPTS"
-bucket_name = "perfin-bucket"
+bucket_name = "perfin-os-local-receipts"
 
 [vars]
 PLAN_ENV = "local"
@@ -57,6 +57,58 @@ namespace_id = "20804"
   limit = 6
   period = 60
 
+[env.preview]
+name = "perfin-os-preview"
+
+[env.preview.vars]
+PLAN_ENV = "preview"
+FIREBASE_PROJECT_ID = "perfin-os-preview"
+
+[env.preview.secrets]
+required = [
+  "PLAN_PROVIDER_API_KEY",
+  "PLAN_PROVIDER_MODEL",
+  "PLAN_PROVIDER_API_BASE",
+  "FIREBASE_PROJECT_NUMBER",
+  "ALLOWED_ORIGINS"
+]
+
+[[env.preview.r2_buckets]]
+binding = "RECEIPTS"
+bucket_name = "perfin-os-preview-receipts"
+
+[[env.preview.ratelimits]]
+name = "PLAN_SESSION_RATE_LIMITER"
+namespace_id = "20811"
+
+  [env.preview.ratelimits.simple]
+  limit = 10
+  period = 60
+
+[[env.preview.ratelimits]]
+name = "PLAN_TURN_RATE_LIMITER"
+namespace_id = "20812"
+
+  [env.preview.ratelimits.simple]
+  limit = 30
+  period = 60
+
+[[env.preview.ratelimits]]
+name = "PLAN_GENERATE_RATE_LIMITER"
+namespace_id = "20813"
+
+  [env.preview.ratelimits.simple]
+  limit = 6
+  period = 60
+
+[[env.preview.ratelimits]]
+name = "PLAN_REVISE_RATE_LIMITER"
+namespace_id = "20814"
+
+  [env.preview.ratelimits.simple]
+  limit = 6
+  period = 60
+
 [env.production]
 name = "perfin-os"
 
@@ -75,7 +127,7 @@ required = [
 
 [[env.production.r2_buckets]]
 binding = "RECEIPTS"
-bucket_name = "perfin-bucket"
+bucket_name = "perfin-os-production-receipts"
 
 [[env.production.ratelimits]]
 name = "PLAN_SESSION_RATE_LIMITER"

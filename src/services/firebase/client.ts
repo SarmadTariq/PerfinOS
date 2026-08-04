@@ -1,19 +1,40 @@
 import { FirebaseApp, getApps, initializeApp } from 'firebase/app';
 import { Auth, getAuth } from 'firebase/auth';
 import { Firestore, getFirestore } from 'firebase/firestore';
-
-const env = process.env || {};
+import {
+  runtimeConfig,
+} from '../environment';
 
 export const firebaseConfig = {
-  apiKey: env.EXPO_PUBLIC_FIREBASE_API_KEY,
-  authDomain: env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: env.EXPO_PUBLIC_FIREBASE_APP_ID,
+  apiKey:
+    runtimeConfig
+      .firebase
+      .apiKey,
+  authDomain:
+    runtimeConfig
+      .firebase
+      .authDomain,
+  projectId:
+    runtimeConfig
+      .firebase
+      .projectId,
+  storageBucket:
+    runtimeConfig
+      .firebase
+      .storageBucket,
+  messagingSenderId:
+    runtimeConfig
+      .firebase
+      .messagingSenderId,
+  appId:
+    runtimeConfig
+      .firebase
+      .appId,
 };
 
-export const firebaseConfigured = Object.values(firebaseConfig).every(Boolean);
+export const firebaseConfigured =
+  runtimeConfig
+    .firebaseConfigured;
 
 export const app: FirebaseApp | null = firebaseConfigured
   ? getApps()[0] || initializeApp(firebaseConfig)

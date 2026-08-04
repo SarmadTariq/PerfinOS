@@ -9,6 +9,9 @@ import {
 import {
   app,
 } from './client';
+import {
+  runtimeConfig,
+} from '../environment';
 
 export type PlanAppCheckAvailability =
   | 'available'
@@ -28,13 +31,10 @@ export class PlanAppCheckUnavailableError
   }
 }
 
-const env =
-  process.env || {};
-
 const webSiteKey =
-  env
-    .EXPO_PUBLIC_FIREBASE_APP_CHECK_SITE_KEY
-    ?.trim() ||
+  runtimeConfig
+    .firebase
+    .appCheckSiteKey ||
   null;
 
 let webAppCheckPromise:

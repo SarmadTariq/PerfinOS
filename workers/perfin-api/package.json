@@ -7,7 +7,7 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
-    "verify:release": "npm run typecheck && wrangler deploy --dry-run --env=\"\""
+    "verify:release": "npm run typecheck && wrangler deploy --dry-run --env=\"\" && wrangler deploy --dry-run --env preview && wrangler deploy --dry-run --env production"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.18.8",

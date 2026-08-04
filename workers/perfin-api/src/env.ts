@@ -1,7 +1,8 @@
 export interface Env {
-  PLAN_ENV?:
-    | 'local'
-    | 'production';
+	  PLAN_ENV?:
+	    | 'local'
+	    | 'preview'
+	    | 'production';
 
   RECEIPTS: R2Bucket;
   PLAN_PROVIDER_API_KEY?: string;

@@ -4,11 +4,27 @@
     "appVersionSource": "remote"
   },
   "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_PERFIN_APP_ENV": "local",
+        "EXPO_PUBLIC_BILLING_PRODUCT_NAMESPACE": "perfin.local"
+      }
+    },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_PERFIN_APP_ENV": "preview",
+        "EXPO_PUBLIC_BILLING_PRODUCT_NAMESPACE": "perfin.preview"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_PERFIN_APP_ENV": "production",
+        "EXPO_PUBLIC_BILLING_PRODUCT_NAMESPACE": "perfin.production"
+      }
     }
   },
   "submit": {

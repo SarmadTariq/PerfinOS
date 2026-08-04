@@ -7,10 +7,14 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppData } from '../models/finance';
-import { createDemoAppData, createEmptyAppData } from '../services/initialData';
+import {
+  GUEST_STORAGE_NAMESPACE,
+  resolveGuestStorageData,
+} from './guestStorageMigration';
 
-/** AsyncStorage namespace for guest workspace data. Versioned to allow future migrations. */
-const GUEST_STORAGE_NAMESPACE = 'perfin-os.guest.v1';
+let lastGuestStorageRecoveryNotice:
+  string | null =
+  null;
 
 /**
  * Loads guest app data from AsyncStorage.
@@ -20,36 +24,21 @@ const GUEST_STORAGE_NAMESPACE = 'perfin-os.guest.v1';
  */
 export const loadGuestAppData = async (): Promise<AppData> => {
   const raw = await AsyncStorage.getItem(GUEST_STORAGE_NAMESPACE);
-  if (!raw) {
-    const demo = createDemoAppData();
-    await saveGuestAppData(demo);
-    return demo;
+  const result =
+    resolveGuestStorageData(
+      raw
+    );
+
+  lastGuestStorageRecoveryNotice =
+    result.recoveryNotice;
+
+  if (result.shouldPersist) {
+    await saveGuestAppData(
+      result.data
+    );
   }
 
-  try {
-    const parsed = JSON.parse(raw) as AppData;
-    return {
-      ...parsed,
-      entitlement:
-        parsed.entitlement ||
-        createEmptyAppData({ userId: parsed.user.id, isGuest: true }).entitlement,
-      transactions: parsed.transactions.map((t) => ({
-        ...t,
-        receipts: t.receipts || [],
-        location: {
-          ...t.location,
-          name: t.location.name || t.merchant,
-          formattedAddress: t.location.formattedAddress || t.location.address,
-          source: t.location.source || 'imported',
-        },
-      })),
-    };
-  } catch {
-    // Corrupt data — reset to demo
-    const demo = createDemoAppData();
-    await saveGuestAppData(demo);
-    return demo;
-  }
+  return result.data;
 };
 
 /**
@@ -68,3 +57,7 @@ export const saveGuestAppData = async (data: AppData) => {
 export const clearGuestAppData = async () => {
   await AsyncStorage.removeItem(GUEST_STORAGE_NAMESPACE);
 };
+
+export const getLastGuestStorageRecoveryNotice =
+  () =>
+    lastGuestStorageRecoveryNotice;
