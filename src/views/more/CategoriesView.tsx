@@ -11,7 +11,6 @@ import {
   CategoryBadge,
   ConfirmModal,
   IconButton,
-  ScreenHeader,
 } from '../../components/finance';
 import { Field, Segmented } from '../../components/form';
 import { AppScroll } from '../../components/layout/AppScroll';
@@ -93,15 +92,20 @@ const CategoryEditor = ({
   onCancel: () => void;
 }) => {
   const colors = useColors();
+
   const normalizedName = draft.name
     .trim()
     .replace(/\s+/g, ' ');
+
   const duplicate = existingCategories.some(
     (category) =>
       category.type === draft.type &&
-      category.name.trim().toLocaleLowerCase() ===
+      category.name
+        .trim()
+        .toLocaleLowerCase() ===
         normalizedName.toLocaleLowerCase()
   );
+
   const nameError =
     normalizedName.length === 0
       ? 'Enter a category name.'
@@ -111,7 +115,11 @@ const CategoryEditor = ({
         : duplicate
           ? `A ${draft.type} category already uses this name.`
           : undefined;
-  const parsedBudget = Number(draft.monthlyBudget);
+
+  const parsedBudget = Number(
+    draft.monthlyBudget
+  );
+
   const budgetError =
     draft.type === 'expense' &&
     (draft.monthlyBudget.trim() === '' ||
@@ -127,22 +135,25 @@ const CategoryEditor = ({
         borderColor: colors.actionPrimary,
       }}
     >
+      {/* CATEGORIES_EDITOR_SLICE_C4 */}
       <View style={styles.sectionHeading}>
         <View style={styles.headingCopy}>
           <Text variant="h3">
             {editing
               ? 'Edit category'
-              : 'New category'}
+              : 'Create category'}
           </Text>
+
           <Text
             variant="bodySmall"
             color="secondary"
           >
             {editing
-              ? 'Type stays fixed to preserve existing transaction meaning.'
-              : 'Choose where this category appears in transaction forms.'}
+              ? 'Type is locked so existing activity keeps its original meaning.'
+              : 'Choose how this category appears when recording new activity.'}
           </Text>
         </View>
+
         <IconButton
           icon="close"
           label="Close category editor"
@@ -151,26 +162,75 @@ const CategoryEditor = ({
       </View>
 
       {!editing ? (
-        <Segmented
-          options={['expense', 'income']}
-          value={draft.type}
-          onChange={(value) =>
-            onChange({
-              ...emptyDraft(
-                value as TransactionType
-              ),
-              name: draft.name,
-              color: draft.color,
-            })
-          }
-        />
-      ) : null}
+        <View style={styles.editorTypeControl}>
+          <Text
+            variant="caption"
+            color="secondary"
+            style={styles.fieldLabel}
+          >
+            CATEGORY TYPE
+          </Text>
+
+          <Segmented
+            options={[
+              'expense',
+              'income',
+            ]}
+            value={draft.type}
+            onChange={(value) =>
+              onChange({
+                ...emptyDraft(
+                  value as TransactionType
+                ),
+                name: draft.name,
+                color: draft.color,
+              })
+            }
+          />
+        </View>
+      ) : (
+        <View
+          style={[
+            styles.editorTypeLock,
+            {
+              backgroundColor:
+                colors.backgroundSubtle,
+              borderColor:
+                colors.borderDefault,
+            },
+          ]}
+        >
+          <Text
+            variant="caption"
+            color="secondary"
+          >
+            TYPE LOCKED
+          </Text>
+
+          <Text variant="bodySmall">
+            {draft.type === 'income'
+              ? 'Income category'
+              : 'Expense category'}
+          </Text>
+
+          <Text
+            variant="bodySmall"
+            color="secondary"
+          >
+            Existing activity keeps its
+            original category type.
+          </Text>
+        </View>
+      )}
 
       <Field
         label="Category name"
         value={draft.name}
         onChangeText={(name) =>
-          onChange({ ...draft, name })
+          onChange({
+            ...draft,
+            name,
+          })
         }
         placeholder={
           draft.type === 'income'
@@ -183,6 +243,16 @@ const CategoryEditor = ({
             : undefined
         }
       />
+
+      <Text
+        variant="bodySmall"
+        color="secondary"
+        style={styles.editorHelp}
+      >
+        Names ignore extra spaces and
+        capitalization when checking
+        duplicates.
+      </Text>
 
       {draft.type === 'expense' ? (
         <Field
@@ -210,6 +280,7 @@ const CategoryEditor = ({
       >
         Color
       </Text>
+
       <View
         style={styles.choiceRow}
         accessibilityRole="radiogroup"
@@ -217,12 +288,17 @@ const CategoryEditor = ({
         {CATEGORY_COLORS.map((color) => {
           const selected =
             draft.color === color;
+
           return (
             <TouchableOpacity
               key={color}
               accessibilityRole="radio"
-              accessibilityLabel={`Category color ${color}`}
-              accessibilityState={{ checked: selected }}
+              accessibilityLabel={
+                `Category color ${color}`
+              }
+              accessibilityState={{
+                checked: selected,
+              }}
               aria-checked={selected}
               onPress={() =>
                 onChange({
@@ -250,6 +326,7 @@ const CategoryEditor = ({
       >
         Icon
       </Text>
+
       <View
         style={styles.choiceRow}
         accessibilityRole="radiogroup"
@@ -257,12 +334,17 @@ const CategoryEditor = ({
         {CATEGORY_ICONS.map((icon) => {
           const selected =
             draft.icon === icon;
+
           return (
             <TouchableOpacity
               key={icon}
               accessibilityRole="radio"
-              accessibilityLabel={`Category icon ${icon}`}
-              accessibilityState={{ checked: selected }}
+              accessibilityLabel={
+                `Category icon ${icon}`
+              }
+              accessibilityState={{
+                checked: selected,
+              }}
               aria-checked={selected}
               onPress={() =>
                 onChange({
@@ -296,6 +378,26 @@ const CategoryEditor = ({
         })}
       </View>
 
+      <View
+        style={[
+          styles.editorSafety,
+          {
+            borderTopColor:
+              colors.borderSubtle,
+          },
+        ]}
+      >
+        <Text
+          variant="bodySmall"
+          color="secondary"
+        >
+          Changes apply to future activity.
+          Existing transactions and budget
+          history keep their saved category
+          references.
+        </Text>
+      </View>
+
       <View style={styles.editorActions}>
         <Button
           label="Cancel"
@@ -303,6 +405,7 @@ const CategoryEditor = ({
           onPress={onCancel}
           style={styles.flexAction}
         />
+
         <Button
           label={
             editing
@@ -346,6 +449,7 @@ const CategoryRow = ({
     isCategoryArchived(category);
 
   return (
+    /* CATEGORIES_ROWS_SLICE_C3 */
     <View
       style={[
         styles.categoryRow,
@@ -363,61 +467,115 @@ const CategoryRow = ({
             icon={category.icon}
             color={category.color}
           />
-          <Text
-            variant="caption"
-            color="secondary"
-          >
-            {category.isDefault
-              ? 'Default'
-              : 'User created'}
-            {archived ? ' · Archived' : ''}
-          </Text>
-        </View>
-        <View style={styles.metadataRow}>
-          <Text
-            variant="bodySmall"
-            color="secondary"
-          >
-            {category.type === 'income'
-              ? 'Income'
-              : 'Expense'}
-          </Text>
-          {category.type === 'expense' ? (
+
+          <View style={styles.categoryState}>
             <Text
-              variant="bodySmall"
+              variant="caption"
               color="secondary"
             >
-              {formatCurrency(
-                category.monthlyBudget,
-                currency
-              )}{' '}
-              default
+              {category.isDefault
+                ? 'Default'
+                : 'Custom'}
             </Text>
+
+            {archived ? (
+              <Text
+                variant="caption"
+                color="secondary"
+              >
+                {'Archived'}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+
+        <View style={styles.categoryMetaGrid}>
+          <View style={styles.categoryMetaItem}>
+            <Text
+              variant="caption"
+              color="secondary"
+              style={
+                styles.categoryMetaLabel
+              }
+            >
+              TYPE
+            </Text>
+
+            <Text variant="bodySmall">
+              {category.type === 'income'
+                ? 'Income'
+                : 'Expense'}
+            </Text>
+          </View>
+
+          {category.type === 'expense' ? (
+            <View
+              style={
+                styles.categoryMetaItem
+              }
+            >
+              <Text
+                variant="caption"
+                color="secondary"
+                style={
+                  styles.categoryMetaLabel
+                }
+              >
+                DEFAULT BUDGET
+              </Text>
+
+              <Text variant="bodySmall">
+                {formatCurrency(
+                  category.monthlyBudget,
+                  currency
+                )}
+              </Text>
+            </View>
           ) : null}
-          <Text
-            variant="bodySmall"
-            color="secondary"
-          >
-            {transactionCount === 0
-              ? 'No transactions'
-              : `${transactionCount} transaction${
-                  transactionCount === 1
-                    ? ''
-                    : 's'
-                }`}
-          </Text>
-          <Text
-            variant="bodySmall"
-            color="secondary"
-          >
-            {budgetMonthCount === 0
-              ? 'No monthly overrides'
-              : `${budgetMonthCount} budget month${
-                  budgetMonthCount === 1
-                    ? ''
-                    : 's'
-                }`}
-          </Text>
+
+          <View style={styles.categoryMetaItem}>
+            <Text
+              variant="caption"
+              color="secondary"
+              style={
+                styles.categoryMetaLabel
+              }
+            >
+              ACTIVITY
+            </Text>
+
+            <Text variant="bodySmall">
+              {transactionCount === 0
+                ? 'No transactions'
+                : `${transactionCount} transaction${
+                    transactionCount === 1
+                      ? ''
+                      : 's'
+                  }`}
+            </Text>
+          </View>
+
+          <View style={styles.categoryMetaItem}>
+            <Text
+              variant="caption"
+              color="secondary"
+              style={
+                styles.categoryMetaLabel
+              }
+            >
+              BUDGET HISTORY
+            </Text>
+
+            <Text variant="bodySmall">
+              {budgetMonthCount === 0
+                ? 'No monthly overrides'
+                : `${budgetMonthCount} budget month${
+                    budgetMonthCount === 1
+                      ? ''
+                      : 's'
+                  }`}
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -432,19 +590,22 @@ const CategoryRow = ({
               onPress={onRestore}
             />
           ) : (
-            <IconButton
-              icon="edit"
-              label={`Edit ${category.name}`}
-              onPress={onEdit}
-            />
+            <>
+              <IconButton
+                icon="edit"
+                label={`Edit ${category.name}`}
+                onPress={onEdit}
+              />
+
+              <Button
+                label="Archive"
+                variant="danger"
+                size="sm"
+                disabled={busy || archived}
+                onPress={onRemove}
+              />
+            </>
           )}
-          <Button
-            label="Archive"
-            variant="danger"
-            size="sm"
-            disabled={busy || archived}
-            onPress={onRemove}
-          />
         </View>
       ) : null}
     </View>
@@ -646,17 +807,38 @@ export const CategoriesScreen = () => (
 
       return (
         <AppScroll>
-          <ScreenHeader
-            leading={
-              <IconButton
-                icon="arrow-back"
-                label="Go back"
-                onPress={() => navigation.goBack()}
-              />
-            }
-            title="Categories"
-            subtitle="Manage where income and expenses appear without changing historical transaction labels."
-          />
+          {/* CATEGORIES_SHELL_SLICE_C1 */}
+          <View style={styles.categoriesHeader}>
+            <IconButton
+              icon="arrow-back"
+              label="Go back"
+              onPress={() =>
+                navigation.goBack()
+              }
+            />
+
+            <View
+              style={
+                styles.categoriesHeaderCopy
+              }
+            >
+              <Text variant="h2">
+                Manage categories
+              </Text>
+
+              <Text
+                variant="bodySmall"
+                color="secondary"
+                style={
+                  styles.categoriesHeaderSubtitle
+                }
+              >
+                New activity uses these categories.
+                Historical transaction references
+                remain unchanged.
+              </Text>
+            </View>
+          </View>
 
           {notice ? (
             <View
@@ -697,37 +879,94 @@ export const CategoriesScreen = () => (
             </View>
           ) : null}
 
-          <View style={styles.toolbar}>
-            <View style={styles.toolbarControls}>
-              <Segmented
-                options={['expense', 'income']}
-                value={type}
-                onChange={(value) => {
-                  setType(
-                    value as TransactionType
-                  );
-                  closeEditor();
-                }}
-              />
-              <Segmented
-                options={['active', 'archived']}
-                value={status}
-                onChange={(value) => {
-                  setStatus(
-                    value as
-                      | 'active'
-                      | 'archived'
-                  );
-                  closeEditor();
-                }}
+          {/* CATEGORIES_CONTROLS_SLICE_C2 */}
+          <Card style={styles.categoryControls}>
+            <View style={styles.controlHeader}>
+              <View
+                style={
+                  styles.controlHeaderCopy
+                }
+              >
+                <Text variant="h3">
+                  Category library
+                </Text>
+
+                <Text
+                  variant="bodySmall"
+                  color="secondary"
+                >
+                  Choose which categories are
+                  visible when recording new
+                  activity.
+                </Text>
+              </View>
+
+              <Button
+                label="Add category"
+                onPress={openCreate}
+                disabled={draft !== null}
+                style={
+                  styles.addCategoryAction
+                }
               />
             </View>
-            <Button
-              label="Add category"
-              onPress={openCreate}
-              disabled={draft !== null}
-            />
-          </View>
+
+            <View style={styles.controlGrid}>
+              <View style={styles.controlGroup}>
+                <Text
+                  variant="caption"
+                  color="secondary"
+                  style={
+                    styles.controlEyebrow
+                  }
+                >
+                  CATEGORY TYPE
+                </Text>
+
+                <Segmented
+                  options={[
+                    'expense',
+                    'income',
+                  ]}
+                  value={type}
+                  onChange={(value) => {
+                    setType(
+                      value as TransactionType
+                    );
+                    closeEditor();
+                  }}
+                />
+              </View>
+
+              <View style={styles.controlGroup}>
+                <Text
+                  variant="caption"
+                  color="secondary"
+                  style={
+                    styles.controlEyebrow
+                  }
+                >
+                  VISIBILITY
+                </Text>
+
+                <Segmented
+                  options={[
+                    'active',
+                    'archived',
+                  ]}
+                  value={status}
+                  onChange={(value) => {
+                    setStatus(
+                      value as
+                        | 'active'
+                        | 'archived'
+                    );
+                    closeEditor();
+                  }}
+                />
+              </View>
+            </View>
+          </Card>
 
           {draft ? (
             <CategoryEditor
@@ -748,23 +987,37 @@ export const CategoriesScreen = () => (
           ) : null}
 
           <View style={styles.listHeading}>
-            <View>
+            <View
+              style={
+                styles.listHeadingCopy
+              }
+            >
               <Text variant="h3">
-                {status === 'active'
-                  ? 'Active'
-                  : 'Archived'}{' '}
-                {type} categories
+                {type === 'income'
+                  ? 'Income categories'
+                  : 'Expense categories'}
               </Text>
+
               <Text
                 variant="bodySmall"
                 color="secondary"
               >
-                {categories.length}{' '}
-                {categories.length === 1
-                  ? 'category'
-                  : 'categories'}
+                {status === 'active'
+                  ? 'Available when recording new activity.'
+                  : 'Hidden from new activity and retained for history.'}
               </Text>
             </View>
+
+            <Text
+              variant="caption"
+              color="secondary"
+              style={styles.listCount}
+            >
+              {categories.length}{' '}
+              {categories.length === 1
+                ? 'category'
+                : 'categories'}
+            </Text>
           </View>
 
           {categories.length === 0 ? (
@@ -785,8 +1038,8 @@ export const CategoriesScreen = () => (
                 style={styles.emptyCopy}
               >
                 {status === 'active'
-                  ? 'Create one to make it available in transaction forms.'
-                  : 'Archived categories will remain here for historical reference.'}
+                  ? 'Add one to make it available when recording new activity.'
+                  : 'Archived categories stay available here for historical reference and restoration.'}
               </Text>
             </View>
           ) : (
@@ -833,7 +1086,7 @@ export const CategoriesScreen = () => (
             title="Archive category?"
             message={
               confirmingCategory
-                ? `${confirmingCategory.name} will be hidden from new transactions and retained for transaction, budget, and Plan history.`
+                ? `${confirmingCategory.name} will be hidden from new activity. Existing transactions, budget history, and Plan history will keep their current category reference.`
                 : ''
             }
             confirmLabel="Archive"
@@ -849,19 +1102,101 @@ export const CategoriesScreen = () => (
 );
 
 const styles = StyleSheet.create({
-  toolbar: {
+  editorTypeControl: {
+    gap: Spacing.xs,
+    marginBottom: Spacing.md,
+  },
+  editorTypeLock: {
+    borderWidth: 1,
+    borderRadius: Radius.sm,
+    padding: Spacing.md,
+    gap: Spacing.xs,
+    marginBottom: Spacing.lg,
+  },
+  editorHelp: {
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.lg,
+  },
+  editorSafety: {
+    borderTopWidth:
+      StyleSheet.hairlineWidth,
+    paddingTop: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+
+  categoryState: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingTop: Spacing.xs,
+  },
+  categoryMetaItem: {
+    flexGrow: 1,
+    flexBasis: 120,
+    minWidth: 0,
+    gap: Spacing.xs,
+  },
+  categoryMetaLabel: {
+    letterSpacing: 0.6,
+  },
+
+  controlHeader: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: Spacing.md,
-    marginBottom: Spacing.lg,
   },
-  toolbarControls: {
+  controlHeaderCopy: {
+    flex: 1,
+    minWidth: 220,
+    gap: Spacing.xs,
+  },
+  controlGroup: {
+    flexGrow: 1,
+    flexBasis: 220,
+    minWidth: 0,
+    gap: Spacing.xs,
+  },
+  controlEyebrow: {
+    letterSpacing: 0.7,
+  },
+  addCategoryAction: {
+    minWidth: 150,
+  },
+  listHeadingCopy: {
+    flex: 1,
+    minWidth: 220,
+    gap: Spacing.xs,
+  },
+  listCount: {
+    paddingTop: Spacing.xs,
+  },
+
+  categoriesHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.md,
+    marginBottom: Spacing.xl,
+  },
+  categoriesHeaderCopy: {
+    flex: 1,
+    minWidth: 0,
+    paddingTop: Spacing.xs,
+  },
+  categoriesHeaderSubtitle: {
+    marginTop: Spacing.xs,
+  },
+
+  categoryControls: {
+    gap: Spacing.lg,
+    marginBottom: Spacing.xl,
+  },
+  controlGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.md,
-    flex: 1,
   },
   editor: {
     marginBottom: Spacing.xl,
@@ -919,7 +1254,10 @@ const styles = StyleSheet.create({
   },
   listHeading: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
+    gap: Spacing.md,
     marginBottom: Spacing.md,
   },
   categoryList: {
@@ -929,24 +1267,26 @@ const styles = StyleSheet.create({
   categoryRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: Spacing.lg,
-    paddingVertical: Spacing.lg,
-    borderBottomWidth: 1,
+    gap: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderBottomWidth:
+      StyleSheet.hairlineWidth,
   },
   categoryMain: {
     flex: 1,
-    minWidth: 240,
-    gap: Spacing.sm,
+    minWidth: 220,
+    gap: Spacing.md,
   },
   categoryTitleRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     gap: Spacing.sm,
   },
-  metadataRow: {
+  categoryMetaGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.md,
@@ -954,6 +1294,7 @@ const styles = StyleSheet.create({
   rowActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'flex-start',
     gap: Spacing.sm,
   },
   empty: {

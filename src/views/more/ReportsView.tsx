@@ -12,7 +12,6 @@ import { Button, Card, Text } from '../../components/base';
 import {
   EmptyState,
   IconButton,
-  ScreenHeader,
 } from '../../components/finance';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';
@@ -117,18 +116,40 @@ const ReportSummary = ({
   missingCategoryCount: number;
 }) => (
   <Card style={styles.reportCard}>
+    {/* REPORTS_EVIDENCE_SLICE_4A */}
     <View style={styles.reportHeading}>
       <View style={styles.headingCopy}>
+        <Text
+          variant="caption"
+          color="secondary"
+          style={styles.reportEyebrow}
+        >
+          REPORT SNAPSHOT
+        </Text>
+
         <Text variant="h3">
           {readableMonth(report.month)}
         </Text>
-        <Text variant="bodySmall" color="secondary">
-          Generated {formatGeneratedAt(report.generatedAt)}
+
+        <Text
+          variant="bodySmall"
+          color="secondary"
+        >
+          Generated{' '}
+          {formatGeneratedAt(
+            report.generatedAt
+          )}
         </Text>
       </View>
-      <Text variant="caption" color="secondary">
-        Deterministic summary
-      </Text>
+
+      <View style={styles.reportBadge}>
+        <Text
+          variant="caption"
+          color="secondary"
+        >
+          Deterministic
+        </Text>
+      </View>
     </View>
 
     <View style={styles.summaryGrid}>
@@ -166,6 +187,20 @@ const ReportSummary = ({
           )}
         </Text>
       </View>
+    </View>
+
+    <View style={styles.evidenceHeading}>
+      <Text variant="h4">
+        Evidence included
+      </Text>
+
+      <Text
+        variant="bodySmall"
+        color="secondary"
+      >
+        Values captured for this generated
+        monthly snapshot.
+      </Text>
     </View>
 
     <View style={styles.detailRows}>
@@ -380,30 +415,75 @@ export const ReportsScreen = () => (
 
       return (
         <AppScroll>
-          <ScreenHeader
-            leading={
-              <IconButton
-                icon="arrow-back"
-                label="Go back"
-                onPress={() => navigation.goBack()}
-              />
-            }
-            title="Reports"
-            subtitle="Generate and save reconciled monthly summaries."
-          />
+          {/* REPORTS_SHELL_SLICE_1A */}
+          <View style={styles.reportsHeader}>
+            <IconButton
+              icon="arrow-back"
+              label="Go back"
+              onPress={() =>
+                navigation.goBack()
+              }
+            />
 
-          <View style={styles.controls}>
-            <View style={styles.controlCopy}>
-              <Text variant="bodySmall" color="secondary">
-                Report type
+            <View
+              style={
+                styles.reportsHeaderCopy
+              }
+            >
+              <Text variant="h2">
+                Reports
               </Text>
-              <Text variant="h4">
-                Monthly summary
-              </Text>
-              <Text variant="bodySmall" color="secondary">
-                Deterministic calculations only
+
+              <Text
+                variant="bodySmall"
+                color="secondary"
+                style={
+                  styles.reportsHeaderSubtitle
+                }
+              >
+                Generate, review, and save
+                reconciled monthly summaries.
               </Text>
             </View>
+          </View>
+
+          {/* REPORTS_PERIOD_SLICE_2A */}
+          <Card style={styles.controls}>
+            <View
+              style={
+                styles.reportSetupHeading
+              }
+            >
+              <View style={styles.controlCopy}>
+                <Text
+                  variant="caption"
+                  color="secondary"
+                  style={styles.reportEyebrow}
+                >
+                  MONTHLY REPORT
+                </Text>
+
+                <Text variant="h3">
+                  Monthly summary
+                </Text>
+
+                <Text
+                  variant="bodySmall"
+                  color="secondary"
+                >
+                  Review one calendar month of
+                  stored Activity records.
+                </Text>
+              </View>
+
+              <Text
+                variant="caption"
+                color="secondary"
+              >
+                Deterministic
+              </Text>
+            </View>
+
             <View style={styles.periodControl}>
               <IconButton
                 icon="chevron-left"
@@ -414,14 +494,21 @@ export const ReportsScreen = () => (
                   )
                 }
               />
+
               <View style={styles.periodLabel}>
-                <Text variant="bodySmall" color="secondary">
-                  Reporting period
+                <Text
+                  variant="caption"
+                  color="secondary"
+                  style={styles.reportEyebrow}
+                >
+                  REPORTING PERIOD
                 </Text>
-                <Text variant="h4">
+
+                <Text variant="h3">
                   {readableMonth(month)}
                 </Text>
               </View>
+
               {month >= currentMonth ? (
                 <View
                   style={
@@ -440,7 +527,70 @@ export const ReportsScreen = () => (
                 />
               )}
             </View>
-          </View>
+
+            <View
+              style={
+                styles.reportSetupFacts
+              }
+            >
+              <View
+                style={
+                  styles.reportSetupFact
+                }
+              >
+                <Text
+                  variant="caption"
+                  color="secondary"
+                  style={styles.reportEyebrow}
+                >
+                  AVAILABLE ACTIVITY
+                </Text>
+
+                <Text variant="bodySmall">
+                  {monthTransactions.length}{' '}
+                  {monthTransactions.length === 1
+                    ? 'transaction'
+                    : 'transactions'}
+                </Text>
+              </View>
+
+              <View
+                style={
+                  styles.reportSetupFact
+                }
+              >
+                <Text
+                  variant="caption"
+                  color="secondary"
+                  style={styles.reportEyebrow}
+                >
+                  SAVED SNAPSHOT
+                </Text>
+
+                <Text variant="bodySmall">
+                  {savedReport
+                    ? 'Available for this month'
+                    : 'Not saved for this month'}
+                </Text>
+              </View>
+            </View>
+                      <Button
+              label={
+                visibleReport
+                  ? 'Regenerate report'
+                  : 'Generate report'
+              }
+              onPress={generate}
+              loading={
+                operation === 'generate'
+              }
+              disabled={operation !== null}
+              style={
+                styles.reportSetupAction
+              }
+            />
+
+          </Card>
 
           {operation === 'generate' ? (
             <StatusBanner
@@ -490,9 +640,34 @@ export const ReportsScreen = () => (
             <StatusBanner
               tone="neutral"
               title="Not generated"
-              message="Choose a month and generate a deterministic preview."
+              message="Choose a month and generate a deterministic report."
             />
           )}
+
+          {/* REPORTS_ACTIONS_SLICE_3 */}
+          <View
+            style={
+              styles.reportPreviewHeading
+            }
+          >
+            <View
+              style={
+                styles.reportPreviewCopy
+              }
+            >
+              <Text variant="h3">
+                Report preview
+              </Text>
+
+              <Text
+                variant="bodySmall"
+                color="secondary"
+              >
+                Review the generated evidence
+                before saving a fixed snapshot.
+              </Text>
+            </View>
+          </View>
 
           {visibleReport ? (
             <ReportSummary
@@ -510,28 +685,14 @@ export const ReportsScreen = () => (
           ) : (
             <EmptyState
               title="No report for this month"
-              message="Generate a preview to review income, expenses, budget status, and data coverage."
+              message="Generate the report to review income, expenses, budget status, and data coverage."
             />
           )}
 
           <View style={styles.primaryActions}>
-            <Button
-              label={
-                visibleReport
-                  ? 'Regenerate preview'
-                  : 'Generate preview'
-              }
-              onPress={generate}
-              loading={
-                operation === 'generate'
-              }
-              disabled={operation !== null}
-              style={styles.action}
-            />
             {draft && !isSaved ? (
               <Button
                 label="Save report"
-                variant="secondary"
                 onPress={save}
                 loading={
                   operation === 'save'
@@ -542,6 +703,7 @@ export const ReportsScreen = () => (
                 style={styles.action}
               />
             ) : null}
+
             <Button
               label="Open Activity"
               variant="secondary"
@@ -554,10 +716,12 @@ export const ReportsScreen = () => (
             />
           </View>
 
+          {/* REPORTS_HISTORY_SLICE_4B */}
           <View style={styles.historyHeading}>
             <Text variant="h3">
-              Saved reports
+              Saved report history
             </Text>
+
             <Text
               variant="bodySmall"
               color="secondary"
@@ -565,13 +729,15 @@ export const ReportsScreen = () => (
               {isGuest
                 ? 'Stored in this guest workspace.'
                 : 'Stored in your signed-in workspace.'}
+              {' '}Each entry records the values
+              captured when it was generated.
             </Text>
           </View>
 
           {data.reports.length === 0 ? (
             <EmptyState
               title="No saved reports"
-              message="Saved monthly summaries will appear here."
+              message="Saved monthly snapshots will appear here."
             />
           ) : (
             [...data.reports]
@@ -586,11 +752,28 @@ export const ReportsScreen = () => (
                   style={styles.historyRow}
                 >
                   <View style={styles.historyCopy}>
-                    <Text variant="h4">
-                      {readableMonth(
-                        report.month
-                      )}
-                    </Text>
+                    <View
+                      style={
+                        styles.historyTitleRow
+                      }
+                    >
+                      <Text variant="h4">
+                        {readableMonth(
+                          report.month
+                        )}
+                      </Text>
+
+                      <Text
+                        variant="caption"
+                        color="secondary"
+                        style={
+                          styles.historyStatus
+                        }
+                      >
+                        Saved snapshot
+                      </Text>
+                    </View>
+
                     <Text
                       variant="bodySmall"
                       color="secondary"
@@ -601,24 +784,72 @@ export const ReportsScreen = () => (
                       )}
                     </Text>
                   </View>
-                  <View style={styles.historyTotals}>
-                    <Text variant="bodySmall">
-                      {formatCurrency(
-                        report.totalIncome,
-                        data.user.currency
-                      )}{' '}
-                      income
-                    </Text>
-                    <Text
-                      variant="bodySmall"
-                      color="secondary"
+
+                  <View
+                    style={
+                      styles.historyTotals
+                    }
+                  >
+                    <View
+                      style={
+                        styles.historyMetric
+                      }
                     >
-                      {formatCurrency(
-                        report.totalExpense,
-                        data.user.currency
-                      )}{' '}
-                      expenses
-                    </Text>
+                      <Text
+                        variant="caption"
+                        color="secondary"
+                      >
+                        Income
+                      </Text>
+
+                      <Text variant="bodySmall">
+                        {formatCurrency(
+                          report.totalIncome,
+                          data.user.currency
+                        )}
+                      </Text>
+                    </View>
+
+                    <View
+                      style={
+                        styles.historyMetric
+                      }
+                    >
+                      <Text
+                        variant="caption"
+                        color="secondary"
+                      >
+                        Expenses
+                      </Text>
+
+                      <Text variant="bodySmall">
+                        {formatCurrency(
+                          report.totalExpense,
+                          data.user.currency
+                        )}
+                      </Text>
+                    </View>
+
+                    <View
+                      style={
+                        styles.historyMetric
+                      }
+                    >
+                      <Text
+                        variant="caption"
+                        color="secondary"
+                      >
+                        Net cash flow
+                      </Text>
+
+                      <Text variant="bodySmall">
+                        {formatCurrency(
+                          report.totalIncome -
+                            report.totalExpense,
+                          data.user.currency
+                        )}
+                      </Text>
+                    </View>
                   </View>
                 </Card>
               ))
@@ -630,15 +861,89 @@ export const ReportsScreen = () => (
 );
 
 const styles = StyleSheet.create({
-  controls: {
+  historyTitleRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: Spacing.sm,
+  },
+  historyStatus: {
+    fontWeight: '700',
+  },
+  historyMetric: {
+    flexGrow: 1,
+    flexBasis: 100,
+    minWidth: 0,
+    gap: Spacing.xs,
+  },
+
+  reportBadge: {
+    borderWidth: 1,
+    borderColor: 'transparent',
+    borderRadius: Radius.round,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+  evidenceHeading: {
+    gap: Spacing.xs,
+    marginTop: Spacing.xl,
+  },
+
+  reportSetupAction: {
+    width: '100%',
+  },
+  reportPreviewHeading: {
+    marginBottom: Spacing.md,
+  },
+  reportPreviewCopy: {
+    gap: Spacing.xs,
+  },
+
+  reportSetupHeading: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+  },
+  reportEyebrow: {
+    letterSpacing: 0.7,
+  },
+  reportSetupFacts: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.md,
+  },
+  reportSetupFact: {
+    flexGrow: 1,
+    flexBasis: 180,
+    minWidth: 0,
+    gap: Spacing.xs,
+  },
+
+  reportsHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.md,
+    marginBottom: Spacing.xl,
+  },
+  reportsHeaderCopy: {
+    flex: 1,
+    minWidth: 0,
+    paddingTop: Spacing.xs,
+  },
+  reportsHeaderSubtitle: {
+    marginTop: Spacing.xs,
+  },
+
+  controls: {
     gap: Spacing.lg,
     marginBottom: Spacing.lg,
   },
   controlCopy: {
+    flex: 1,
+    minWidth: 220,
     gap: Spacing.xs,
   },
   periodControl: {
@@ -665,40 +970,53 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   reportCard: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   reportHeading: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: Spacing.md,
   },
   headingCopy: {
+    flex: 1,
+    minWidth: 220,
     gap: Spacing.xs,
   },
   summaryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.md,
-    marginTop: Spacing.xl,
+    gap: Spacing.sm,
+    marginTop: Spacing.lg,
   },
   summaryItem: {
     flexGrow: 1,
-    minWidth: 150,
+    flexBasis: 120,
+    minWidth: 0,
     gap: Spacing.xs,
+    borderTopWidth:
+      StyleSheet.hairlineWidth,
+    paddingTop: Spacing.md,
   },
   detailRows: {
-    marginTop: Spacing.xl,
-    gap: Spacing.sm,
+    marginTop: Spacing.md,
   },
   detailRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: Spacing.md,
+    borderTopWidth:
+      StyleSheet.hairlineWidth,
+    paddingVertical: Spacing.md,
   },
   sourceNote: {
-    marginTop: Spacing.lg,
+    borderTopWidth:
+      StyleSheet.hairlineWidth,
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.md,
   },
   primaryActions: {
     flexDirection: 'row',
@@ -715,18 +1033,15 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   historyRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.lg,
-    marginBottom: Spacing.md,
+    gap: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   historyCopy: {
     gap: Spacing.xs,
   },
   historyTotals: {
-    alignItems: 'flex-end',
-    gap: Spacing.xs,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.md,
   },
 });

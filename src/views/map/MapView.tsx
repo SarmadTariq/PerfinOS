@@ -2,18 +2,33 @@
  * MapView - expense map with heatmap/pins modes, category filters, and contextual actions.
  * Uses SafeAreaView layout because the map is the primary canvas.
  */
-import { useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  useState } from 'react';
+import { ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View } from 'react-native';
+import { SafeAreaView,
+  useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { Button, Text } from '../../components/base';
-import { CategoryBadge, EmptyState, IconButton, ScreenHeader } from '../../components/finance';
+import { Button,
+  Text } from '../../components/base';
+import { CategoryBadge,
+  EmptyState,
+  FloatingActionButton,
+  IconButton } from '../../components/finance';
 import { RequireData } from '../../components/layout/RequireData';
+import { RootAppHeader } from '../../components/layout/RootAppHeader';
+import {
+  FloatingActionLayer,
+  getFloatingTabBottomOffset,
+  FLOATING_TAB_ACTION_GAP,
+} from '../../components/layout/FloatingTabChrome';
 import { MapCanvas } from '../../components/map/MapCanvas';
 import { useColors } from '../../context/ThemeContext';
 import { AppData, Transaction } from '../../models/finance';
-import { ControlSize, Radius, Shadows, Spacing, Typography } from '../../theme/index';
+import { ControlSize, Radius, Shadows, Spacing } from '../../theme/index';
 import { formatCurrencyPrecise } from '../../utils/format';
 
 type MapMode = 'pins' | 'heatmap';
@@ -42,6 +57,7 @@ const getLocationContext = (transaction: Transaction) =>
 const MapContent = ({ data }: MapContentProps) => {
   const navigation = useNavigation<any>();
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<MapMode>('heatmap');
   const [categoryId, setCategoryId] = useState('all');
   const [selected, setSelected] = useState<Transaction | null>(null);
@@ -101,53 +117,13 @@ const MapContent = ({ data }: MapContentProps) => {
   return (
     <SafeAreaView edges={['top']} style={[styles.mapShell, { backgroundColor: colors.backgroundCanvas }]}>
       <View style={styles.header}>
-        <ScreenHeader
+        <RootAppHeader
           title="Spending map"
           subtitle="See where mapped expenses are concentrated."
-          action={
-            <IconButton
-              icon="add-location-alt"
-              label="Add located expense"
-              onPress={() => navigation.navigate('AddTransaction')}
-            />
-          }
         />
       </View>
 
       <View style={[styles.controlsChrome, { borderColor: colors.borderDefault }]}>
-        <View style={[styles.modeToggle, { backgroundColor: colors.backgroundSubtle }]}>
-          {modeOptions.map((option) => {
-            const isActive = option.value === mode;
-
-            return (
-              <TouchableOpacity
-                key={option.value}
-                accessibilityRole="button"
-                accessibilityState={{ selected: isActive }}
-                accessibilityLabel={`Show ${option.label}`}
-                onPress={() => handleModeChange(option.value)}
-                style={[
-                  styles.modeButton,
-                  isActive && {
-                    backgroundColor: colors.actionPrimarySoft,
-                    borderColor: colors.actionPrimary,
-                  },
-                ]}
-              >
-                <Text
-                  variant="bodySmall"
-                  style={[
-                    styles.modeLabel,
-                    { color: isActive ? colors.textPrimary : colors.textSecondary },
-                  ]}
-                >
-                  {option.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -201,28 +177,95 @@ const MapContent = ({ data }: MapContentProps) => {
           currency={data.user.currency}
         />
 
-        <View style={styles.zoomOverlay}>
-            <IconButton
-              icon="remove"
-              label="Zoom out"
-              onPress={handleZoomOut}
-              style={{
-                ...styles.zoomButton,
-                backgroundColor: colors.backgroundElevated,
-                borderColor: colors.borderDefault,
-              }}
-            />
-            <IconButton
-              icon="add"
-              label="Zoom in"
-              onPress={handleZoomIn}
-              style={{
-                ...styles.zoomButton,
-                backgroundColor: colors.backgroundElevated,
-                borderColor: colors.borderDefault,
-              }}
-            />
+        <View style={styles.modeOverlay}>
+          {modeOptions.map((option) => {
+            const isActive =
+              option.value === mode;
+
+            return (
+              <TouchableOpacity
+                key={option.value}
+                accessibilityRole="button"
+                accessibilityState={{
+                  selected: isActive,
+                }}
+                accessibilityLabel={`Show ${option.label}`}
+                onPress={() =>
+                  handleModeChange(option.value)
+                }
+                style={[
+                  styles.modeButton,
+                  {
+                    backgroundColor:
+                      colors.backgroundElevated,
+                    borderColor:
+                      colors.borderDefault,
+                  },
+                  isActive && {
+                    backgroundColor:
+                      colors.actionPrimarySoft,
+                    borderColor:
+                      colors.actionPrimary,
+                  },
+                ]}
+              >
+                <MaterialIcons
+                  name={
+                    option.value === 'heatmap'
+                      ? 'local-fire-department'
+                      : 'place'
+                  }
+                  size={22}
+                  color={
+                    isActive
+                      ? colors.actionPrimary
+                      : colors.textSecondary
+                  }
+                />
+              </TouchableOpacity>
+            );
+          })}
         </View>
+
+        <View style={styles.zoomOverlay}>
+          <IconButton
+            icon="add"
+            label="Zoom in"
+            onPress={handleZoomIn}
+            style={{
+              ...styles.zoomButton,
+              backgroundColor:
+                colors.backgroundElevated,
+              borderColor:
+                colors.borderDefault,
+            }}
+          />
+
+          <IconButton
+            icon="remove"
+            label="Zoom out"
+            onPress={handleZoomOut}
+            style={{
+              ...styles.zoomButton,
+              backgroundColor:
+                colors.backgroundElevated,
+              borderColor:
+                colors.borderDefault,
+            }}
+          />
+        </View>
+
+        {!activeTransaction ? (
+          <FloatingActionLayer>
+            <FloatingActionButton
+              icon="add-location-alt"
+              label="Add located expense"
+              // FLOATING_TAB_GEOMETRY_F3
+              accessibilityHint="Opens the new transaction form"
+              onPress={() => navigation.navigate('AddTransaction')}
+            />
+          </FloatingActionLayer>
+        ) : null}
 
         {visibleTransactions.length === 0 ? (
           <View pointerEvents="box-none" style={styles.emptyOverlay}>
@@ -239,6 +282,11 @@ const MapContent = ({ data }: MapContentProps) => {
               {
                 backgroundColor: colors.backgroundElevated,
                 borderColor: colors.borderDefault,
+                bottom:
+                  getFloatingTabBottomOffset(
+                    insets.bottom,
+                  ) +
+                  FLOATING_TAB_ACTION_GAP,
               },
             ]}
           >
@@ -337,26 +385,21 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  modeToggle: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    borderRadius: Radius.md,
-    padding: Spacing.xs,
-    gap: Spacing.xs,
-    marginBottom: Spacing.sm,
+  modeOverlay: {
+    position: 'absolute',
+    top: Spacing.md,
+    left: Spacing.md,
+    zIndex: 10,
+    gap: Spacing.sm,
   },
   modeButton: {
-    minHeight: ControlSize.minimumTouchTarget,
-    minWidth: 84,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radius.sm,
+    width: ControlSize.minimumTouchTarget,
+    height: ControlSize.minimumTouchTarget,
+    borderRadius: Radius.round,
     borderWidth: 1,
-    borderColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  modeLabel: {
-    fontWeight: Typography.label.fontWeight,
+    ...Shadows.sm,
   },
   categoryScroller: {
     gap: Spacing.sm,

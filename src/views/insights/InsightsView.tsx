@@ -12,10 +12,11 @@ import {
 } from '../../components/base';
 import {
   EmptyState,
-  ScreenHeader,
 } from '../../components/finance';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';
+import { RootAppHeader } from '../../components/layout/RootAppHeader';
+import { RootTabBottomSpacer } from '../../components/layout/FloatingTabChrome';
 import {
   calculateActivitySummary,
   useActivityFilters,
@@ -51,21 +52,21 @@ const GROUP_META: Record<
   }
 > = {
   observation: {
-    title: 'Observations',
+    title: 'Informational',
     description:
-      'Descriptive facts from the selected Activity period.',
+      'Context from the selected Activity period.',
     icon: 'visibility',
   },
   attention: {
-    title: 'Needs review',
+    title: 'Review',
     description:
-      'Evidence gaps or comparisons worth checking.',
+      'Evidence worth checking before deciding.',
     icon: 'fact-check',
   },
   action: {
-    title: 'Next actions',
+    title: 'Action needed',
     description:
-      'Supported destinations for an explicit next step.',
+      'Verified next steps supported by this evidence.',
     icon: 'arrow-forward',
   },
 };
@@ -102,13 +103,23 @@ const InsightCard = ({
           <Text variant="h4">
             {item.title}
           </Text>
-          <Text
-            variant="body"
-            color="secondary"
-            style={styles.itemSummary}
-          >
-            {item.summary}
-          </Text>
+          {/* INSIGHTS_EVIDENCE_SLICE_I2 */}
+          <View style={styles.insightBlock}>
+            <Text
+              variant="caption"
+              color="secondary"
+              style={styles.blockLabel}
+            >
+              WHAT CHANGED
+            </Text>
+
+            <Text
+              variant="body"
+              color="secondary"
+            >
+              {item.summary}
+            </Text>
+          </View>
 
           <View
             style={[
@@ -119,85 +130,139 @@ const InsightCard = ({
               },
             ]}
           >
-            <Text
-              variant="caption"
-              color="secondary"
+            <View style={styles.insightBlock}>
+              <Text
+                variant="caption"
+                color="secondary"
+                style={styles.blockLabel}
+              >
+                WHY IT MATTERS
+              </Text>
+
+              <Text variant="bodySmall">
+                {item.whyItMatters}
+              </Text>
+            </View>
+
+            <View style={styles.insightBlock}>
+              <Text
+                variant="caption"
+                color="secondary"
+                style={styles.blockLabel}
+              >
+                EVIDENCE
+              </Text>
+
+              <Text variant="bodySmall">
+                {item.evidence}
+              </Text>
+            </View>
+
+            <View
+              style={styles.evidenceMetaGrid}
             >
-              DATA USED
-            </Text>
-            <Text
-              variant="bodySmall"
-              style={styles.evidenceCopy}
-            >
-              {item.evidence}
-            </Text>
-            <Text
-              variant="caption"
-              color="secondary"
-              style={styles.evidenceLabel}
-            >
-              PERIOD
-            </Text>
-            <Text
-              variant="bodySmall"
-              style={styles.evidenceCopy}
-            >
-              {item.period}
-            </Text>
-            <Text
-              variant="caption"
-              color="secondary"
-              style={styles.evidenceLabel}
-            >
-              COMPARISON
-            </Text>
-            <Text
-              variant="bodySmall"
-              style={styles.evidenceCopy}
-            >
-              {item.comparison}
-            </Text>
-            <Text
-              variant="caption"
-              color="secondary"
-              style={styles.evidenceLabel}
-            >
-              WHY IT MATTERS
-            </Text>
-            <Text
-              variant="bodySmall"
-              style={styles.evidenceCopy}
-            >
-              {item.whyItMatters}
-            </Text>
-            <Text
-              variant="caption"
-              color="secondary"
-              style={styles.evidenceLabel}
-            >
-              BASIS AND UNCERTAINTY
-            </Text>
-            <Text
-              variant="bodySmall"
-              style={styles.evidenceCopy}
-            >
-              Deterministic calculation.{' '}
-              {item.uncertainty}
-            </Text>
+              <View
+                style={
+                  styles.evidenceMetaItem
+                }
+              >
+                <Text
+                  variant="caption"
+                  color="secondary"
+                  style={styles.blockLabel}
+                >
+                  PERIOD
+                </Text>
+
+                <Text variant="bodySmall">
+                  {item.period}
+                </Text>
+              </View>
+
+              <View
+                style={
+                  styles.evidenceMetaItem
+                }
+              >
+                <Text
+                  variant="caption"
+                  color="secondary"
+                  style={styles.blockLabel}
+                >
+                  COMPARISON
+                </Text>
+
+                <Text variant="bodySmall">
+                  {item.comparison}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.insightBlock}>
+              <Text
+                variant="caption"
+                color="secondary"
+                style={styles.blockLabel}
+              >
+                BASIS AND UNCERTAINTY
+              </Text>
+
+              <Text variant="bodySmall">
+                Deterministic calculation.{' '}
+                {item.uncertainty}
+              </Text>
+            </View>
           </View>
 
           {item.destination &&
           item.actionLabel ? (
-            <Button
-              label={item.actionLabel}
-              variant={
-                item.group === 'action'
-                  ? 'primary'
-                  : 'secondary'
+            <View
+              style={
+                styles.recommendedAction
               }
-              onPress={onOpen}
-              style={styles.itemAction}
-            />
+            >
+              <Text
+                variant="caption"
+                color="secondary"
+                style={styles.blockLabel}
+              >
+                RECOMMENDED ACTION
+              </Text>
+
+              {item.destination ===
+              'Reports' ? (
+                <Text
+                  variant="bodySmall"
+                  color="secondary"
+                >
+                  Open Reports to generate or
+                  review a deterministic monthly
+                  record.
+                </Text>
+              ) : item.destination ===
+                'Plan' ? (
+                <Text
+                  variant="bodySmall"
+                  color="secondary"
+                >
+                  Carry this evidence into Plan
+                  for review. Opening Plan does
+                  not create, activate, archive,
+                  or replace a Plan.
+                </Text>
+              ) : null}
+
+              <Button
+                label={item.actionLabel}
+                variant={
+                  item.group === 'action'
+                    ? 'primary'
+                    : 'secondary'
+                }
+                onPress={onOpen}
+                style={styles.itemAction}
+              />
+            </View>
           ) : null}
         </View>
       </View>
@@ -330,10 +395,11 @@ const InsightsContent = ({
     navigation.navigate(item.destination);
   };
 
+  /* INSIGHTS_STRUCTURE_SLICE_I1 */
   const groups: InsightGroup[] = [
-    'observation',
-    'attention',
     'action',
+    'attention',
+    'observation',
   ];
   const frequencyLabel =
     frequencyFilter === 'all'
@@ -344,17 +410,9 @@ const InsightsContent = ({
 
   return (
     <AppScroll>
-      <ScreenHeader
+      <RootAppHeader
         title="Insights"
         subtitle="A small set of evidence-bound signals and supported next steps."
-        action={
-          <Button
-            label="Activity"
-            size="sm"
-            variant="secondary"
-            onPress={() => navigation.navigate('Transactions')}
-          />
-        }
       />
 
       <View
@@ -513,6 +571,7 @@ const InsightsContent = ({
           ))}
         </>
       )}
+      <RootTabBottomSpacer />
     </AppScroll>
   );
 };
@@ -526,6 +585,32 @@ export const InsightsScreen = () => (
 );
 
 const styles = StyleSheet.create({
+  insightBlock: {
+    gap: Spacing.xs,
+    marginTop: Spacing.md,
+  },
+  blockLabel: {
+    letterSpacing: 0.6,
+  },
+  evidenceMetaGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.md,
+  },
+  evidenceMetaItem: {
+    flexGrow: 1,
+    flexBasis: 220,
+    minWidth: 0,
+    gap: Spacing.xs,
+  },
+  recommendedAction: {
+    borderTopWidth:
+      StyleSheet.hairlineWidth,
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    gap: Spacing.sm,
+  },
+
   contextBand: {
     borderWidth: 1,
     borderRadius: Radius.md,

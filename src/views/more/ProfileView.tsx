@@ -423,7 +423,9 @@ export const ProfileScreen = () => (
                   label="Open Plan"
                   variant="secondary"
                   onPress={() =>
-                    navigation.navigate('Plan')
+                    navigation.navigate('MainTabs', {
+                      screen: 'Plan',
+                    })
                   }
                   style={styles.sectionAction}
                 />

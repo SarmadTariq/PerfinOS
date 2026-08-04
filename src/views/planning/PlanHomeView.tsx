@@ -16,6 +16,8 @@ import {
 } from '../../components/finance';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';
+import { RootAppHeader } from '../../components/layout/RootAppHeader';
+import { RootTabBottomSpacer } from '../../components/layout/FloatingTabChrome';
 import { calculateActivitySummary, useActivityFilters } from '../../context/ActivityFilterContext';
 import { useColors } from '../../context/ThemeContext';
 import type { FinancialPlan } from '../../models/planning';
@@ -315,15 +317,24 @@ export const PlanHomeScreen = ({
 
       return (
         <AppScroll>
-          <ScreenHeader
-            leading={
-              showBackButton ? (
-                <IconButton icon="arrow-back" label="Go back" onPress={() => navigation.goBack()} />
-              ) : undefined
-            }
-            title="Your Plan"
-            subtitle="Turn Activity signals into the next planning action."
-          />
+          {showBackButton ? (
+            <ScreenHeader
+              leading={
+                <IconButton
+                  icon="arrow-back"
+                  label="Go back"
+                  onPress={() => navigation.goBack()}
+                />
+              }
+              title="Your Plan"
+              subtitle="Turn Activity signals into the next planning action."
+            />
+          ) : (
+            <RootAppHeader
+              title="Plan"
+              subtitle="Turn Activity signals into the next planning action."
+            />
+          )}
 
           <View style={styles.sectionHeader}>
             <Text variant="h3">
@@ -467,6 +478,9 @@ export const PlanHomeScreen = ({
           <Text variant="caption" color="tertiary" style={styles.disclaimer}>
             Educational planning only. PerFin OS does not provide legal, tax, investment, banking, or financial advice.
           </Text>
+          {!showBackButton ? (
+            <RootTabBottomSpacer />
+          ) : null}
         </AppScroll>
       );
     }}

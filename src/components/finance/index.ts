@@ -21,3 +21,4 @@ export { PeriodScopeBar } from './PeriodScopeBar';
 export { FilterChip } from './FilterChip';
 export { MetricStrip } from './MetricStrip';
 export { ExpandableSection } from './ExpandableSection';
+export { FloatingActionButton } from './FloatingActionButton';

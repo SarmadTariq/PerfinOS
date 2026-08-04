@@ -14,12 +14,16 @@ import { Card, Text } from '../../components/base';
 import {
   BarListChart,
   EmptyState,
-  IconButton,
+  FloatingActionButton,
   ProgressBar,
-  ScreenHeader,
 } from '../../components/finance';
 import { AppScroll } from '../../components/layout/AppScroll';
 import { RequireData } from '../../components/layout/RequireData';
+import { RootAppHeader } from '../../components/layout/RootAppHeader';
+import {
+  FloatingActionLayer,
+  RootTabBottomSpacer,
+} from '../../components/layout/FloatingTabChrome';
 import { useColors } from '../../context/ThemeContext';
 import { AppData, Category, Transaction } from '../../models/finance';
 import { calculateBudgetHealth, calculateCategoryBreakdown, calculateSavingsProgress, calculateMonthlySummary, sortTransactions } from '../../repositories/AnalyticsRepository';
@@ -640,16 +644,9 @@ const DashboardContent = ({ data }: { data: AppData }) => {
       ]}
     >
       <AppScroll>
-        <ScreenHeader
+        <RootAppHeader
           title="Dashboard"
           subtitle={`Your money in ${readableMonth(month)}`}
-          action={
-            <IconButton
-              icon="add"
-              label="Add transaction"
-              onPress={() => navigation.navigate('AddTransaction')}
-            />
-          }
         />
 
       <DashboardHero
@@ -709,8 +706,17 @@ const DashboardContent = ({ data }: { data: AppData }) => {
           ))
         )}
         </Card>
+        <RootTabBottomSpacer />
       </AppScroll>
 
+      <FloatingActionLayer>
+        <FloatingActionButton
+          icon="add"
+          label="Add transaction"
+          accessibilityHint="Opens the new transaction form"
+          onPress={() => navigation.navigate('AddTransaction')}
+        />
+      </FloatingActionLayer>
     </View>
   );
 };
