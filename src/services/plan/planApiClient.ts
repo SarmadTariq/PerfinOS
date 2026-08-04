@@ -275,7 +275,9 @@ const defaultPlanApiCredentials:
             '../firebase/auth'
           );
 
-        return getRemoteIdToken();
+        return getRemoteIdToken(
+          true
+        );
       },
 
     getAppCheckToken:

@@ -12,11 +12,11 @@ import {
 import {
   runtimeConfig,
 } from '../environment';
-
-export type PlanAppCheckAvailability =
-  | 'available'
-  | 'not_configured'
-  | 'unsupported_platform';
+import {
+  resolvePlanAppCheckAvailability,
+  type NativeAppCheckProvider,
+  type PlanAppCheckAvailability,
+} from './appCheckPolicy';
 
 export class PlanAppCheckUnavailableError
   extends Error {
@@ -37,26 +37,53 @@ const webSiteKey =
     .appCheckSiteKey ||
   null;
 
+const nativeProvider =
+  (
+    process
+      .env
+      .EXPO_PUBLIC_FIREBASE_NATIVE_APP_CHECK_PROVIDER
+      ?.trim() ||
+    'none'
+  ) as NativeAppCheckProvider;
+
+const debugTokenEnabled =
+  process
+    .env
+    .EXPO_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN_ENABLED ===
+  'true';
+
 let webAppCheckPromise:
   Promise<AppCheck> | null =
   null;
 
 export const getPlanAppCheckAvailability =
   (): PlanAppCheckAvailability => {
-    if (
-      Platform.OS !== 'web'
-    ) {
-      return 'unsupported_platform';
+    const availability =
+      resolvePlanAppCheckAvailability({
+        environmentName:
+          runtimeConfig
+            .environmentName,
+        platform:
+          Platform.OS === 'web' ||
+          Platform.OS === 'ios' ||
+          Platform.OS === 'android'
+            ? Platform.OS
+            : 'unknown',
+        webSiteKey:
+          webSiteKey || '',
+        nativeProvider,
+        debugTokenEnabled,
+      });
+
+    if (availability !== 'available') {
+      return availability;
     }
 
-    if (
-      !app ||
-      !webSiteKey
-    ) {
+    if (!app) {
       return 'not_configured';
     }
 
-    return 'available';
+    return availability;
   };
 
 const getWebAppCheck =

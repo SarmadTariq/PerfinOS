@@ -49,6 +49,9 @@ export const SessionProvider = ({ children }: { children: React.ReactNode }) => 
       if (user) {
         setAuthenticated(true);
         setGuestSession(false);
+      } else {
+        setAuthenticated(false);
+        setGuestSession(false);
       }
     });
   }, []);

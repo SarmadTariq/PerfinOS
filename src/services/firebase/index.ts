@@ -9,10 +9,18 @@ export {
 export {
   getRemoteIdToken,
   logoutRemote,
+  reauthenticateRemotePassword,
   sendRemotePasswordReset,
   signInRemote,
   signUpRemote,
   subscribeToAuth,
+  supportedAuthProviders,
+} from './auth';
+
+export type {
+  ReauthenticationErrorCode,
+  ReauthenticationResult,
+  SupportedAuthProvider,
 } from './auth';
 
 export {
@@ -23,7 +31,7 @@ export {
 
 export type {
   PlanAppCheckAvailability,
-} from './appCheck';
+} from './appCheckPolicy';
 
 export {
   getLegacyAppDataRef,

@@ -4,7 +4,7 @@ import type {
 
 import type {
   PlanAppCheckAvailability,
-} from '../services/firebase/appCheck';
+} from '../services/firebase/appCheckPolicy';
 
 import {
   PlanApiClientError,
@@ -47,9 +47,16 @@ export const planClientAvailabilityCopy =
 
     if (
       appCheckAvailability ===
-      'unsupported_platform'
+      'native_provider_unavailable'
     ) {
       return 'Secure Plan generation is unavailable on this platform until native App Check is configured.';
+    }
+
+    if (
+      appCheckAvailability ===
+      'debug_provider_blocked'
+    ) {
+      return 'App Check debug providers are blocked in production builds.';
     }
 
     return null;

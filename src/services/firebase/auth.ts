@@ -1,13 +1,33 @@
 import {
   User as FirebaseUser,
+  EmailAuthProvider,
   createUserWithEmailAndPassword,
   getIdToken,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
 } from 'firebase/auth';
 import { auth } from './client';
+import {
+  RemoteReauthenticationError,
+  classifyReauthenticationError,
+  supportedAuthProviders,
+  type ReauthenticationResult,
+} from './authContracts';
+
+export {
+  RemoteReauthenticationError,
+  classifyReauthenticationError,
+  supportedAuthProviders,
+};
+
+export type {
+  ReauthenticationErrorCode,
+  ReauthenticationResult,
+  SupportedAuthProvider,
+} from './authContracts';
 
 export const subscribeToAuth = (callback: (user: FirebaseUser | null) => void) => {
   if (!auth) return () => undefined;
@@ -57,6 +77,50 @@ export const getRemoteIdToken =
     }
 
     return token;
+  };
+
+export const reauthenticateRemotePassword =
+  async (
+    email: string,
+    password: string
+  ): Promise<ReauthenticationResult> => {
+    const user =
+      auth?.currentUser;
+
+    if (!user) {
+      throw new RemoteReauthenticationError(
+        'missing_user'
+      );
+    }
+
+    if (!password) {
+      throw new RemoteReauthenticationError(
+        'invalid_password'
+      );
+    }
+
+    try {
+      await reauthenticateWithCredential(
+        user,
+        EmailAuthProvider.credential(
+          email.trim(),
+          password
+        )
+      );
+
+      return {
+        provider: 'password',
+        reauthenticatedAt:
+          new Date()
+            .toISOString(),
+      };
+    } catch (error) {
+      throw new RemoteReauthenticationError(
+        classifyReauthenticationError(
+          error
+        )
+      );
+    }
   };
 
 export const logoutRemote = async () => {

@@ -378,7 +378,9 @@ const defaultReceiptClient =
       auth?.currentUser?.uid ??
       null,
     getIdToken: async () =>
-      auth?.currentUser?.getIdToken() ??
+      auth?.currentUser?.getIdToken(
+        true
+      ) ??
       null,
     getAppCheckToken:
       getRemoteAppCheckToken,
