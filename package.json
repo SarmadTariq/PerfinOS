@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "typecheck:strict": "tsc --noEmit --noUnusedLocals --noUnusedParameters",
     "audit:prod": "npm audit --omit=dev",
-    "verify:release": "npm run typecheck:strict && npm run build && npm run audit:prod"
+    "verify:security": "node scripts/security-baseline-check.mjs",
+    "verify:release": "npm run typecheck:strict && npm run verify:security && npm run build && npm run audit:prod"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
