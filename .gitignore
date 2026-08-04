@@ -28,3 +28,19 @@ credentials.json
 
 *.log
 .DS_Store
+
+# Private AI and operating state
+.claude/
+.zeref/
+.zeref-memory/
+.codex/
+.superpowers/
+memory/
+.local/
+
+# Local evidence, patches, and backups
+*.before-*
+*.backup
+*.bak
+*.orig
+*.patch
