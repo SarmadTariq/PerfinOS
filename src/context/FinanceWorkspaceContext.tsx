@@ -6,7 +6,7 @@ import {
   persistFinanceWorkspaceMutation,
   subscribeRemoteFinanceWorkspace,
 } from '../services/firebaseService';
-import { loadGuestAppData, saveGuestAppData } from '../services/localFinanceStore';
+import { getLastGuestStorageRecoveryNotice, loadGuestAppData, saveGuestAppData } from '../services/localFinanceStore';
 import { useSession } from './SessionContext';
 import {
   financeWorkspaceOwnershipKey,
@@ -86,9 +86,12 @@ export const FinanceWorkspaceProvider = ({ children }: { children: React.ReactNo
 
     try {
       const guest = await loadGuestAppData();
+      const recoveryNotice =
+        getLastGuestStorageRecoveryNotice();
       setData(guest);
       setWorkspaceMeta(null);
       startGuestSession();
+      setError(recoveryNotice);
       setStatus('ready');
     } catch (err: any) {
       setError(err.message || 'Could not start guest workspace');
@@ -114,8 +117,11 @@ export const FinanceWorkspaceProvider = ({ children }: { children: React.ReactNo
     loadGuestAppData()
       .then((guest) => {
         if (active) {
+          const recoveryNotice =
+            getLastGuestStorageRecoveryNotice();
           setData(guest);
           setWorkspaceMeta(null);
+          setError(recoveryNotice);
           setStatus('ready');
         }
       })

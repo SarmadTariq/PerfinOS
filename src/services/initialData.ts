@@ -3,13 +3,13 @@ import { getMonthKey } from '../utils/format';
 
 export const defaultCategories: Category[] = [
   { id: 'cat-income', name: 'Income', type: 'income', color: '#1E8E5A', icon: 'cash-plus', monthlyBudget: 0, isDefault: true },
-  { id: 'cat-food', name: 'Food & Dining', type: 'expense', color: '#D95F43', icon: 'food', monthlyBudget: 520, isDefault: true },
-  { id: 'cat-transport', name: 'Transportation', type: 'expense', color: '#367C9D', icon: 'car', monthlyBudget: 280, isDefault: true },
-  { id: 'cat-housing', name: 'Housing', type: 'expense', color: '#725EAB', icon: 'home', monthlyBudget: 1250, isDefault: true },
-  { id: 'cat-subscriptions', name: 'Subscriptions', type: 'expense', color: '#C18726', icon: 'television-play', monthlyBudget: 110, isDefault: true },
-  { id: 'cat-shopping', name: 'Shopping', type: 'expense', color: '#A64F72', icon: 'shopping', monthlyBudget: 260, isDefault: true },
-  { id: 'cat-health', name: 'Health', type: 'expense', color: '#2F8F83', icon: 'hospital-box', monthlyBudget: 160, isDefault: true },
-  { id: 'cat-learning', name: 'Learning', type: 'expense', color: '#4B6FB4', icon: 'school', monthlyBudget: 90, isDefault: true },
+  { id: 'cat-food', name: 'Food & Dining', type: 'expense', color: '#D95F43', icon: 'food', monthlyBudget: 0, isDefault: true },
+  { id: 'cat-transport', name: 'Transportation', type: 'expense', color: '#367C9D', icon: 'car', monthlyBudget: 0, isDefault: true },
+  { id: 'cat-housing', name: 'Housing', type: 'expense', color: '#725EAB', icon: 'home', monthlyBudget: 0, isDefault: true },
+  { id: 'cat-subscriptions', name: 'Subscriptions', type: 'expense', color: '#C18726', icon: 'television-play', monthlyBudget: 0, isDefault: true },
+  { id: 'cat-shopping', name: 'Shopping', type: 'expense', color: '#A64F72', icon: 'shopping', monthlyBudget: 0, isDefault: true },
+  { id: 'cat-health', name: 'Health', type: 'expense', color: '#2F8F83', icon: 'hospital-box', monthlyBudget: 0, isDefault: true },
+  { id: 'cat-learning', name: 'Learning', type: 'expense', color: '#4B6FB4', icon: 'school', monthlyBudget: 0, isDefault: true },
 ];
 
 const featureDefaults = (isGuest: boolean): Record<FeatureKey, boolean> => ({
@@ -74,7 +74,7 @@ export const createEmptyAppData = ({
   };
 };
 
-export const createDemoAppData = (): AppData => {
+export const createReviewerDemoAppData = (): AppData => {
   const userId = 'guest-local';
   const now = new Date().toISOString();
 

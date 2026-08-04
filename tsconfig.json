@@ -3,5 +3,5 @@
   "compilerOptions": {
     "strict": true
   },
-  "exclude": ["node_modules", "dist", "build", "web-build", "workers"]
+  "exclude": ["node_modules", "dist", "build", "web-build", "workers", "tests", ".test-build"]
 }
