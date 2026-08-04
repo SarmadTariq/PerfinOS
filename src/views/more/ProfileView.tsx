@@ -5,6 +5,7 @@ import React, {
   useState,
 } from 'react';
 import {
+  Alert,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -250,6 +251,10 @@ export const ProfileScreen = () => (
           try {
             await deleteGuestData();
             setConfirmDeleteGuest(false);
+            Alert.alert(
+              'Guest data deleted',
+              'The guest workspace stored on this device was deleted.'
+            );
           } catch (caught) {
             setError(
               caught instanceof Error
@@ -279,13 +284,16 @@ export const ProfileScreen = () => (
             setDeletionPassword('');
             setDeletionSubmitted(false);
             setConfirmDeleteAccount(false);
-            setNotice(
+            const completionMessage =
               job.status ===
                 'identity_complete'
                 ? 'Account deletion completed for remote workspace data and the Firebase identity.'
-                : 'Account deletion request was accepted.'
-            );
+                : 'Account deletion request was accepted.';
             await logout();
+            Alert.alert(
+              'Account deleted',
+              completionMessage
+            );
           } catch (caught) {
             setError(
               caught instanceof Error
