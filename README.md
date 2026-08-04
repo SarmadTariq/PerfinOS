@@ -177,6 +177,8 @@ The repository is structured around these principles:
 
 PerFin OS provides financial organization and educational planning support. It does not provide regulated financial, tax, legal, or investment advice.
 
+Release privacy and store-disclosure inventory lives in [`docs/release/privacy-data-inventory.md`](docs/release/privacy-data-inventory.md).
+
 ## Development workflow
 
 - `main` represents the protected release line
