@@ -8,6 +8,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "build": "expo export --platform web --output-dir dist",
+    "test": "node --test tests/**/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "typecheck:strict": "tsc --noEmit --noUnusedLocals --noUnusedParameters",
     "audit:prod": "npm audit --omit=dev",

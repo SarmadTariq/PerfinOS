@@ -1014,227 +1014,13 @@ setGenerationMessage(null);
           return true;
 
         case 'generate':
-          return (
-            <Card>
-              <View style={styles.iconTitleRow}>
-                <View
-                  style={[
-                    styles.largeIcon,
-                    {
-                      backgroundColor:
-                        colors.actionPrimarySoft,
-                    },
-                  ]}
-                >
-                  <MaterialIcons
-                    name="auto-awesome"
-                    size={26}
-                    color={
-                      colors.actionPrimary
-                    }
-                  />
-                </View>
-
-                <View style={styles.flexCopy}>
-                  <Text variant="h3">
-                    Secure generation boundary
-                  </Text>
-
-                  <Text
-                    variant="body"
-                    color="secondary"
-                    style={styles.bodySpacing}
-                  >
-                    The app sends the reviewed evidence, primary goal, constraints, and optional coach context through Firebase Auth and App Check.
-                  </Text>
-                </View>
-              </View>
-
-              <Text
-                variant="bodySmall"
-                color={
-                  generationMessage ||
-                  clientUnavailableMessage ||
-                  guardReason
-                    ? 'danger'
-                    : state
-                        .generationStatus ===
-                        'success'
-                      ? 'success'
-                      : 'secondary'
-                }
-                style={styles.statusCopy}
-              >
-                {
-                  generationMessage ??
-                  clientUnavailableMessage ??
-                  planAIGuardCopy(
-                    guardReason
-                  ) ??
-                  planGenerationStatusCopy(
-                    state
-                      .generationStatus
-                  )
-                }
-              </Text>
-
-              <Button
-                label={
-                  isGuest
-                    ? 'Sign in required'
-                    : state
-                        .generationStatus ===
-                        'success'
-                      ? 'Draft generated'
-                      : 'Generate secure draft'
-                }
-                loading={
-                  state
-                    .generationStatus ===
-                  'loading'
-                }
-                disabled={
-                  isGuest ||
-                  Boolean(
-                    guardReason
-                  ) ||
-                  Boolean(
-                    clientUnavailableMessage
-                  ) ||
-                  !evidence ||
-                  state
-                    .generationStatus ===
-                    'success'
-                }
-                onPress={() => {
-                  void handleGenerate();
-                }}
-                style={styles.primaryAction}
-              />
-
-              {
-                state
-                  .generationStatus ===
-                  'success' &&
-                draft
-                  ? (
-                      <Text
-                        variant="bodySmall"
-                        color="success"
-                        style={styles.statusCopy}
-                      >
-                        The validated draft is ready. Continue to review it.
-                      </Text>
-                    )
-                  : null
-              }
-            </Card>
+          return isPlanCreationStepComplete(
+            state
           );
 
         case 'review':
-          return (
-            <View style={styles.cardStack}>
-              {
-                draft &&
-                editableDraft
-                  ? (
-                      <>
-                        {
-                          !state
-                            .draftReviewed
-                            ? (
-                                <PlanDraftEditor
-                                  draft={
-                                    editableDraft
-                                  }
-                                  onChange={
-                                    (
-                                      nextDraft
-                                    ) => {
-                                      setEditableDraft(
-                                        nextDraft
-                                      );
-
-                                      setSaveStatus(
-                                        'idle'
-                                      );
-
-                                      setSaveMessage(
-                                        null
-                                      );
-
-                                      setSavedPlanId(
-                                        null
-                                      );
-                                    }
-                                  }
-                                />
-                              )
-                            : null
-                        }
-
-                        <PlanStructuredDraftReview
-                          draft={draft}
-                          output={
-                            editableDraft
-                          }
-                        />
-
-                        <Card>
-                          <Text variant="h4">
-                            Review confirmation
-                          </Text>
-
-                          <Text
-                            variant="body"
-                            color="secondary"
-                            style={styles.bodySpacing}
-                          >
-                            Confirm only that you reviewed this draft. No financial action is applied by this control.
-                          </Text>
-
-                          <Button
-                            label={
-                              state
-                                .draftReviewed
-                                ? 'Draft reviewed'
-                                : 'I reviewed this draft'
-                            }
-                            variant={
-                              state
-                                .draftReviewed
-                                ? 'success'
-                                : 'primary'
-                            }
-                            disabled={
-                              state
-                                .draftReviewed
-                            }
-                            onPress={() =>
-                              setState(
-                                (current) =>
-                                  markPlanDraftReviewed(
-                                    current
-                                  )
-                              )
-                            }
-                            style={styles.primaryAction}
-                          />
-                        </Card>
-                      </>
-                    )
-                  : (
-                      <Card>
-                        <Text
-                          variant="body"
-                          color="danger"
-                        >
-                          A validated structured draft is required before review.
-                        </Text>
-                      </Card>
-                    )
-              }
-            </View>
+          return isPlanCreationStepComplete(
+            state
           );
 
         case 'save':
@@ -1771,7 +1557,7 @@ setGenerationMessage(null);
                     color="secondary"
                     style={styles.bodySpacing}
                   >
-                    The API client and validated draft handoff will be connected in the next PF-210 pass. This shell does not send a request.
+                    The app sends the reviewed evidence, primary goal, constraints, and optional coach context through Firebase Auth and App Check.
                   </Text>
                 </View>
               </View>
@@ -1779,13 +1565,21 @@ setGenerationMessage(null);
               <Text
                 variant="bodySmall"
                 color={
+                  generationMessage ||
+                  clientUnavailableMessage ||
                   guardReason
                     ? 'danger'
-                    : 'secondary'
+                    : state
+                        .generationStatus ===
+                        'success'
+                      ? 'success'
+                      : 'secondary'
                 }
                 style={styles.statusCopy}
               >
                 {
+                  generationMessage ??
+                  clientUnavailableMessage ??
                   planAIGuardCopy(
                     guardReason
                   ) ??
@@ -1800,30 +1594,159 @@ setGenerationMessage(null);
                 label={
                   isGuest
                     ? 'Sign in required'
-                    : 'Generate secure draft'
+                    : state
+                        .generationStatus ===
+                        'success'
+                      ? 'Draft generated'
+                      : 'Generate secure draft'
                 }
-                disabled
-                onPress={() => {}}
+                loading={
+                  state
+                    .generationStatus ===
+                  'loading'
+                }
+                disabled={
+                  isGuest ||
+                  Boolean(
+                    guardReason
+                  ) ||
+                  Boolean(
+                    clientUnavailableMessage
+                  ) ||
+                  !evidence ||
+                  state
+                    .generationStatus ===
+                    'success'
+                }
+                onPress={() => {
+                  void handleGenerate();
+                }}
                 style={styles.primaryAction}
               />
+
+              {
+                state
+                  .generationStatus ===
+                  'success' &&
+                draft
+                  ? (
+                      <Text
+                        variant="bodySmall"
+                        color="success"
+                        style={styles.statusCopy}
+                      >
+                        The validated draft is ready. Continue to review it.
+                      </Text>
+                    )
+                  : null
+              }
             </Card>
           );
 
         case 'review':
           return (
-            <Card>
-              <Text variant="h4">
-                Structured draft required
-              </Text>
+            <View style={styles.cardStack}>
+              {
+                draft &&
+                editableDraft
+                  ? (
+                      <>
+                        {
+                          !state
+                            .draftReviewed
+                            ? (
+                                <PlanDraftEditor
+                                  draft={
+                                    editableDraft
+                                  }
+                                  onChange={
+                                    (
+                                      nextDraft
+                                    ) => {
+                                      setEditableDraft(
+                                        nextDraft
+                                      );
 
-              <Text
-                variant="body"
-                color="secondary"
-                style={styles.bodySpacing}
-              >
-                This step becomes available only after the secure Worker returns a validated structured Plan draft.
-              </Text>
-            </Card>
+                                      setSaveStatus(
+                                        'idle'
+                                      );
+
+                                      setSaveMessage(
+                                        null
+                                      );
+
+                                      setSavedPlanId(
+                                        null
+                                      );
+                                    }
+                                  }
+                                />
+                              )
+                            : null
+                        }
+
+                        <PlanStructuredDraftReview
+                          draft={draft}
+                          output={
+                            editableDraft
+                          }
+                        />
+
+                        <Card>
+                          <Text variant="h4">
+                            Review confirmation
+                          </Text>
+
+                          <Text
+                            variant="body"
+                            color="secondary"
+                            style={styles.bodySpacing}
+                          >
+                            Confirm only that you reviewed this draft. No financial action is applied by this control.
+                          </Text>
+
+                          <Button
+                            label={
+                              state
+                                .draftReviewed
+                                ? 'Draft reviewed'
+                                : 'I reviewed this draft'
+                            }
+                            variant={
+                              state
+                                .draftReviewed
+                                ? 'success'
+                                : 'primary'
+                            }
+                            disabled={
+                              state
+                                .draftReviewed
+                            }
+                            onPress={() =>
+                              setState(
+                                (current) =>
+                                  markPlanDraftReviewed(
+                                    current
+                                  )
+                              )
+                            }
+                            style={styles.primaryAction}
+                          />
+                        </Card>
+                      </>
+                    )
+                  : (
+                      <Card>
+                        <Text
+                          variant="body"
+                          color="danger"
+                        >
+                          A validated structured draft is required before review.
+                        </Text>
+                      </Card>
+                    )
+              }
+            </View>
           );
 
         case 'save':

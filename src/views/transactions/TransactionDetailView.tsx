@@ -29,6 +29,9 @@ import { RequireData } from '../../components/layout/RequireData';
 import { useFinance } from '../../context/FinanceContext';
 import { useColors } from '../../context/ThemeContext';
 import {
+  deleteReceiptFromWorker,
+} from '../../services/receiptService';
+import {
   AppData,
   ReceiptAttachment,
   Transaction,
@@ -447,6 +450,16 @@ const TransactionDetailContent = ({
     confirmDelete,
     setConfirmDelete,
   ] = useState(false);
+  const [
+    deleting,
+    setDeleting,
+  ] = useState(false);
+  const [
+    deleteError,
+    setDeleteError,
+  ] = useState<string | null>(
+    null
+  );
 
   const transaction = data.transactions.find(
     (item) =>
@@ -747,6 +760,16 @@ const TransactionDetailContent = ({
           More actions
         </Text>
 
+        {deleteError ? (
+          <Text
+            variant="bodySmall"
+            color="danger"
+            style={styles.deleteError}
+          >
+            {deleteError}
+          </Text>
+        ) : null}
+
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel="Delete transaction"
@@ -806,21 +829,68 @@ const TransactionDetailContent = ({
       <ConfirmModal
         visible={confirmDelete}
         title="Delete this transaction?"
-        message={`This permanently removes ${transaction.merchant} from Activity and your PerFin OS workspace.`}
-        confirmLabel="Delete"
+        message={`This removes ${transaction.merchant} from Activity after any uploaded receipt objects are deleted.`}
+        confirmLabel={
+          deleting ? 'Deleting' : 'Delete'
+        }
         onCancel={() =>
           setConfirmDelete(false)
         }
         onConfirm={async () => {
-          await deleteTransaction(
-            transaction.id
-          );
+          if (deleting) return;
 
-          setConfirmDelete(false);
+          setDeleting(true);
+          setDeleteError(null);
 
-          navigation.navigate('MainTabs', {
-            screen: 'Transactions',
-          });
+          try {
+            const uploadedReceipts =
+              transaction.receipts.filter(
+                (receipt) =>
+                  receipt.status ===
+                  'uploaded'
+              );
+
+            const cleanup =
+              await Promise.allSettled(
+                uploadedReceipts.map(
+                  (receipt) =>
+                    deleteReceiptFromWorker(
+                      transaction.id,
+                      receipt
+                    )
+                )
+              );
+
+            if (
+              cleanup.some(
+                (result) =>
+                  result.status ===
+                  'rejected'
+              )
+            ) {
+              throw new Error(
+                'Uploaded receipt cleanup failed. The transaction was not deleted.'
+              );
+            }
+
+            await deleteTransaction(
+              transaction.id
+            );
+
+            setConfirmDelete(false);
+
+            navigation.navigate('MainTabs', {
+              screen: 'Transactions',
+            });
+          } catch (error) {
+            setDeleteError(
+              error instanceof Error
+                ? error.message
+                : 'Transaction deletion failed.'
+            );
+          } finally {
+            setDeleting(false);
+          }
         }}
       />
     </AppScroll>
@@ -1040,5 +1110,8 @@ const styles = StyleSheet.create({
   },
   deleteDescription: {
     marginTop: Spacing.xs,
+  },
+  deleteError: {
+    marginTop: Spacing.sm,
   },
 });
