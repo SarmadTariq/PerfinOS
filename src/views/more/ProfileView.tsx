@@ -313,7 +313,8 @@ export const ProfileScreen = () => (
           </View>
 
           <View style={styles.columns}>
-            <Card style={styles.column}>
+          <View style={styles.columnStack}>
+            <Card>
               <Text variant="h3">
                 Personal information
               </Text>
@@ -358,6 +359,7 @@ export const ProfileScreen = () => (
                 />
               </View>
             </Card>
+            </View>
 
             <View style={styles.columnStack}>
               <Card>
